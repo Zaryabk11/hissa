@@ -1,0 +1,71 @@
+# Hissa (Portion Coach) — PRD summary
+
+Full PRD: _add the shared PRD link here_ (source file: "Portion Coach PRD.pdf", Oct 30, 2026).
+
+## One line
+
+Hissa tells you how much to eat of the meal in front of you, in under 30 seconds, before you eat it.
+
+## Why
+
+Trackers record what you already ate. In most Pakistani homes the household cook chooses the menu, so the only decision the user controls is how much to take. Hissa is built around that decision.
+
+**Target user:** 18 to 35, lives with family or in a hostel, eats home-cooked desi food, wants to lose or manage weight without cooking separate meals. Opens the app at the table, 2 to 3 times a day.
+
+## Modules
+
+| Module           | Priority    | Effort | Done means                                                            |
+| ---------------- | ----------- | ------ | --------------------------------------------------------------------- |
+| 1. Portion Coach | Must ship   | ~60%   | Photo to confirmed portion plan, saved to the daily log, tested e2e   |
+| 2. Duo Streaks   | Should ship | ~25%   | Two real users paired, shared streak updates from real scans          |
+| 3. Food and Feel | Could ship  | ~15%   | 2-tap feel check-in after a meal, one weekly insight from logged data |
+
+### 1. Portion Coach
+
+Photo -> Gemini picks dishes from OUR catalog (structured output with an enum plus "unknown") -> user confirms with correction chips -> FatSecret nutrition per serving, local desi table as fallback -> plan engine fits portions (roti, katori, plate) to the remaining daily budget -> meal saved with predicted AND confirmed values.
+
+- Gemini never produces calorie numbers.
+- Low-confidence or unknown dishes always ask the user, never silently guess.
+- Budget used up: show a light plan (salad, raita, half portions), never "don't eat".
+- Corrections are saved with the original prediction.
+- Works when FatSecret is down (local table).
+
+### 2. Duo Streaks
+
+Two users share one streak. A day counts when a person saves at least one meal. The streak grows only when both count; it resets at midnight PKT if either misses. One buddy at a time, one nudge per day. The buddy sees "logged today" and the streak, never meals, photos or calories.
+
+### 3. Food and Feel
+
+2-tap check-in 90 minutes after a saved meal (energy: low/okay/good, stomach: heavy/fine/light). A weekly pattern card is built by a simple rule (one answer in 60% or more of a category's check-ins, at least 3 check-ins). Gemini only rewrites the flagged pattern into one sentence; it never invents the pattern. Copy says "pattern", never "cause" or "diagnosis".
+
+## Guardrails
+
+- Every number shown is an estimate. No medical advice.
+- English UI only for v1.
+
+## Out of scope for v1
+
+Training our own vision model, barcode or packaged food, workouts and wearables, groups larger than two, feeds, leaderboards, chat, meal plans and recipes, Urdu UI, medical or allergy modes, payments.
+
+## Trial success metrics
+
+| Metric                                         | Target           |
+| ---------------------------------------------- | ---------------- |
+| Photo to portion plan                          | Under 10 seconds |
+| Dish identified correctly on eval set (50-100) | 80% or more      |
+| Items corrected per scan                       | 1 or fewer       |
+| New tester completes scan flow unaided         | Under 30 seconds |
+| Testers who log 5 of 7 days                    | Tracked          |
+
+## Plan
+
+10 days. Scan flow works end to end by day 5 (gate); if not, Modules 2 and 3 are cut down before Module 1.
+
+## Open questions
+
+- Expo app or responsive web first? Both teammates must be able to test on a phone.
+- Who owns A (AI + backend) and B (app + UX)?
+- Which 30 to 40 dishes go in the catalog?
+- Does 8x provide a template repo?
+- Not in the PRD but needed: onboarding must collect sex (Mifflin-St Jeor requires it) — added to `profiles`.
+- FatSecret Basic forbids long-term caching; apply for Premier Free on day 1.
