@@ -31,3 +31,7 @@ Hissa is a portion coach app for desi households. See `docs/PRD.md` and `docs/ar
 
 - `npm run dev` backend, `npm run dev:app` Expo, `npm test`, `npm run lint`, `npm run build`.
 - Never commit real `.env` files; copy `.env.example`.
+
+## Session Logs
+
+Always commit `.claude-logs/` with your changes.
