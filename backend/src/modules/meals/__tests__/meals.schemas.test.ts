@@ -57,4 +57,16 @@ describe('saveMealBodySchema', () => {
   it.each([-0.1, 1.1])('rejects confidence %s', (confidence) => {
     expect(ok([{ ...item, confidence }])).toBe(false);
   });
+
+  it('rejects a confirmedPortion on a removed item', () => {
+    expect(ok([{ ...item, confirmedDish: null, confirmedPortion: 2 }])).toBe(false);
+  });
+
+  it.each([0, 0.5, 20, null])('accepts predictedPortion %s', (predictedPortion) => {
+    expect(ok([{ ...item, predictedPortion }])).toBe(true);
+  });
+
+  it.each([-1, 20.5, 1000, NaN, Infinity])('rejects predictedPortion %s', (predictedPortion) => {
+    expect(ok([{ ...item, predictedPortion }])).toBe(false);
+  });
 });

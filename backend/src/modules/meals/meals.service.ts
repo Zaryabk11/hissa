@@ -1,4 +1,5 @@
 import { ValidationError } from '../../shared/errors';
+import { logger } from '../../shared/logger';
 import { pktDay, pktDayBounds } from '../../shared/time/pkt';
 import type { NutritionService } from '../nutrition';
 import type { MealsRepository } from './meals.repository';
@@ -29,34 +30,40 @@ export function createMealsService({ repository, nutrition, now = () => new Date
       if (!input.items.some((i) => i.confirmedDish !== null))
         throw new ValidationError('A meal needs at least one confirmed dish');
 
-      let totalCalories = 0;
-      const rows: Omit<MealItemRow, 'meal_id'>[] = [];
-      for (const i of input.items) {
-        if (i.confirmedDish !== null && i.confirmedPortion !== null)
-          totalCalories += (await nutrition.portionNutrition(i.confirmedDish, i.confirmedPortion))
-            .calories;
-        rows.push({
-          predicted_dish_id: await dishId(i.predictedDish),
-          confirmed_dish_id: await dishId(i.confirmedDish),
-          predicted_portion: i.predictedPortion,
-          confirmed_portion: i.confirmedPortion,
-          confidence: i.confidence,
-        });
-      }
+      // Resolve every slug (and price every confirmed item) before any insert, in parallel.
+      const resolved = await Promise.all(
+        input.items.map(async (i) => {
+          const [calories, predictedId, confirmedId] = await Promise.all([
+            i.confirmedDish !== null && i.confirmedPortion !== null
+              ? nutrition
+                  .portionNutrition(i.confirmedDish, i.confirmedPortion)
+                  .then((n) => n.calories)
+              : 0,
+            dishId(i.predictedDish),
+            dishId(i.confirmedDish),
+          ]);
+          const row: Omit<MealItemRow, 'meal_id'> = {
+            predicted_dish_id: predictedId,
+            confirmed_dish_id: confirmedId,
+            predicted_portion: i.predictedPortion,
+            confirmed_portion: i.confirmedPortion,
+            confidence: i.confidence,
+          };
+          return { calories, row };
+        }),
+      );
+      const totalCalories = resolved.reduce((sum, r) => sum + r.calories, 0);
 
       const { id, eatenAt } = await repository.insertMeal(userId, totalCalories);
       try {
-        await repository.insertItems(
-          id,
-          rows.map((r) => ({ meal_id: id, ...r })),
-        );
+        await repository.insertItems(resolved.map((r) => ({ meal_id: id, ...r.row })));
       } catch (err) {
         // ponytail: supabase-js has no transaction, so undo the meal by hand. Best effort: the original
-        // error wins, and an orphan meal with no items can remain if the delete also fails.
+        // error wins, and an orphan meal with no items can remain if the delete also fails (logged).
         try {
           await repository.deleteMeal(userId, id);
         } catch {
-          // ignored on purpose, see above
+          logger.warn('Compensating meal delete failed', { mealId: id });
         }
         throw err;
       }

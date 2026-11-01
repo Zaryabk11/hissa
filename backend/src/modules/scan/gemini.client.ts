@@ -36,8 +36,10 @@ export function createGeminiClient(opts: {
   apiKey: string;
   model: string;
   fetchFn?: typeof fetch;
+  timeoutMs?: number;
 }): GeminiClient {
   const fetchFn = opts.fetchFn ?? fetch;
+  const timeoutMs = opts.timeoutMs ?? 20000;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${opts.model}:generateContent`;
 
   return {
@@ -82,7 +84,7 @@ export function createGeminiClient(opts: {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'x-goog-api-key': opts.apiKey },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(timeoutMs),
         });
         if (!res.ok) throw unavailable({ status: res.status }, `Gemini returned HTTP ${res.status}`);
         json = await res.json();

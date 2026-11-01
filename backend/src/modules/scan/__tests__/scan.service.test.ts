@@ -13,15 +13,19 @@ const DISHES = [
 
 let image: string;
 beforeAll(async () => {
-  const jpeg = await sharp({ create: { width: 40, height: 30, channels: 3, background: '#fff' } })
-    .jpeg()
+  const png = await sharp({ create: { width: 2000, height: 1000, channels: 3, background: '#fff' } })
+    .png()
     .toBuffer();
-  image = jpeg.toString('base64');
+  image = png.toString('base64');
 });
 
-function setup(detected: DetectedDish[] | Error = [], count: (day: string) => number = () => 0) {
+function setup(
+  detected: DetectedDish[] | Error = [],
+  count: (day: string, call: number) => number = () => 0,
+) {
+  let calls = 0;
   const repository = {
-    countScansForDay: vi.fn(async (_userId: string, day: string) => count(day)),
+    countScansForDay: vi.fn(async (_userId: string, day: string) => count(day, calls++)),
     recordScan: vi.fn(async () => {}),
   };
   const gemini = {
@@ -38,7 +42,7 @@ function setup(detected: DetectedDish[] | Error = [], count: (day: string) => nu
     dailyCap: 10,
     now: () => NOW,
   });
-  const scan = () => service.scanPhoto('u1', { image, mimeType: 'image/jpeg' });
+  const scan = () => service.scanPhoto('u1', { image, mimeType: 'image/png' });
   return { repository, gemini, nutrition, service, scan };
 }
 
@@ -47,10 +51,17 @@ describe('scan service', () => {
     const { repository, gemini, scan } = setup([{ dish: 'roti', portion: 2, confidence: 0.9 }]);
     await scan();
     expect(repository.recordScan).toHaveBeenCalledExactlyOnceWith('u1', '2026-11-02');
-    expect(gemini.detectDishes).toHaveBeenCalledWith(expect.any(Buffer), [
+    expect(gemini.detectDishes).toHaveBeenCalledWith(expect.anything(), [
       { slug: 'roti', unit: 'roti' },
       { slug: 'daal', unit: 'katori' },
     ]);
+  });
+
+  it('gives Gemini the resized JPEG, not the original upload', async () => {
+    const { gemini, scan } = setup();
+    await scan();
+    const [sent] = gemini.detectDishes.mock.calls[0] as unknown as [Buffer];
+    expect(await sharp(sent).metadata()).toMatchObject({ format: 'jpeg', width: 1024 });
   });
 
   it('does not use up a scan slot when the catalog read fails', async () => {
@@ -75,6 +86,20 @@ describe('scan service', () => {
     expect(repository.recordScan).not.toHaveBeenCalled();
   });
 
+  it('loses a race for the last slot: over the cap after recording means manual, no Gemini', async () => {
+    const { repository, gemini, scan } = setup([], (_day, call) => (call === 0 ? 9 : 11));
+    expect(await scan()).toEqual({ mode: 'manual', reason: 'daily_cap' });
+    expect(repository.recordScan).toHaveBeenCalledOnce();
+    expect(gemini.detectDishes).not.toHaveBeenCalled();
+  });
+
+  it('takes the last slot when the count after recording equals the cap', async () => {
+    const { repository, gemini, scan } = setup([], (_day, call) => (call === 0 ? 9 : 10));
+    expect((await scan()).mode).toBe('detected');
+    expect(repository.countScansForDay).toHaveBeenCalledTimes(2);
+    expect(gemini.detectDishes).toHaveBeenCalledOnce();
+  });
+
   it('falls back to manual mode when Gemini is unavailable, but the scan is still recorded', async () => {
     const { repository, scan } = setup(new GeminiUnavailableError());
     expect(await scan()).toEqual({ mode: 'manual', reason: 'gemini_unavailable' });
@@ -90,14 +115,35 @@ describe('scan service', () => {
     const { scan } = setup([
       { dish: 'roti', portion: 1, confidence: 0.59 },
       { dish: 'roti', portion: 1, confidence: 0.6 },
-      { dish: 'unknown', portion: 1, confidence: 0.99 },
     ]);
     const result = await scan();
     expect(result.mode === 'detected' && result.items.map((i) => i.needsConfirmation)).toEqual([
       true,
       false,
-      true,
     ]);
+  });
+
+  it('drops unknown items when at least one catalog dish was found', async () => {
+    const { scan } = setup([
+      { dish: 'unknown', portion: 1, confidence: 0.99 },
+      { dish: 'mystery', portion: 1, confidence: 0.9 },
+      { dish: 'roti', portion: 2, confidence: 0.9 },
+    ]);
+    const result = await scan();
+    expect(result.mode === 'detected' && result.items.map((i) => i.dish)).toEqual(['roti']);
+  });
+
+  it.each([
+    ['only unknown items', [{ dish: 'unknown', portion: 1, confidence: 0.9 }, { dish: 'mystery', portion: 1, confidence: 0.9 }]],
+    ['nothing', []],
+  ])('returns exactly one unknown item for %s', async (_name, detected) => {
+    const { scan } = setup(detected);
+    expect(await scan()).toEqual({
+      mode: 'detected',
+      items: [
+        { dish: 'unknown', name: null, unit: null, portion: 0, confidence: 0, needsConfirmation: true },
+      ],
+    });
   });
 
   it('returns a single unknown item when Gemini finds nothing', async () => {
@@ -117,11 +163,8 @@ describe('scan service', () => {
     });
   });
 
-  it('fills name and unit from the catalog; a slug outside it is treated as unknown', async () => {
-    const { scan } = setup([
-      { dish: 'daal', portion: 1.5, confidence: 0.8 },
-      { dish: 'mystery', portion: 1, confidence: 0.9 },
-    ]);
+  it('fills name and unit from the catalog', async () => {
+    const { scan } = setup([{ dish: 'daal', portion: 1.5, confidence: 0.8 }]);
     expect(await scan()).toEqual({
       mode: 'detected',
       items: [
@@ -132,14 +175,6 @@ describe('scan service', () => {
           portion: 1.5,
           confidence: 0.8,
           needsConfirmation: false,
-        },
-        {
-          dish: 'unknown',
-          name: null,
-          unit: null,
-          portion: 1,
-          confidence: 0.9,
-          needsConfirmation: true,
         },
       ],
     });

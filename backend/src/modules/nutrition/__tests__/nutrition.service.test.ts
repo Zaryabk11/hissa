@@ -52,6 +52,17 @@ describe('nutrition service', () => {
     await expect(service.portionNutrition('chicken-karahi', 0)).rejects.toBeInstanceOf(ValidationError);
   });
 
+  it('rejects negative units', async () => {
+    await expect(service.portionNutrition('chicken-karahi', -1)).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('reports the catalog slug, not the one the caller passed', async () => {
+    const lenient = createNutritionService({
+      repository: { ...repository, findDishBySlug: async () => karahi },
+    });
+    expect((await lenient.portionNutrition('Chicken-Karahi', 1)).slug).toBe('chicken-karahi');
+  });
+
   it('rejects non-finite units', async () => {
     for (const units of [Infinity, NaN]) {
       await expect(service.portionNutrition('chicken-karahi', units)).rejects.toBeInstanceOf(ValidationError);

@@ -1,6 +1,7 @@
 import sharp from 'sharp';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ValidationError } from '../../../shared/errors';
+import { logger } from '../../../shared/logger';
 import { resizePhoto } from '../resize-photo';
 
 const png = (width: number, height: number) =>
@@ -23,5 +24,16 @@ describe('resizePhoto', () => {
     await expect(resizePhoto(Buffer.from('not an image'))).rejects.toThrow(
       new ValidationError('Unreadable image'),
     );
+  });
+
+  it('logs the sharp error name and message when the image is unreadable', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    await resizePhoto(Buffer.from('not an image')).catch(() => {});
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      'Photo could not be decoded',
+      expect.objectContaining({ error: 'Error', message: expect.any(String) }),
+    );
+    warn.mockRestore();
   });
 });

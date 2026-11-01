@@ -27,7 +27,11 @@ export function createScanModule({
     repository: createScanRepository(db),
     nutrition,
     dailyCap: config.SCAN_DAILY_CAP,
-    gemini: createGeminiClient({ apiKey: config.GEMINI_API_KEY, model: config.GEMINI_MODEL }),
+    gemini: createGeminiClient({
+      apiKey: config.GEMINI_API_KEY,
+      model: config.GEMINI_MODEL,
+      timeoutMs: config.GEMINI_TIMEOUT_MS,
+    }),
   });
   const router = createScanRouter(createScanController(service));
   return { router, service };

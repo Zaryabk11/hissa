@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ValidationError } from '../../../shared/errors';
+import { NotFoundError, ValidationError } from '../../../shared/errors';
+import { logger } from '../../../shared/logger';
 import { pktDayBounds } from '../../../shared/time/pkt';
 import type { Dish, PortionNutrition } from '../../nutrition';
 import { createMealsService } from '../meals.service';
@@ -51,7 +52,7 @@ describe('meals service', () => {
       ],
     });
     expect(nutrition.getDish).not.toHaveBeenCalledWith('unknown');
-    expect(repository.insertItems).toHaveBeenCalledWith('m1', [
+    expect(repository.insertItems).toHaveBeenCalledWith([
       {
         meal_id: 'm1',
         predicted_dish_id: null,
@@ -75,7 +76,7 @@ describe('meals service', () => {
     expect(meal.totalCalories).toBe(200);
     expect(meal.id).toBe('m1');
     expect(repository.insertMeal).toHaveBeenCalledWith('u1', 200);
-    expect(repository.insertItems).toHaveBeenCalledWith('m1', [
+    expect(repository.insertItems).toHaveBeenCalledWith([
       {
         meal_id: 'm1',
         predicted_dish_id: 'id-roti',
@@ -108,7 +109,7 @@ describe('meals service', () => {
         }),
       ],
     });
-    expect(repository.insertItems).toHaveBeenCalledWith('m1', [
+    expect(repository.insertItems).toHaveBeenCalledWith([
       expect.objectContaining({ predicted_dish_id: null, confirmed_dish_id: 'id-daal' }),
     ]);
   });
@@ -135,8 +136,21 @@ describe('meals service', () => {
     const boom = new Error('items failed');
     repository.insertItems.mockRejectedValueOnce(boom);
     repository.deleteMeal.mockRejectedValueOnce(new Error('delete failed'));
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
     await expect(service.saveMeal('u1', { items: [item()] })).rejects.toBe(boom);
     expect(repository.deleteMeal).toHaveBeenCalledWith('u1', 'm1');
+    expect(warn).toHaveBeenCalledExactlyOnceWith('Compensating meal delete failed', { mealId: 'm1' });
+    warn.mockRestore();
+  });
+
+  it('rejects an unknown slug with NotFoundError before inserting anything', async () => {
+    const { service, repository, nutrition } = setup();
+    nutrition.getDish.mockRejectedValueOnce(new NotFoundError('Unknown dish: nope'));
+    await expect(
+      service.saveMeal('u1', { items: [item(), item({ predictedDish: 'nope' })] }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(repository.insertMeal).not.toHaveBeenCalled();
+    expect(repository.insertItems).not.toHaveBeenCalled();
   });
 
   it('listToday queries the PKT day bounds of now for the user and sums calories', async () => {

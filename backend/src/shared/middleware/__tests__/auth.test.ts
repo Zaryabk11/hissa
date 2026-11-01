@@ -5,7 +5,7 @@ import { createRequireAuth } from '../auth';
 import { errorHandler } from '../error-handler';
 import type { Db } from '../../db';
 
-type GetUserResult = { data: { user: { id: string } | null }; error: { status?: number } | null };
+type GetUserResult = { data: { user: { id: string } | null }; error: { status?: number | string } | null };
 
 function appWith(getUser: () => Promise<GetUserResult>) {
   const app = express();
@@ -14,7 +14,7 @@ function appWith(getUser: () => Promise<GetUserResult>) {
   app.use(errorHandler);
   return app;
 }
-const failWith = (status?: number) => () =>
+const failWith = (status?: number | string) => () =>
   Promise.resolve({ data: { user: null }, error: { status } });
 const bearer = { authorization: 'Bearer t' };
 
@@ -33,7 +33,7 @@ describe('requireAuth', () => {
     expect(res.body.error.code).toBe('unauthorized');
   });
 
-  it.each([0, 500, 503, undefined])('503 when the auth service fails with %s', async (status) => {
+  it.each([0, 429, 500, 503, undefined, '503'])('503 when the auth service fails with %s', async (status) => {
     const res = await request(appWith(failWith(status))).get('/x').set(bearer);
     expect(res.status).toBe(503);
     expect(res.body.error).toEqual({

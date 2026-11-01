@@ -18,4 +18,11 @@ describe('pktDayBounds', () => {
       endIso: '2026-11-02T19:00:00.000Z',
     });
   });
+
+  it.each(['2026-13-01', '2026-02-30', '2026-11-1', '', 'tomorrow', '2026-11-02T00:00:00Z'])(
+    'throws a clear error for %j',
+    (day) => {
+      expect(() => pktDayBounds(day)).toThrow(/Invalid PKT day/);
+    },
+  );
 });

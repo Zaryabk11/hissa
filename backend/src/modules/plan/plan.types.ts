@@ -1,8 +1,10 @@
 // Domain types for the plan module.
+import type { Unit } from '../nutrition';
+
 export interface PlanItem {
   slug: string;
   name: string;
-  unit: string;
+  unit: Unit;
   requestedUnits: number;
   units: number;
   calories: number;

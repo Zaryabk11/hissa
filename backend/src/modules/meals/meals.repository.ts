@@ -34,7 +34,7 @@ export function createMealsRepository(db: Db) {
       return { id: data.id as string, eatenAt: data.eaten_at as string };
     },
 
-    async insertItems(_mealId: string, rows: MealItemRow[]): Promise<void> {
+    async insertItems(rows: MealItemRow[]): Promise<void> {
       const { error } = await db.from('meal_items').insert(rows);
       if (error) throw error;
     },

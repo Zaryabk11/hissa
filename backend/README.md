@@ -32,7 +32,8 @@ Regenerate the catalog seed with `node database/scripts/build-seed.mjs`.
 | `SUPABASE_ANON_KEY`         | required                |                            |
 | `SUPABASE_SERVICE_ROLE_KEY` | required                | Server only. Bypasses RLS. |
 | `GEMINI_API_KEY`            | required                | Server only.               |
-| `GEMINI_MODEL`              | `gemini-3.1-flash-lite` |                            |
+| `GEMINI_MODEL`              | `gemini-3.1-flash-lite` | Empty value uses default   |
+| `GEMINI_TIMEOUT_MS`         | `20000`                 | Gemini call timeout (ms)   |
 | `SCAN_DAILY_CAP`            | `10`                    | Scans per user per PKT day |
 
 The server refuses to start if a required variable is missing.
@@ -52,7 +53,7 @@ The server refuses to start if a required variable is missing.
 | 400    | `validation_error`  | Bad body, unreadable image, meal with no confirmed dish           |
 | 400    | `bad_request`       | Malformed JSON                                                    |
 | 401    | `unauthorized`      | Missing or rejected bearer token                                  |
-| 503    | `auth_unavailable`  | Supabase Auth unreachable or returning 5xx                        |
+| 503    | `auth_unavailable`  | Supabase Auth unreachable, rate limiting or returned 5xx          |
 | 404    | `not_found`         | Unknown route, unknown dish slug, `GET /profiles/me` before setup |
 | 413    | `payload_too_large` | Request body over 8 MB                                            |
 | 501    | `not_implemented`   | Stub routes (below)                                               |
@@ -153,7 +154,7 @@ Request:
 ```
 
 - `mimeType` must be `image/jpeg`, `image/png` or `image/webp`. **The app should send JPEG.**
-- Decoded image must be at most 6,000,000 bytes (else 400 `validation_error`). The whole request body is capped at 8 MB (else 413 `payload_too_large`). Compress and downscale on the device first. The server resizes to 1024 px anyway.
+- Send raw base64: an `image` starting with `data:` is rejected (400 "Send raw base64 without a data: prefix"), as is one that decodes to 0 bytes. Decoded image must be at most 6,000,000 bytes (else 400 `validation_error`). The whole request body is capped at 8 MB (else 413 `payload_too_large`). Compress and downscale on the device first. The server resizes to 1024 px anyway.
 - An undecodable image gives 400 `validation_error` ("Unreadable image").
 
 Response 200, detected:
@@ -242,7 +243,7 @@ Rules:
 
 - Each item needs a `predictedDish` or `confirmedDish` (slug); `predictedDish: "unknown"` does not count as a predicted dish. All five fields are required keys; use `null` for "none".
 - `confirmedDish: null` means the user removed the item. A dish the user added by hand has `predictedDish: null`, `predictedPortion: null`, `confidence: null`.
-- If `confirmedDish` is set, `confirmedPortion` must be greater than 0 and at most 20.
+- If `confirmedDish` is set, `confirmedPortion` must be greater than 0 and at most 20; if it is `null`, `confirmedPortion` must be `null` too. `predictedPortion` is `null` or between 0 and 20 (a scan emits 0 for an unknown item).
 - At least one item must have a `confirmedDish`, else 400.
 - Calories are computed by the server from the catalog for confirmed items only.
 
@@ -300,7 +301,7 @@ Meals eaten today, where "today" is the Pakistan (PKT, UTC+5) calendar day. Olde
   - `reason: "daily_cap"`: the user used all `SCAN_DAILY_CAP` scans (default 10) for the PKT day. The scan is not run and not counted.
   - `reason: "gemini_unavailable"`: Gemini failed or timed out. The attempt still counts toward the cap.
 - **`needsConfirmation: true`** means show correction chips for that item instead of treating it as settled. It is true when confidence is below 0.6, when the dish is `unknown`, or when the model's portion was out of range (0 or above 20) and was replaced by `1`. When false, still let the user edit.
-- **Nothing recognised:** `items` is a single entry `{ "dish": "unknown", "name": null, "unit": null, "portion": 0, "confidence": 0, "needsConfirmation": true }`. Treat it as "we could not tell", and send the user to manual entry. `unknown` items inside a longer list have `name` and `unit` null too.
+- **Nothing recognised:** `items` is a single entry `{ "dish": "unknown", "name": null, "unit": null, "portion": 0, "confidence": 0, "needsConfirmation": true }`. Treat it as "we could not tell", and send the user to manual entry. Whenever at least one catalog dish is recognised, `unknown` items are dropped, so a mixed result never contains `unknown` rows and the single `unknown` item above appears only when nothing was recognised.
 - Gemini only picks from catalog slugs (or `unknown`). It never supplies calories.
 
 ### Units and portions

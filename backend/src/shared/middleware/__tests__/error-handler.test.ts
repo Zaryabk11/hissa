@@ -16,7 +16,7 @@ describe('errorHandler', () => {
     const res = await request(appThrowing(err)).get('/x');
     expect(res.status).toBe(413);
     expect(res.body.error.code).toBe('payload_too_large');
-    expect(typeof res.body.error.message).toBe('string');
+    expect(res.body.error.message).toBe('Request body too large');
   });
 
   it('maps other exposed 4xx errors to bad_request', async () => {
@@ -24,6 +24,7 @@ describe('errorHandler', () => {
     const res = await request(appThrowing(err)).get('/x');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('bad_request');
+    expect(res.body.error.message).toBe('Bad request');
   });
 
   it('still returns 500 internal_error for unknown errors', async () => {

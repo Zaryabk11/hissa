@@ -14,8 +14,8 @@ function geminiReply(text: string, status = 200): typeof fetch {
   ) as unknown as typeof fetch;
 }
 
-function client(fetchFn: typeof fetch) {
-  return createGeminiClient({ apiKey: 'secret-key', model: 'gemini-test', fetchFn });
+function client(fetchFn: typeof fetch, timeoutMs?: number) {
+  return createGeminiClient({ apiKey: 'secret-key', model: 'gemini-test', fetchFn, timeoutMs });
 }
 
 describe('gemini client', () => {
@@ -64,6 +64,37 @@ describe('gemini client', () => {
     await expect(client(geminiReply('', 429)).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
       GeminiUnavailableError,
     );
+  });
+
+  it('rejects with GeminiUnavailableError on HTTP 503', async () => {
+    await expect(client(geminiReply('', 503)).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
+      GeminiUnavailableError,
+    );
+  });
+
+  describe('timeout', () => {
+    it('passes the configured timeout to AbortSignal.timeout', async () => {
+      const timeout = vi.spyOn(AbortSignal, 'timeout');
+      await client(geminiReply('[]'), 1234).detectDishes(photo, catalog);
+      expect(timeout).toHaveBeenCalledExactlyOnceWith(1234);
+      timeout.mockRestore();
+    });
+
+    it('defaults to 20000 ms', async () => {
+      const timeout = vi.spyOn(AbortSignal, 'timeout');
+      await client(geminiReply('[]')).detectDishes(photo, catalog);
+      expect(timeout).toHaveBeenCalledExactlyOnceWith(20000);
+      timeout.mockRestore();
+    });
+
+    it('rejects with GeminiUnavailableError when the request is aborted by the timeout', async () => {
+      const fetchFn = vi.fn(async () => {
+        throw new DOMException('The operation timed out', 'TimeoutError');
+      }) as unknown as typeof fetch;
+      await expect(client(fetchFn, 10).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
+        GeminiUnavailableError,
+      );
+    });
   });
 
   it('rejects with GeminiUnavailableError on a network error, without leaking the key', async () => {

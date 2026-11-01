@@ -19,6 +19,21 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...minimalEnv, SCAN_DAILY_CAP: '3' }).SCAN_DAILY_CAP).toBe(3);
   });
 
+  it('defaults GEMINI_TIMEOUT_MS to 20000 and accepts an override', () => {
+    expect(loadConfig(minimalEnv).GEMINI_TIMEOUT_MS).toBe(20000);
+    expect(loadConfig({ ...minimalEnv, GEMINI_TIMEOUT_MS: '30000' }).GEMINI_TIMEOUT_MS).toBe(30000);
+  });
+
+  it('falls back to the default GEMINI_MODEL when it is set to an empty string', () => {
+    expect(loadConfig({ ...minimalEnv, GEMINI_MODEL: '' }).GEMINI_MODEL).toBe(
+      'gemini-3.1-flash-lite',
+    );
+  });
+
+  it.each(['0', 'abc'])('rejects SCAN_DAILY_CAP=%s', (cap) => {
+    expect(() => loadConfig({ ...minimalEnv, SCAN_DAILY_CAP: cap })).toThrow(/SCAN_DAILY_CAP/);
+  });
+
   it('throws when GEMINI_API_KEY is missing', () => {
     expect(() => loadConfig({ ...minimalEnv, GEMINI_API_KEY: undefined })).toThrow(/GEMINI_API_KEY/);
   });
