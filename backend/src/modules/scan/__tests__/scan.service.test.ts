@@ -9,7 +9,7 @@ describe('scan service', () => {
   it('detectDishes is a stub that reports not implemented', async () => {
     const service = createScanService({
       repository: createScanRepository({} as Db),
-      gemini: createGeminiClient('key'),
+      gemini: createGeminiClient({ apiKey: 'key', model: 'm' }),
     });
     await expect(service.detectDishes()).rejects.toBeInstanceOf(NotImplementedError);
   });

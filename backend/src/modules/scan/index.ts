@@ -16,7 +16,7 @@ export function createScanModule({ db, config }: { db: Db; config: Config }): {
 } {
   const service = createScanService({
     repository: createScanRepository(db),
-    gemini: createGeminiClient(config.GEMINI_API_KEY),
+    gemini: createGeminiClient({ apiKey: config.GEMINI_API_KEY, model: config.GEMINI_MODEL }),
   });
   const router = createScanRouter(createScanController(service));
   return { router, service };
