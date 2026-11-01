@@ -16,7 +16,7 @@ v1 (Portion Coach: photo, Gemini names dishes, confirm, portion plan, saved meal
 
 ## Setup
 
-Needs Node 20+.
+Needs Node 22.13 or newer (Node 24.3+ recommended; this is what the dependencies require, and Node 25 is not supported by Vitest). Developed on Node 24.
 
 ```
 npm install
