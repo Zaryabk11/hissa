@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "python3 .session-logs/write_log.py copilot"
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 .session-logs/write_log.py copilot"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "type": "command",
+        "command": "python3 .session-logs/write_log.py copilot"
+      }
+    ]
+  }
+}

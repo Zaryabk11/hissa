@@ -34,4 +34,4 @@ Hissa is a portion coach app for desi households. See `docs/PRD.md` and `docs/ar
 
 ## Session Logs
 
-Always commit `.claude-logs/` with your changes.
+Claude Code, Codex CLI, and VS Code Copilot hooks write user prompts and final assistant responses to `.claude-logs/`. Do not add tool calls, tool results, or intermediate reasoning to these logs. Always commit `.claude-logs/` with your changes.
