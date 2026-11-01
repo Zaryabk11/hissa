@@ -98,7 +98,11 @@ export function createPlanService({ profiles, meals, nutrition }: PlanDeps) {
           kind = 'minimum';
           break;
         }
-        units[pick] = Math.max(step(pick), (units[pick] as number) - step(pick));
+        // Round: Gemini portions like 1.1 minus a step would otherwise give 0.6000000000000001.
+        units[pick] = Math.max(
+          step(pick),
+          Math.round(((units[pick] as number) - step(pick)) * 100) / 100,
+        );
         items[pick] = await toItem(
           dishes[pick] as Dish,
           (requested[pick] as { units: number }).units,

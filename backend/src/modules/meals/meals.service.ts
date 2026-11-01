@@ -10,10 +10,11 @@ interface MealsDeps {
   now?: () => Date;
 }
 
-// Business rules for meals. Calories come from the catalog for the confirmed items only.
+// Business rules for meals. A predicted dish of "unknown" (what a scan emits) counts as no dish.
+// Calories come from the catalog for the confirmed items only.
 export function createMealsService({ repository, nutrition, now = () => new Date() }: MealsDeps) {
   async function dishId(slug: string | null): Promise<string | null> {
-    return slug === null ? null : (await nutrition.getDish(slug)).id;
+    return slug === null || slug === 'unknown' ? null : (await nutrition.getDish(slug)).id;
   }
 
   async function listToday(userId: string) {

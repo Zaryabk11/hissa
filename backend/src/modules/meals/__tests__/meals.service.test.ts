@@ -37,6 +37,32 @@ function setup(listed: Meal[] = []) {
 }
 
 describe('meals service', () => {
+  it('saves an unknown scan item as a user-added dish without looking up "unknown"', async () => {
+    const { service, repository, nutrition } = setup();
+    await service.saveMeal('u1', {
+      items: [
+        item({
+          predictedDish: 'unknown',
+          predictedPortion: 0,
+          confirmedDish: 'roti',
+          confirmedPortion: 2,
+          confidence: 0,
+        }),
+      ],
+    });
+    expect(nutrition.getDish).not.toHaveBeenCalledWith('unknown');
+    expect(repository.insertItems).toHaveBeenCalledWith('m1', [
+      {
+        meal_id: 'm1',
+        predicted_dish_id: null,
+        confirmed_dish_id: 'id-roti',
+        predicted_portion: 0,
+        confirmed_portion: 2,
+        confidence: 0,
+      },
+    ]);
+  });
+
   it('sums confirmed calories; a removed item adds 0 and keeps its prediction', async () => {
     const { service, repository } = setup();
     const removed = item({

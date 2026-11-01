@@ -40,6 +40,12 @@ describe('saveMealBodySchema', () => {
     expect(ok([{ ...item, predictedDish: null, confirmedDish: null }])).toBe(false);
   });
 
+  it('treats an unknown predicted dish as no dish', () => {
+    const unknown = { ...item, predictedDish: 'unknown', predictedPortion: 0, confidence: 0 };
+    expect(ok([{ ...unknown, confirmedDish: null, confirmedPortion: null }])).toBe(false);
+    expect(ok([unknown])).toBe(true);
+  });
+
   it.each([0, -1, NaN, Infinity, 1000])('rejects confirmedPortion %s', (confirmedPortion) => {
     expect(ok([{ ...item, confirmedPortion }])).toBe(false);
   });

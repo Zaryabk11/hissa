@@ -27,6 +27,14 @@ describe('app', () => {
     expect(res.status).toBe(413);
   });
 
+  it('rejects a 200 KB body on a non-scan route with 413', async () => {
+    const res = await request(createApp())
+      .post('/api/plan')
+      .send({ pad: 'a'.repeat(200_000) });
+    expect(res.status).toBe(413);
+    expect(res.body.error.code).toBe('payload_too_large');
+  });
+
   it('POST /api/scan with an invalid mimeType returns 400', async () => {
     const res = await request(createApp())
       .post('/api/scan')

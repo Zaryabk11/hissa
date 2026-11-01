@@ -11,9 +11,12 @@ const itemSchema = z
     confirmedPortion: portion,
     confidence: z.number().min(0).max(1).nullable(),
   })
-  .refine((i) => i.predictedDish !== null || i.confirmedDish !== null, {
-    message: 'Each item needs a predicted or a confirmed dish',
-  })
+  .refine(
+    (i) => (i.predictedDish !== null && i.predictedDish !== 'unknown') || i.confirmedDish !== null,
+    {
+      message: 'Each item needs a predicted or a confirmed dish',
+    },
+  )
   .refine(
     (i) =>
       i.confirmedDish === null ||

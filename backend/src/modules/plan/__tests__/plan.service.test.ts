@@ -57,6 +57,12 @@ describe('plan service', () => {
     expect(plan.isEstimate).toBe(true);
   });
 
+  it('rounds lowered units to 2 decimals', async () => {
+    const plan = await setup(300).buildPlan('u1', [{ slug: 'karahi', units: 1.1 }]);
+    expect(plan.kind).toBe('reduced');
+    expect(plan.items[0]?.units).toBe(0.6);
+  });
+
   it('stops at one step per item and reports minimum', async () => {
     const plan = await setup(100).buildPlan('u1', REQUEST);
     expect(plan.kind).toBe('minimum');
