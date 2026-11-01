@@ -40,7 +40,7 @@ The server refuses to start if a required variable is missing.
 
 ## Conventions
 
-- Base path `/api`. JSON in, JSON out. Body limit 8 MB.
+- Base path `/api`. JSON in, JSON out. Body limit 100 kb, except `POST /api/scan` (8 MB, parsed after auth).
 - Auth: every route except `GET /api/health` needs `Authorization: Bearer <Supabase access token>` (the session token from Supabase Auth in the app). Missing or invalid token gives 401.
 - Errors always look like this:
 
@@ -55,7 +55,7 @@ The server refuses to start if a required variable is missing.
 | 401    | `unauthorized`      | Missing or rejected bearer token                                  |
 | 503    | `auth_unavailable`  | Supabase Auth unreachable, rate limiting or returned 5xx          |
 | 404    | `not_found`         | Unknown route, unknown dish slug, `GET /profiles/me` before setup |
-| 413    | `payload_too_large` | Request body over 8 MB                                            |
+| 413    | `payload_too_large` | Body over its limit                                               |
 | 501    | `not_implemented`   | Stub routes (below)                                               |
 | 500    | `internal_error`    | Anything unexpected                                               |
 

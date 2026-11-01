@@ -1,6 +1,6 @@
 # Hissa: AI and backend design
 
-Date: 2026-11-01. Status: approved by the user, 2026-11-01. Scope: the AI choice, the nutrition data source, the scan pipeline, and how the app learns each user. It builds on `docs/PRD.md` and `docs/architecture.md` and **supersedes** `docs/decisions/0002-gemini-names-tables-count.md` (FatSecret is dropped).
+Date: 2026-11-01. Status: approved by the user, 2026-11-01; implemented for v1 on 2026-11-02 (v2 and v3 sections are designed, not built; see "Implementation status (v1)" at the end). Scope: the AI choice, the nutrition data source, the scan pipeline, and how the app learns each user. It builds on `docs/PRD.md` and `docs/architecture.md` and **supersedes** `docs/decisions/0002-gemini-names-tables-count.md` (FatSecret is dropped).
 
 "Decided" marks what the user chose. "My call" marks what I chose. On 2026-11-01 the user approved the whole document, so my calls stand unless a later decision changes them. Two further decisions from the same message: licensing is not a concern (hackathon, not a public product), and dish accuracy is not a gate.
 
@@ -13,16 +13,19 @@ Why this design: the PRD's nutrition API (FatSecret) is replaced by Pakistani re
 ## 2. Goals, non-goals, anti-goals
 
 **Goals**
+
 - Photo to confirmed portion plan in under 10 s. The PRD's 80% dish-accuracy target is not a gate (decided: accuracy is not a concern for this hackathon); accuracy is measured and reported, not enforced.
 - Every nutrition number traceable to a named source and labelled an estimate.
 - Works on free tiers during the trial (see 6.3).
 
 **Non-goals (v1)**
+
 - Training or fine-tuning our own vision model. **Decided:** the user chose Gemini after seeing the head-to-head in 4.1, because no real home-meal photos could be sourced to settle it. Revisit only if the eval in section 8 shows Gemini below target on specific dishes.
 - Barcode or packaged food, workouts, groups larger than two (PRD).
 - A recipe engine beyond "standard open-source recipes, nothing too crazy". Recipes are a stretch goal, not must-ship. Decided.
 
 **Anti-goals (failure even if it works)**
+
 - Gemini or any model producing a calorie or macro number.
 - Silently guessing a low-confidence dish instead of asking.
 - Telling the user a food "suits your body" or "causes" anything. Copy says "pattern". Never medical advice.
@@ -46,12 +49,13 @@ Why this design: the PRD's nutrition API (FatSecret) is replaced by Pakistani re
 
 Fine-tuned EfficientNet-B0 (6 epochs on the Kaggle images, 61 classes, near-duplicate-safe split) against Gemini 3.1 Flash-Lite zero-shot with a closed class list plus "unknown".
 
-| Test | Fine-tuned classifier | Gemini 3.1 Flash-Lite |
-|---|---|---|
-| Kaggle held-out, 305 images (same source as training) | 83.6% top-1, 94.1% top-5 | 65.4% top-1 (298 answered) |
+| Test                                                             | Fine-tuned classifier                             | Gemini 3.1 Flash-Lite                                      |
+| ---------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| Kaggle held-out, 305 images (same source as training)            | 83.6% top-1, 94.1% top-5                          | 65.4% top-1 (298 answered)                                 |
 | Wikipedia lead photos, 38 images of 36 dishes (different source) | 65.8% top-1 over 38 (64% on the 33 both answered) | 94% (31 of 33 answered by both; 5 calls failed on network) |
 
 Reading, with limits:
+
 - The classifier wins on photos that look like its training data and drops about 18 points on a different source, with absurd misses (haleem as rabri, nihari as pickle). Gemini generalised better.
 - The Kaggle score for Gemini likely includes noisy or ambiguous scraped labels; not audited.
 - The web test is small (33 to 38 photos) and flatters Gemini: Wikipedia lead photos are famous and may have been in its training data.
@@ -72,8 +76,8 @@ Decided: replace FatSecret with Pakistani research data; "if a better source exi
 
 ### 5.1 Sources and precedence (decided plan, approved)
 
-1. **Lab-measured** values: Khan et al. 2019, *Progress in Nutrition* 21(2), 30 Khyber Pakhtunkhwa dishes, AOAC proximate analysis in duplicate, per 100 g. Wins wherever a dish is covered.
-2. **Paper table**: Farooq et al. 2026, *Nutrients* 18(19):3173, supplementary PDF, about 59 dishes (my count), per 100 g, calculated from USDA FoodData Central, cross-checked on 15 dishes (mean deviation 8.4%). Fills the rest.
+1. **Lab-measured** values: Khan et al. 2019, _Progress in Nutrition_ 21(2), 30 Khyber Pakhtunkhwa dishes, AOAC proximate analysis in duplicate, per 100 g. Wins wherever a dish is covered.
+2. **Paper table**: Farooq et al. 2026, _Nutrients_ 18(19):3173, supplementary PDF, about 59 dishes (my count), per 100 g, calculated from USDA FoodData Central, cross-checked on 15 dishes (mean deviation 8.4%). Fills the rest.
 3. **INDB** (Indian Nutrient Databank, Anuvaad/Jaacks, 1,014 recipes), hand-picked only: roti, naan, paratha, pulao, kheer, halwa, raita, lassi, kulfi, khichdi, daals, saag, fish curry. **Never** its fried, kofta or kebab rows (they count all frying oil as eaten: a potato samosa shows 814 kcal, chicken kebab 729 kcal/100 g).
 4. **USDA FoodData Central** (CC0, 1,000 requests/hour per key): only for gaps, and only from the seed script, never at runtime.
 
@@ -132,12 +136,12 @@ Unchanged from the PRD: fit portions in roti, katori or plate steps to the remai
 
 **My call (you said the Food and Feel answers should "train the AI for each user"; you did not decide how):** no model training. Learning means a per-user profile built from three kinds of signal, plus two explicit inputs the user approved.
 
-| Signal | Source | Use | Weight |
-|---|---|---|---|
-| Avoids (decided) | One onboarding step: pick dishes and protein types to avoid (e.g. beef) | Hard filter in code, never left to a prompt | Absolute |
-| "Not for me" (decided) | One-tap on a recipe card | Hard filter on that recipe and a soft penalty on similar ones | Strong |
-| Eaten often | Count of confirmed dishes in `meal_items` | Weak "likes" signal. Silence is never a dislike | Weak |
-| Feel patterns | `feel_checkins` joined to meals, PRD rule (one answer in 60% or more of a category's check-ins, at least 3 check-ins) | Weekly pattern card and recipe ranking | Medium |
+| Signal                 | Source                                                                                                                | Use                                                           | Weight   |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | -------- |
+| Avoids (decided)       | One onboarding step: pick dishes and protein types to avoid (e.g. beef)                                               | Hard filter in code, never left to a prompt                   | Absolute |
+| "Not for me" (decided) | One-tap on a recipe card                                                                                              | Hard filter on that recipe and a soft penalty on similar ones | Strong   |
+| Eaten often            | Count of confirmed dishes in `meal_items`                                                                             | Weak "likes" signal. Silence is never a dislike               | Weak     |
+| Feel patterns          | `feel_checkins` joined to meals, PRD rule (one answer in 60% or more of a category's check-ins, at least 3 check-ins) | Weekly pattern card and recipe ranking                        | Medium   |
 
 **Schema (my call):** `user_avoids (user_id, kind in ('dish','protein'), dish_id nullable, protein text nullable)` and `dishes.protein_type` (`beef`, `mutton`, `chicken`, `fish`, `egg`, `veg`). "Eaten often" is a query over existing tables, not a new table.
 
@@ -183,3 +187,39 @@ Mechanism once a source exists: the `recipes` table links each recipe to catalog
 ## 12. Left to the builder
 
 File layout of the seed script and mapping file, exact resize library, prompt wording, the confidence threshold after the eval, default unit sizes for dishes without INDB units, how the app presents source and basis, and the recipe source (section 9).
+
+As chosen in v1:
+
+- Seed: `database/data/catalog.csv` is the mapping and the data in one file (transcribed by hand, no USDA calls); `database/scripts/build-seed.mjs` generates `database/supabase/seed.sql`.
+- Resize library: `sharp` (JPEG, longest side 1024 px, EXIF rotation applied).
+- Prompt wording: fixed text in `backend/src/modules/scan/gemini.client.ts`, followed by one line per catalog dish (`slug (unit: ...)`).
+- Confidence threshold: 0.6 (`CONFIDENCE_FLOOR` in `scan.service.ts`), not tuned: the section 8 eval was not run.
+- Default unit sizes: listed in `docs/data-sources.md` ("Assumed portions", `unit_basis=assumed`).
+- Photo upload: base64 in a JSON body (`image`, `mimeType`), decoded image at most 6,000,000 bytes.
+- Presenting source and basis in the app: open (the API returns `source`, `basis`, `unitBasis`).
+- Recipe source: still open.
+
+## Implementation status (v1)
+
+Built as specified:
+
+- Gemini names dishes only (enum of catalog slugs plus `unknown`, no number fields in the schema); calories come from the `dishes` table, per 100 g times grams per unit.
+- Catalog of 78 dishes: 30 from Khan 2019 (lab), 48 from Farooq 2026. INDB supplies portion weights only; no row takes its nutrition from INDB.
+- Schema change of section 5.4, the `scan_log` table, resize before Gemini, per-user daily cap (default 10, per PKT day) with manual fallback (`daily_cap`, `gemini_unavailable`), and `needsConfirmation` below 0.6 or `unknown`.
+- Modules: `nutrition`, `scan`, `profiles` (Mifflin-St Jeor budget), `meals` (predicted and confirmed items, today's log), `plan` (full, reduced, minimum, light), FatSecret removed.
+- Checked end to end against a hosted Supabase project with real Gemini.
+
+Changed from the spec while building:
+
+- Gemini timeout is configurable (`GEMINI_TIMEOUT_MS`, default 20000); the model is `GEMINI_MODEL`.
+- Cap flow: count, resize, read catalog, record the scan, then count again, so parallel requests cannot all pass; the Gemini call comes after.
+- Plan fitting: portions step down by one unit step (roti, piece, glass 1; katori, bowl, plate 0.5), highest-calorie item first. Light plan when the budget is used up. Each dish is fetched once.
+- A trigger creates a `profiles` row at sign-up (migrations `20261102000000` and `20261102000100`), because meals and `scan_log` reference `profiles`.
+- Body limits: 100 kb on every route, 8 MB on `POST /api/scan` after auth, 413 on overflow; Supabase Auth outages return 503.
+- One migration for section 5.4 only; section 7 (`user_avoids`, `dishes.protein_type`) was not part of v1.
+
+Not built:
+
+- Streak write on meal save (`meals.saveMeal` does not call `streaks`); `streaks` and `feel` are 501 stubs (v2, v3).
+- Recipes, learning the user (avoids, "not for me", feel patterns), and `profiles` avoids CRUD.
+- The section 8 model comparison beyond the 4.1 experiment: no 50 to 100 photo eval set, no Gemma or Groq runs, no tuning of the 0.6 threshold.
