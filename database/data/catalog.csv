@@ -3,14 +3,14 @@ aloo-gosht,Aloo gosht,meat,katori,150,199,4.76,10.80,15.23,khan2019,lab,assumed
 beef-korma,Beef korma,meat,katori,150,194,7.85,13.16,12.21,khan2019,lab,assumed
 baingan,Baingan,other,katori,150,209,1.93,8.61,18.50,khan2019,lab,assumed
 bhindi,Bhindi,other,katori,150,158,1.24,12.15,11.64,khan2019,lab,assumed
-chana-daal,Chana daal,lentil,bowl,292.2,229,2.48,14.91,17.74,khan2019,lab,derived
+chana-daal,Chana daal,lentil,katori,150,229,2.48,14.91,17.74,khan2019,lab,assumed
 chapli-kebab,Chapli kebab,fried,piece,100,279,12.16,13.61,19.52,khan2019,lab,assumed
 chicken-biryani,Chicken biryani,rice,plate,250,160,6.43,21.85,5.23,khan2019,lab,assumed
 chicken-karahi,Chicken karahi,meat,katori,150,241,13.37,11.09,15.85,khan2019,lab,assumed
 vegetable-rice,Vegetable rice,rice,plate,250,150,3.54,21.99,5.52,khan2019,lab,assumed
 choley,Choley,lentil,katori,150,183,4.15,19.26,9.88,khan2019,lab,assumed
 daal-kaddu,Daal kaddu,lentil,katori,150,183,2.33,13.79,13.11,khan2019,lab,assumed
-maash-daal,Maash daal,lentil,bowl,296,272,6.36,21.21,17.98,khan2019,lab,derived
+maash-daal,Maash daal,lentil,katori,150,272,6.36,21.21,17.98,khan2019,lab,assumed
 machli,Machli (masala fish),meat,plate,150,173,18.05,4.83,9.04,khan2019,lab,assumed
 haleem,Haleem,meat,katori,150,128,5.38,14.60,5.38,khan2019,lab,assumed
 kachalo-qeema,Kachalo qeema,meat,katori,150,193,5.42,16.45,11.71,khan2019,lab,assumed
@@ -20,7 +20,7 @@ kadhi-pakora,Kadhi pakora,other,katori,150,177,2.92,10.29,13.85,khan2019,lab,ass
 kofta,Kofta curry,meat,katori,150,242,11.14,8.13,18.28,khan2019,lab,assumed
 lobia,Lobia,lentil,katori,150,171,3.67,13.11,11.60,khan2019,lab,assumed
 macaroni-qeema,Macaroni qeema,other,plate,250,171,4.70,17.35,9.25,khan2019,lab,assumed
-mixed-daal,Mixed daal (masoor and moong),lentil,bowl,297.8,183,4.90,15.05,11.49,khan2019,lab,derived
+mixed-daal,Mixed daal (masoor and moong),lentil,katori,150,183,4.90,15.05,11.49,khan2019,lab,assumed
 mixed-sabzi,Mixed sabzi,other,katori,150,142,2.34,11.04,9.81,khan2019,lab,assumed
 mutton-karahi,Mutton karahi,meat,katori,150,242,9.02,5.81,20.35,khan2019,lab,assumed
 nihari,Nihari,meat,katori,150,172,6.24,7.06,13.21,khan2019,lab,assumed
@@ -57,16 +57,16 @@ falooda,Falooda,sweets,glass,250,185,3.0,30.0,6.0,farooq2026,calculated,assumed
 kulfi,Kulfi,sweets,piece,70,253,6.0,26.0,14.0,farooq2026,calculated,assumed
 barfi,Barfi,sweets,piece,30,393,12.5,28.2,25.5,farooq2026,calculated,assumed
 jalebi,Jalebi,sweets,piece,30,317,3.4,44.6,13.8,farooq2026,calculated,assumed
-suji-halwa,Suji halwa,sweets,bowl,159.6,315,3.9,40.6,15.3,farooq2026,calculated,derived
-gajar-halwa,Gajar halwa,sweets,bowl,167.8,276,4.5,28.1,16.1,farooq2026,calculated,derived
+suji-halwa,Suji halwa,sweets,bowl,114.3,315,3.9,40.6,15.3,farooq2026,calculated,derived
+gajar-halwa,Gajar halwa,sweets,bowl,105,276,4.5,28.1,16.1,farooq2026,calculated,derived
 roti,Roti,roti,roti,36,265,8.5,52.0,3.5,farooq2026,calculated,derived
 naan,Naan,roti,piece,53.2,280,8.0,50.0,5.5,farooq2026,calculated,derived
 paratha,Paratha,roti,piece,55.8,290,7.5,44.0,9.5,farooq2026,calculated,derived
 puri,Puri,roti,piece,30,332,6.5,39.4,16.5,farooq2026,calculated,assumed
 anda-paratha,Anda paratha,roti,piece,110,280,10.0,30.0,15.0,farooq2026,calculated,assumed
-chai,Chai,other,glass,210.5,45,1.0,7.5,1.0,farooq2026,calculated,derived
+chai,Chai,other,glass,150,45,1.0,7.5,1.0,farooq2026,calculated,assumed
 coffee,Coffee,other,glass,200,45,1.2,6.8,1.5,farooq2026,calculated,assumed
-lassi,Lassi,other,glass,442.5,92,3.1,12.8,3.2,farooq2026,calculated,derived
+lassi,Lassi,other,glass,250,92,3.1,12.8,3.2,farooq2026,calculated,assumed
 lemonade,Lemonade,other,glass,250,50,0.0,12.0,0.0,farooq2026,calculated,assumed
 milk-soda,Milk soda,other,glass,250,60,1.0,10.0,0.0,farooq2026,calculated,assumed
 saag,Saag,other,bowl,141.5,95,3.2,10.5,5.2,farooq2026,calculated,derived

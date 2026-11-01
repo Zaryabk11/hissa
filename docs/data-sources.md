@@ -33,39 +33,47 @@ Rows left out:
 
 Anuvaad INDB, https://github.com/lindsayjaacks/Indian-Nutrient-Databank-INDB- (`INDB.xlsx` and `recipes_servingsize.xlsx`). Every dish INDB could supply is already covered by the lab or the paper, so **no catalog row takes its nutrition from INDB** (`source=indb` is unused). The fried, kofta and kebab rows are never used: they count all the frying oil as eaten.
 
-INDB is used for portion weights. It gives a serving unit and the kcal per unit, so `grams_per_unit = unit_serving_energy_kcal / (energy_kcal / 100)`, using INDB's own values for both. These rows have `unit_basis=derived`:
+INDB is used for portion weights. It gives a serving unit and the kcal per unit, so `grams_per_unit = unit_serving_energy_kcal / (energy_kcal / 100)`, using INDB's own values for both.
 
-| Catalog slug   | INDB row                         | INDB unit  | kcal per unit | kcal per 100 g | grams per unit |
-| -------------- | -------------------------------- | ---------- | ------------- | -------------- | -------------- |
-| roti           | ASC096 Chapati/Roti              | chapati    | 72.83         | 202.31         | 36             |
-| naan           | ASC142 Naan                      | naan       | 152.30        | 286.45         | 53.2           |
-| paratha        | ASC097 Plain parantha/paratha    | parantha   | 166.31        | 298.30         | 55.8           |
-| fish-curry     | ASC246 Fish curry (Machli curry) | bowl       | 282.23        | 111.13         | 254            |
-| saag           | ASC217 Sarson ka saag            | bowl       | 124.26        | 87.84          | 141.5          |
-| suji-halwa     | ASC293 Semolina halwa            | bowl       | 360.18        | 225.65         | 159.6          |
-| gajar-halwa    | ASC295 Carrot halwa              | bowl       | 289.71        | 172.64         | 167.8          |
-| lassi          | ASC021 Sweet Lassi               | tall glass | 157.80        | 35.66          | 442.5          |
-| chai           | ASC001 Hot tea (Garam Chai)      | tea cup    | 33.98         | 16.14          | 210.5          |
-| raita          | ASC273 Cucumber raita            | bowl       | 90.27         | 59.13          | 152.7          |
-| white-rice     | ASC113 Boiled rice               | plate      | 351.57        | 117.19         | 300            |
-| jeera-rice     | BFP134 Cumin pulao               | plate      | 365.83        | 135.24         | 270.5          |
-| mutton-biryani | ASC122 Mutton biryani            | plate      | 396.43        | 190.76         | 207.8          |
-| mixed-daal     | ASC155 Mixed dal                 | bowl       | 184.44        | 61.93          | 297.8          |
-| chana-daal     | OSR142 Split bengal gram dal     | bowl       | 291.20        | 99.67          | 292.2          |
-| maash-daal     | ASC152 Washed urad dal           | bowl       | 181.52        | 61.32          | 296            |
+INDB recipes are often much thinner than the lab and paper dishes, so a weight from a thin recipe multiplied by a dense catalog value overstates the calories. The rule:
 
-Derived weights rejected as implausible for one serving (an assumed size is used instead): kheer bowl 401 g (ASC282), khichdi small bowl 574 g (BFP144), kulfi 270 g (ASC321).
+- If INDB's kcal per 100 g is within 25% of the catalog row's `kcal_per_100g`, use INDB's own ratio.
+- If it differs by more than 25%, either re-derive `grams_per_unit = unit_serving_energy_kcal / (catalog kcal_per_100g / 100)`, so the portion keeps INDB's energy per serving, or use an assumed size.
 
-Chai uses the `glass` unit because the schema has no cup unit. The weight is INDB's tea cup.
+These rows have `unit_basis=derived`:
+
+| Catalog slug   | INDB row                         | INDB unit | kcal per unit | INDB kcal per 100 g | catalog kcal per 100 g | grams per unit            |
+| -------------- | -------------------------------- | --------- | ------------- | ------------------- | ---------------------- | ------------------------- |
+| roti           | ASC096 Chapati/Roti              | chapati   | 72.83         | 202.31              | 265                    | 36                        |
+| naan           | ASC142 Naan                      | naan      | 152.30        | 286.45              | 280                    | 53.2                      |
+| paratha        | ASC097 Plain parantha/paratha    | parantha  | 166.31        | 298.30              | 290                    | 55.8                      |
+| fish-curry     | ASC246 Fish curry (Machli curry) | bowl      | 282.23        | 111.13              | 145                    | 254                       |
+| saag           | ASC217 Sarson ka saag            | bowl      | 124.26        | 87.84               | 95                     | 141.5                     |
+| suji-halwa     | ASC293 Semolina halwa            | bowl      | 360.18        | 225.65              | 315                    | 114.3 (catalog kcal used) |
+| gajar-halwa    | ASC295 Carrot halwa              | bowl      | 289.71        | 172.64              | 276                    | 105 (catalog kcal used)   |
+| raita          | ASC273 Cucumber raita            | bowl      | 90.27         | 59.13               | 55                     | 152.7                     |
+| white-rice     | ASC113 Boiled rice               | plate     | 351.57        | 117.19              | 130                    | 300                       |
+| jeera-rice     | BFP134 Cumin pulao               | plate     | 365.83        | 135.24              | 155                    | 270.5                     |
+| mutton-biryani | ASC122 Mutton biryani            | plate     | 396.43        | 190.76              | 200                    | 207.8                     |
+
+Roti (24% below the catalog value) and fish curry (23% below) are just inside the 25% rule, so they keep INDB's own ratio.
+
+INDB weights rejected, with an assumed size used instead:
+
+- Too large for one serving: kheer bowl 401 g (ASC282), khichdi small bowl 574 g (BFP144), kulfi 270 g (ASC321).
+- Recipe too thin by the 25% rule:
+  - Daals: mixed dal ASC155 at 62 kcal per 100 g, chana dal OSR142 at 100 and urad dal ASC152 at 61, against lab values of 183 to 272.
+  - Sweet lassi ASC021: 36 vs 92.
+  - Hot tea ASC001: 16 vs 45. Re-deriving would give a 75 g cup.
 
 ## Assumed portions: `unit_basis=assumed`
 
 No source gives household portions for the other dishes, so I chose these defaults:
 
-- Curries, sabzi, karahi, nihari, haleem, other daals, khichdi, kheer, zarda: 1 katori = 150 g.
+- Curries, sabzi, karahi, nihari, haleem, all daals, khichdi, kheer, zarda: 1 katori = 150 g.
 - Rice dishes and macaroni: 1 plate = 250 g (the paper's Table 1 example also uses 250 g of biryani). Masala fish and malai boti: 1 plate = 150 g. Fries, pakode, gol gappay: 1 plate = 100 g.
 - Pieces: chapli kebab 100 g, chicken tikka 120 g, seekh kebab 50 g, samosa 60 g, puri 30 g, anda paratha 110 g, gulab jamun 40 g, kulfi 70 g, barfi 30 g, jalebi 30 g.
-- Glasses: falooda, lemonade and milk soda 250 g, coffee 200 g.
+- Glasses: lassi, falooda, lemonade and milk soda 250 g; coffee 200 g; chai 150 g (the schema has no cup unit, so chai uses `glass`).
 
 ## Licensing
 
