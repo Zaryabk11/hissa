@@ -4,6 +4,11 @@ import { landingColors } from '../../shared/theme/landingTokens';
 import { Background } from './components/Background';
 import type { SectionId } from './content';
 import { useLandingLayout } from './hooks/useLandingLayout';
+import { Buddy } from './sections/Buddy';
+import { Cta } from './sections/Cta';
+import { Faq } from './sections/Faq';
+import { Features } from './sections/Features';
+import { Footer } from './sections/Footer';
 import { Hero } from './sections/Hero';
 import { How } from './sections/How';
 import { Idea } from './sections/Idea';
@@ -19,7 +24,6 @@ export function LandingPage() {
     const y = e.nativeEvent.layout.y;
     setYs((prev) => ({ ...prev, [id]: y }));
   };
-  // Sections not built yet have no y, so their links do nothing for now.
   const go = (id: SectionId) => {
     const y = ys[id];
     if (y != null) scroll.current?.scrollTo({ y: Math.max(0, y - NAV_HEIGHT), animated: true });
@@ -35,6 +39,11 @@ export function LandingPage() {
         <Marquee />
         <Idea />
         <How onLayout={mark('how')} />
+        <Features onLayout={mark('features')} />
+        <Buddy onLayout={mark('buddy')} onNavigate={go} />
+        <Faq onLayout={mark('faq')} />
+        <Cta onLayout={mark('join')} onNavigate={go} />
+        <Footer onNavigate={go} />
       </ScrollView>
       <Nav onNavigate={go} />
     </View>

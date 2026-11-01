@@ -19,6 +19,7 @@ export const landingColors = {
   plate: '#2A2C2F',
   stripeDark: '#1F2022',
   inkFaint: 'rgba(20,20,20,.35)',
+  inkRing: 'rgba(20,20,20,.22)',
   barGrey: '#6A6D73',
   lime: '#D4FF3A',
   inkOnLime: '#141414',

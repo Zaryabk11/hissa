@@ -48,9 +48,10 @@ type Props = { contentWidth: number; gutter: number; onNavigate: (id: SectionId)
 
 export function Hero({ contentWidth, gutter, onNavigate }: Props) {
   const { width } = useLandingLayout();
-  const [stageW, setStageW] = useState(0);
   const gap = fluid(24, 4, 56, width);
   const twoCol = contentWidth >= MIN_COL * 2 + gap;
+  // Seed with the expected column width so the stage paints on the first frame; onLayout then corrects it.
+  const [stageW, setStageW] = useState(twoCol ? (contentWidth - gap) / 2 : contentWidth);
   const h1 = fluid(landingType.heroH1.min, landingType.heroH1.vw, landingType.heroH1.max, width);
   const bodySize = fluid(17, 1.5, 19, width);
   const word = {
