@@ -9,8 +9,11 @@ const catalog = [
 const photo = Buffer.from('jpeg-bytes');
 
 function geminiReply(text: string, status = 200): typeof fetch {
-  return vi.fn(async () =>
-    new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }), { status }),
+  return vi.fn(
+    async () =>
+      new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }), {
+        status,
+      }),
   ) as unknown as typeof fetch;
 }
 
@@ -23,8 +26,13 @@ describe('gemini client', () => {
     const fetchFn = geminiReply('[]');
     await client(fetchFn).detectDishes(photo, catalog);
 
-    const [url, init] = (fetchFn as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent');
+    const [url, init] = (fetchFn as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(url).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent',
+    );
     expect((init.headers as Record<string, string>)['x-goog-api-key']).toBe('secret-key');
 
     const body = JSON.parse(init.body as string);
@@ -101,7 +109,9 @@ describe('gemini client', () => {
     const fetchFn = vi.fn(async () => {
       throw new TypeError('fetch failed');
     }) as unknown as typeof fetch;
-    const err = await client(fetchFn).detectDishes(photo, catalog).catch((e: unknown) => e);
+    const err = await client(fetchFn)
+      .detectDishes(photo, catalog)
+      .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(GeminiUnavailableError);
     expect((err as Error).message).not.toContain('secret-key');
   });
@@ -114,14 +124,18 @@ describe('gemini client', () => {
   );
 
   it('resolves to [] when the response has no candidates', async () => {
-    const fetchFn = vi.fn(async () => new Response('{}', { status: 200 })) as unknown as typeof fetch;
+    const fetchFn = vi.fn(
+      async () => new Response('{}', { status: 200 }),
+    ) as unknown as typeof fetch;
     expect(await client(fetchFn).detectDishes(photo, catalog)).toEqual([]);
   });
 
   describe('failure logging', () => {
     it('logs only the HTTP status on a non-ok response', async () => {
       const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
-      await client(geminiReply('', 429)).detectDishes(photo, catalog).catch(() => {});
+      await client(geminiReply('', 429))
+        .detectDishes(photo, catalog)
+        .catch(() => {});
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn).toHaveBeenCalledWith('Gemini request failed', { status: 429 });
       expect(JSON.stringify(warn.mock.calls)).not.toContain('secret-key');
@@ -133,7 +147,9 @@ describe('gemini client', () => {
       const fetchFn = vi.fn(async () => {
         throw new DOMException('secret-key timed out', 'TimeoutError');
       }) as unknown as typeof fetch;
-      await client(fetchFn).detectDishes(photo, catalog).catch(() => {});
+      await client(fetchFn)
+        .detectDishes(photo, catalog)
+        .catch(() => {});
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn).toHaveBeenCalledWith('Gemini request failed', { error: 'TimeoutError' });
       expect(JSON.stringify(warn.mock.calls)).not.toContain('secret-key');
@@ -142,7 +158,9 @@ describe('gemini client', () => {
 
     it('rejects with GeminiUnavailableError when the body is not valid JSON at all', async () => {
       const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
-      const fetchFn = vi.fn(async () => new Response('<html>oops</html>', { status: 200 })) as unknown as typeof fetch;
+      const fetchFn = vi.fn(
+        async () => new Response('<html>oops</html>', { status: 200 }),
+      ) as unknown as typeof fetch;
       await expect(client(fetchFn).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
         GeminiUnavailableError,
       );

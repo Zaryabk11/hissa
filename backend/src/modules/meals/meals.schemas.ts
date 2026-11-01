@@ -26,9 +26,12 @@ const itemSchema = z
   .refine((i) => i.confirmedDish !== null || i.confirmedPortion === null, {
     message: 'confirmedPortion must be null when confirmedDish is null',
   })
-  .refine((i) => i.predictedPortion === null || (i.predictedPortion >= 0 && i.predictedPortion <= 20), {
-    message: 'predictedPortion must be between 0 and 20',
-  });
+  .refine(
+    (i) => i.predictedPortion === null || (i.predictedPortion >= 0 && i.predictedPortion <= 20),
+    {
+      message: 'predictedPortion must be between 0 and 20',
+    },
+  );
 
 export const saveMealBodySchema = z.object({
   items: z.array(itemSchema).min(1).max(10),

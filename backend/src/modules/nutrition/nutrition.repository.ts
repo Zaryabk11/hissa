@@ -46,7 +46,11 @@ export function createNutritionRepository(db: Db) {
     },
 
     async findDishBySlug(slug: string): Promise<Dish | null> {
-      const { data, error } = await db.from('dishes').select(COLUMNS).eq('slug', slug).maybeSingle();
+      const { data, error } = await db
+        .from('dishes')
+        .select(COLUMNS)
+        .eq('slug', slug)
+        .maybeSingle();
       if (error) throw error;
       return data ? toDish(data as DishRow) : null;
     },

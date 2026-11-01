@@ -33,7 +33,9 @@ describe('profileBodySchema', () => {
   });
 
   it('accepts a displayName of exactly 80 characters', () => {
-    expect(profileBodySchema.safeParse({ ...valid, displayName: 'a'.repeat(80) }).success).toBe(true);
+    expect(profileBodySchema.safeParse({ ...valid, displayName: 'a'.repeat(80) }).success).toBe(
+      true,
+    );
   });
 
   it.each(['goal', 'sex', 'age', 'heightCm', 'weightKg', 'activityLevel'])(

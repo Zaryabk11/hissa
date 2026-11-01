@@ -49,11 +49,15 @@ describe('nutrition service', () => {
   });
 
   it('rejects units that are not positive', async () => {
-    await expect(service.portionNutrition('chicken-karahi', 0)).rejects.toBeInstanceOf(ValidationError);
+    await expect(service.portionNutrition('chicken-karahi', 0)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
   });
 
   it('rejects negative units', async () => {
-    await expect(service.portionNutrition('chicken-karahi', -1)).rejects.toBeInstanceOf(ValidationError);
+    await expect(service.portionNutrition('chicken-karahi', -1)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
   });
 
   it('reports the catalog slug, not the one the caller passed', async () => {
@@ -65,7 +69,9 @@ describe('nutrition service', () => {
 
   it('rejects non-finite units', async () => {
     for (const units of [Infinity, NaN]) {
-      await expect(service.portionNutrition('chicken-karahi', units)).rejects.toBeInstanceOf(ValidationError);
+      await expect(service.portionNutrition('chicken-karahi', units)).rejects.toBeInstanceOf(
+        ValidationError,
+      );
       expect(() => portionFromDish(karahi, units)).toThrow(ValidationError);
     }
   });

@@ -13,5 +13,8 @@ export function pktDayBounds(day: string): { startIso: string; endIso: string } 
   if (Number.isNaN(parsed) || new Date(parsed).toISOString().slice(0, 10) !== day)
     throw new Error(`Invalid PKT day: ${day}`);
   const start = parsed - PKT_OFFSET_MS;
-  return { startIso: new Date(start).toISOString(), endIso: new Date(start + DAY_MS).toISOString() };
+  return {
+    startIso: new Date(start).toISOString(),
+    endIso: new Date(start + DAY_MS).toISOString(),
+  };
 }

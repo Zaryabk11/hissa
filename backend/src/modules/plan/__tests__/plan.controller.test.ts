@@ -10,10 +10,9 @@ describe('plan controller', () => {
     const controller = createPlanController(service);
     const res = { json: vi.fn(), status: vi.fn() } as unknown as Response;
     await expect(
-      (controller[handler as keyof typeof controller] as (q: Request, r: Response) => Promise<void>)(
-        { body: {} } as Request,
-        res,
-      ),
+      (
+        controller[handler as keyof typeof controller] as (q: Request, r: Response) => Promise<void>
+      )({ body: {} } as Request, res),
     ).rejects.toBeInstanceOf(UnauthorizedError);
     expect(res.json).not.toHaveBeenCalled();
   });

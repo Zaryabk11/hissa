@@ -13,7 +13,9 @@ const DISHES = [
 
 let image: string;
 beforeAll(async () => {
-  const png = await sharp({ create: { width: 2000, height: 1000, channels: 3, background: '#fff' } })
+  const png = await sharp({
+    create: { width: 2000, height: 1000, channels: 3, background: '#fff' },
+  })
     .png()
     .toBuffer();
   image = png.toString('base64');
@@ -134,14 +136,27 @@ describe('scan service', () => {
   });
 
   it.each([
-    ['only unknown items', [{ dish: 'unknown', portion: 1, confidence: 0.9 }, { dish: 'mystery', portion: 1, confidence: 0.9 }]],
+    [
+      'only unknown items',
+      [
+        { dish: 'unknown', portion: 1, confidence: 0.9 },
+        { dish: 'mystery', portion: 1, confidence: 0.9 },
+      ],
+    ],
     ['nothing', []],
   ])('returns exactly one unknown item for %s', async (_name, detected) => {
     const { scan } = setup(detected);
     expect(await scan()).toEqual({
       mode: 'detected',
       items: [
-        { dish: 'unknown', name: null, unit: null, portion: 0, confidence: 0, needsConfirmation: true },
+        {
+          dish: 'unknown',
+          name: null,
+          unit: null,
+          portion: 0,
+          confidence: 0,
+          needsConfirmation: true,
+        },
       ],
     });
   });

@@ -86,11 +86,15 @@ export function createGeminiClient(opts: {
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(timeoutMs),
         });
-        if (!res.ok) throw unavailable({ status: res.status }, `Gemini returned HTTP ${res.status}`);
+        if (!res.ok)
+          throw unavailable({ status: res.status }, `Gemini returned HTTP ${res.status}`);
         json = await res.json();
       } catch (err) {
         if (err instanceof GeminiUnavailableError) throw err;
-        throw unavailable({ error: err instanceof Error ? err.name : 'UnknownError' }, 'Gemini request failed');
+        throw unavailable(
+          { error: err instanceof Error ? err.name : 'UnknownError' },
+          'Gemini request failed',
+        );
       }
 
       try {

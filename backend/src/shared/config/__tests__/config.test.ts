@@ -35,6 +35,8 @@ describe('loadConfig', () => {
   });
 
   it('throws when GEMINI_API_KEY is missing', () => {
-    expect(() => loadConfig({ ...minimalEnv, GEMINI_API_KEY: undefined })).toThrow(/GEMINI_API_KEY/);
+    expect(() => loadConfig({ ...minimalEnv, GEMINI_API_KEY: undefined })).toThrow(
+      /GEMINI_API_KEY/,
+    );
   });
 });

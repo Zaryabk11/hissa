@@ -139,7 +139,9 @@ describe('meals service', () => {
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
     await expect(service.saveMeal('u1', { items: [item()] })).rejects.toBe(boom);
     expect(repository.deleteMeal).toHaveBeenCalledWith('u1', 'm1');
-    expect(warn).toHaveBeenCalledExactlyOnceWith('Compensating meal delete failed', { mealId: 'm1' });
+    expect(warn).toHaveBeenCalledExactlyOnceWith('Compensating meal delete failed', {
+      mealId: 'm1',
+    });
     warn.mockRestore();
   });
 
