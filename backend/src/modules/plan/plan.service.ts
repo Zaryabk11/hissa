@@ -70,12 +70,12 @@ export function createPlanService({ profiles, meals, nutrition }: PlanDeps) {
       };
 
       if (remaining <= 0) {
-        const suggested = (await nutrition.listCatalog()).filter((d) =>
-          SUGGESTION_SLUGS.includes(d.slug),
+        const suggested = (await nutrition.listCatalog()).filter(
+          (d) => SUGGESTION_SLUGS.includes(d.slug) && !requested.some((r) => r.slug === d.slug),
         );
         return finish(
           'light',
-          await build(dishes.map((_, i) => step(i))),
+          await build(requested.map((r, i) => Math.min(r.units, step(i)))),
           await Promise.all(suggested.map((d) => toItem(d, STEP[d.unit], STEP[d.unit]))),
         );
       }
