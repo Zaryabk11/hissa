@@ -51,7 +51,8 @@ The server refuses to start if a required variable is missing.
 | ------ | ------------------- | ----------------------------------------------------------------- |
 | 400    | `validation_error`  | Bad body, unreadable image, meal with no confirmed dish           |
 | 400    | `bad_request`       | Malformed JSON                                                    |
-| 401    | `unauthorized`      | Missing or invalid bearer token                                   |
+| 401    | `unauthorized`      | Missing or rejected bearer token                                  |
+| 503    | `auth_unavailable`  | Supabase Auth unreachable or returning 5xx                        |
 | 404    | `not_found`         | Unknown route, unknown dish slug, `GET /profiles/me` before setup |
 | 413    | `payload_too_large` | Request body over 8 MB                                            |
 | 501    | `not_implemented`   | Stub routes (below)                                               |
