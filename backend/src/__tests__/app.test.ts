@@ -27,6 +27,14 @@ describe('app', () => {
     expect(res.status).toBe(413);
   });
 
+  it('POST /api/scan with an invalid mimeType returns 400', async () => {
+    const res = await request(createApp())
+      .post('/api/scan')
+      .send({ image: 'abc', mimeType: 'image/gif' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('validation_error');
+  });
+
   it('unknown routes return 404', async () => {
     const res = await request(createApp()).get('/api/nope');
     expect(res.status).toBe(404);

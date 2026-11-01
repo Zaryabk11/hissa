@@ -15,8 +15,8 @@ import { createStreaksModule } from './streaks';
 export function createModuleRouters(deps: { db: Db; config: Config }): Record<string, Router> {
   const auth = createAuthModule(deps);
   const profiles = createProfilesModule(deps);
-  const scan = createScanModule(deps);
   const nutrition = createNutritionModule(deps);
+  const scan = createScanModule({ ...deps, nutrition: nutrition.service });
   const plan = createPlanModule(deps);
   const meals = createMealsModule(deps);
   const streaks = createStreaksModule(deps);
