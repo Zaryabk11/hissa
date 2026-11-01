@@ -1,0 +1,35 @@
+{
+  "description": "Write prompt-and-response-only session logs to .claude-logs.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.session-logs/write_log.py\" codex"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.session-logs/write_log.py\" codex"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.session-logs/write_log.py\" codex"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,6 +1,9 @@
 {
   "name": "hissa",
   "private": true,
+  "engines": {
+    "node": "^22.13.0 || ^24.3.0 || >=26"
+  },
   "workspaces": [
     "frontend",
     "backend"
@@ -11,7 +14,8 @@
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:data": "node --test database/scripts/*.test.mjs"
   },
   "devDependencies": {
     "prettier": "^3.9.10"
