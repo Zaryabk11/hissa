@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated from 'react-native-reanimated';
 import { fluid, landingColors } from '../../../shared/theme/landingTokens';
+import { HERO_STAGE_ID } from '../robot/types';
 import { useLandingLayout } from '../hooks/useLandingLayout';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
@@ -69,6 +70,7 @@ export function HeroStage({ columnWidth, ready }: { columnWidth: number; ready: 
   const d = Math.min(columnWidth * 0.88, 440);
   return (
     <View
+      nativeID={HERO_STAGE_ID}
       style={{ minHeight: fluid(340, 44, 500, width), alignItems: 'center', justifyContent: 'center' }}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
