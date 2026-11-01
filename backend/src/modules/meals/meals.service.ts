@@ -50,8 +50,13 @@ export function createMealsService({ repository, nutrition, now = () => new Date
           rows.map((r) => ({ meal_id: id, ...r })),
         );
       } catch (err) {
-        // ponytail: supabase-js has no transaction, so undo the meal by hand; a failed undo can leave an empty meal
-        await repository.deleteMeal(userId, id);
+        // ponytail: supabase-js has no transaction, so undo the meal by hand. Best effort: the original
+        // error wins, and an orphan meal with no items can remain if the delete also fails.
+        try {
+          await repository.deleteMeal(userId, id);
+        } catch {
+          // ignored on purpose, see above
+        }
         throw err;
       }
       return { id, eatenAt, totalCalories, items: input.items };

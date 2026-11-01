@@ -104,6 +104,15 @@ describe('meals service', () => {
     expect(repository.deleteMeal).toHaveBeenCalledWith('u1', 'm1');
   });
 
+  it('keeps the original error when the compensating delete also fails', async () => {
+    const { service, repository } = setup();
+    const boom = new Error('items failed');
+    repository.insertItems.mockRejectedValueOnce(boom);
+    repository.deleteMeal.mockRejectedValueOnce(new Error('delete failed'));
+    await expect(service.saveMeal('u1', { items: [item()] })).rejects.toBe(boom);
+    expect(repository.deleteMeal).toHaveBeenCalledWith('u1', 'm1');
+  });
+
   it('listToday queries the PKT day bounds of now for the user and sums calories', async () => {
     const meals = [
       { id: 'a', eatenAt: 'x', totalCalories: 300, items: [] },
