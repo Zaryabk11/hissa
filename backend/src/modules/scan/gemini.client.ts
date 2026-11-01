@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { logger } from '../../shared/logger';
 
 export interface CatalogEntry {
   slug: string;
@@ -69,23 +70,28 @@ export function createGeminiClient(opts: {
         },
       };
 
-      let res: Response;
+      // Log only the status or error name: never the URL, key, headers, photo or body.
+      const unavailable = (meta: { status: number } | { error: string }, message: string) => {
+        logger.warn('Gemini request failed', meta);
+        return new GeminiUnavailableError(message);
+      };
+
+      let json: { candidates?: { content?: { parts?: { text?: string }[] } }[] };
       try {
-        res = await fetchFn(url, {
+        const res = await fetchFn(url, {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'x-goog-api-key': opts.apiKey },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(15000),
         });
-      } catch {
-        throw new GeminiUnavailableError('Gemini request failed');
+        if (!res.ok) throw unavailable({ status: res.status }, `Gemini returned HTTP ${res.status}`);
+        json = await res.json();
+      } catch (err) {
+        if (err instanceof GeminiUnavailableError) throw err;
+        throw unavailable({ error: err instanceof Error ? err.name : 'UnknownError' }, 'Gemini request failed');
       }
-      if (!res.ok) throw new GeminiUnavailableError(`Gemini returned HTTP ${res.status}`);
 
       try {
-        const json = (await res.json()) as {
-          candidates?: { content?: { parts?: { text?: string }[] } }[];
-        };
         const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
         return answerSchema.parse(JSON.parse(text)).map((d) => ({
           dish: slugs.has(d.dish) ? d.dish : 'unknown',

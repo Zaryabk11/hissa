@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { logger } from '../../../shared/logger';
 import { createGeminiClient, GeminiUnavailableError } from '../gemini.client';
 
 const catalog = [
@@ -84,5 +85,44 @@ describe('gemini client', () => {
   it('resolves to [] when the response has no candidates', async () => {
     const fetchFn = vi.fn(async () => new Response('{}', { status: 200 })) as unknown as typeof fetch;
     expect(await client(fetchFn).detectDishes(photo, catalog)).toEqual([]);
+  });
+
+  describe('failure logging', () => {
+    it('logs only the HTTP status on a non-ok response', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+      await client(geminiReply('', 429)).detectDishes(photo, catalog).catch(() => {});
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith('Gemini request failed', { status: 429 });
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('secret-key');
+      warn.mockRestore();
+    });
+
+    it('logs only the error name when fetch throws', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+      const fetchFn = vi.fn(async () => {
+        throw new DOMException('secret-key timed out', 'TimeoutError');
+      }) as unknown as typeof fetch;
+      await client(fetchFn).detectDishes(photo, catalog).catch(() => {});
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith('Gemini request failed', { error: 'TimeoutError' });
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('secret-key');
+      warn.mockRestore();
+    });
+
+    it('maps a body read that fails to GeminiUnavailableError, not []', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+      const fetchFn = vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new DOMException('aborted', 'AbortError');
+        },
+      })) as unknown as typeof fetch;
+      await expect(client(fetchFn).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
+        GeminiUnavailableError,
+      );
+      expect(warn).toHaveBeenCalledWith('Gemini request failed', { error: 'AbortError' });
+      warn.mockRestore();
+    });
   });
 });
