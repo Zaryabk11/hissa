@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NotFoundError } from '../../../shared/errors';
-import type { Dish, PortionNutrition } from '../../nutrition';
+import type { Dish } from '../../nutrition';
 import { createPlanService } from '../plan.service';
 
 const dish = (slug: string, unit: Dish['unit'], gramsPerUnit: number, kcalPer100g: number) =>
@@ -11,18 +11,15 @@ const DISHES = [
   dish('raita', 'katori', 100, 100),
 ];
 
-function setup(remaining: number, catalog: Dish[] = DISHES) {
+function setup(remaining: number, catalog: Dish[] = DISHES, getDishCalls: string[] = []) {
   const nutrition = {
-    getDish: async (slug: string) => catalog.find((d) => d.slug === slug) as Dish,
+    getDish: async (slug: string) => {
+      getDishCalls.push(slug);
+      return catalog.find((d) => d.slug === slug) as Dish;
+    },
     listCatalog: async () => catalog,
-    portionNutrition: async (slug: string, units: number) => {
-      const d = catalog.find((x) => x.slug === slug) as Dish;
-      return {
-        calories: Math.round((d.kcalPer100g * d.gramsPerUnit * units) / 100),
-        proteinG: 1,
-        carbsG: 2,
-        fatG: 3,
-      } as PortionNutrition;
+    portionNutrition: async () => {
+      throw new Error('plan must not call portionNutrition');
     },
   };
   const profiles = { getDailyBudget: async () => 2000 };
@@ -95,6 +92,16 @@ describe('plan service', () => {
     expect(unitsOf(plan)).toEqual({ roti: 0.5, karahi: 0.25 });
   });
 
+  it('fetches each requested dish once however many reduction steps run', async () => {
+    const calls: string[] = [];
+    const plan = await setup(100, DISHES, calls).buildPlan('u1', [
+      { slug: 'roti', units: 20 },
+      { slug: 'karahi', units: 20 },
+    ]);
+    expect(plan.kind).toBe('minimum');
+    expect(calls).toEqual(['roti', 'karahi']);
+  });
+
   it('propagates the missing-profile error', async () => {
     const service = createPlanService({
       profiles: {
@@ -106,7 +113,6 @@ describe('plan service', () => {
       nutrition: {
         getDish: async () => DISHES[0] as Dish,
         listCatalog: async () => DISHES,
-        portionNutrition: async () => ({}) as PortionNutrition,
       },
     });
     await expect(service.buildPlan('u1', REQUEST)).rejects.toThrow('Set up your profile first');

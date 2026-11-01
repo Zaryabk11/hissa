@@ -1,12 +1,12 @@
 import type { MealsService } from '../meals';
-import type { Dish, NutritionService, Unit } from '../nutrition';
+import { portionFromDish, type Dish, type NutritionService, type Unit } from '../nutrition';
 import type { ProfilesService } from '../profiles';
 import type { Plan, PlanItem } from './plan.types';
 
 interface PlanDeps {
   profiles: Pick<ProfilesService, 'getDailyBudget'>;
   meals: Pick<MealsService, 'caloriesToday'>;
-  nutrition: Pick<NutritionService, 'getDish' | 'portionNutrition' | 'listCatalog'>;
+  nutrition: Pick<NutritionService, 'getDish' | 'listCatalog'>;
 }
 
 // Smallest portion step per unit; the minimum portion is one step.
@@ -22,8 +22,8 @@ const SUGGESTION_SLUGS = ['salad', 'raita'];
 
 // Business rules for plan: fit confirmed dishes to the remaining daily budget.
 export function createPlanService({ profiles, meals, nutrition }: PlanDeps) {
-  async function toItem(dish: Dish, requestedUnits: number, units: number): Promise<PlanItem> {
-    const n = await nutrition.portionNutrition(dish.slug, units);
+  function toItem(dish: Dish, requestedUnits: number, units: number): PlanItem {
+    const n = portionFromDish(dish, units);
     return {
       slug: dish.slug,
       name: dish.name,
@@ -47,10 +47,8 @@ export function createPlanService({ profiles, meals, nutrition }: PlanDeps) {
       const dishes = await Promise.all(requested.map((r) => nutrition.getDish(r.slug)));
       const step = (i: number) => STEP[(dishes[i] as Dish).unit];
       const build = (units: number[]) =>
-        Promise.all(
-          dishes.map((d, i) =>
-            toItem(d, (requested[i] as { units: number }).units, units[i] as number),
-          ),
+        dishes.map((d, i) =>
+          toItem(d, (requested[i] as { units: number }).units, units[i] as number),
         );
       const finish = (
         kind: Plan['kind'],
@@ -75,13 +73,13 @@ export function createPlanService({ profiles, meals, nutrition }: PlanDeps) {
         );
         return finish(
           'light',
-          await build(requested.map((r, i) => Math.min(r.units, step(i)))),
-          await Promise.all(suggested.map((d) => toItem(d, STEP[d.unit], STEP[d.unit]))),
+          build(requested.map((r, i) => Math.min(r.units, step(i)))),
+          suggested.map((d) => toItem(d, STEP[d.unit], STEP[d.unit])),
         );
       }
 
       const units = requested.map((r) => r.units);
-      const items = await build(units);
+      const items = build(units);
       const total = () => items.reduce((sum, i) => sum + i.calories, 0);
       let kind: Plan['kind'] = 'full';
       while (total() > remaining) {
@@ -103,7 +101,7 @@ export function createPlanService({ profiles, meals, nutrition }: PlanDeps) {
           step(pick),
           Math.round(((units[pick] as number) - step(pick)) * 100) / 100,
         );
-        items[pick] = await toItem(
+        items[pick] = toItem(
           dishes[pick] as Dish,
           (requested[pick] as { units: number }).units,
           units[pick] as number,

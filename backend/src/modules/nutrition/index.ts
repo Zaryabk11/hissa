@@ -3,8 +3,13 @@ import type { Db } from '../../shared/db';
 import { createNutritionController } from './nutrition.controller';
 import { createNutritionRepository } from './nutrition.repository';
 import { createNutritionRouter } from './nutrition.routes';
-import { createNutritionService, type NutritionService } from './nutrition.service';
+import {
+  createNutritionService,
+  portionFromDish,
+  type NutritionService,
+} from './nutrition.service';
 
+export { portionFromDish };
 export type { NutritionService };
 export type { Dish, PortionNutrition, Unit } from './nutrition.types';
 

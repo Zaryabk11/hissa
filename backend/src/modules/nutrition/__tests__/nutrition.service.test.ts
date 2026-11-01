@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NotFoundError, ValidationError } from '../../../shared/errors';
 import type { NutritionRepository } from '../nutrition.repository';
-import { createNutritionService } from '../nutrition.service';
+import { createNutritionService, portionFromDish } from '../nutrition.service';
 import type { Dish } from '../nutrition.types';
 
 const karahi: Dish = {
@@ -50,6 +50,17 @@ describe('nutrition service', () => {
 
   it('rejects units that are not positive', async () => {
     await expect(service.portionNutrition('chicken-karahi', 0)).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('rejects non-finite units', async () => {
+    for (const units of [Infinity, NaN]) {
+      await expect(service.portionNutrition('chicken-karahi', units)).rejects.toBeInstanceOf(ValidationError);
+      expect(() => portionFromDish(karahi, units)).toThrow(ValidationError);
+    }
+  });
+
+  it('computes a portion from a dish without a lookup', () => {
+    expect(portionFromDish(karahi, 1.5).calories).toBe(542);
   });
 
   it('lists the catalog', async () => {
