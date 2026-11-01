@@ -10,3 +10,12 @@ coverage/
 database/supabase/.temp/
 
 graphify-out/
+/skills
+.claude-logs/.state/
+
+# large or local-only research downloads (datasets, papers, quota sheet)
+nutrients-18-03173-s001.zip
+nutrients-4519868-supplementary.pdf
+Gemini-API - Sheet1.csv
+SMF-DataSet-Flat/
+archive.zip
