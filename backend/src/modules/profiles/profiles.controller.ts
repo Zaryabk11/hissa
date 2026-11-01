@@ -1,11 +1,19 @@
 import type { Request, Response } from 'express';
+import { UnauthorizedError } from '../../shared/errors';
+import type { ProfileBody } from './profiles.schemas';
 import type { ProfilesService } from './profiles.service';
 
 // Maps HTTP to profiles service calls. No business logic.
 export function createProfilesController(service: ProfilesService) {
   return {
-    async getProfile(_req: Request, res: Response): Promise<void> {
-      res.json(await service.getProfile());
+    async getProfile(req: Request, res: Response): Promise<void> {
+      if (!req.userId) throw new UnauthorizedError();
+      res.json(await service.getProfile(req.userId));
+    },
+
+    async putProfile(req: Request, res: Response): Promise<void> {
+      if (!req.userId) throw new UnauthorizedError();
+      res.json(await service.upsertProfile(req.userId, req.body as ProfileBody));
     },
   };
 }
