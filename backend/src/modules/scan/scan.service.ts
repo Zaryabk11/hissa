@@ -44,10 +44,11 @@ export function createScanService({
       }
 
       const photo = await resizePhoto(Buffer.from(input.image, 'base64'));
+      // Read before recording so a catalog failure does not use up a scan.
+      const catalog = await nutrition.listCatalog();
       // Recorded before calling Gemini so retries cannot get around the cap.
       await repository.recordScan(userId, day);
 
-      const catalog = await nutrition.listCatalog();
       let detected;
       try {
         detected = await gemini.detectDishes(

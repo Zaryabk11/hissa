@@ -39,7 +39,7 @@ function setup(detected: DetectedDish[] | Error = [], count: (day: string) => nu
     now: () => NOW,
   });
   const scan = () => service.scanPhoto('u1', { image, mimeType: 'image/jpeg' });
-  return { repository, gemini, service, scan };
+  return { repository, gemini, nutrition, service, scan };
 }
 
 describe('scan service', () => {
@@ -51,6 +51,14 @@ describe('scan service', () => {
       { slug: 'roti', unit: 'roti' },
       { slug: 'daal', unit: 'katori' },
     ]);
+  });
+
+  it('does not use up a scan slot when the catalog read fails', async () => {
+    const { repository, gemini, nutrition, scan } = setup();
+    nutrition.listCatalog.mockRejectedValueOnce(new Error('db down'));
+    await expect(scan()).rejects.toThrow('db down');
+    expect(repository.recordScan).not.toHaveBeenCalled();
+    expect(gemini.detectDishes).not.toHaveBeenCalled();
   });
 
   it('counts a new PKT day from zero even if the UTC day was at the cap', async () => {
