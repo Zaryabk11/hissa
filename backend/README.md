@@ -10,7 +10,7 @@ From the repo root:
 2. `cp backend/.env.example backend/.env` and fill in the values. Never commit `.env`.
 3. Set up Supabase (once), from `database/`:
    - Hosted: `supabase link --project-ref <ref>`, then `supabase db push --linked --include-seed`.
-   - Local: `supabase start`, then `supabase db reset`. Needs a current Supabase CLI (2.122 or newer works with the committed `config.toml`).
+   - Local: `supabase start`, then `supabase db reset`. Needs a current Supabase CLI. The committed `config.toml` was verified with CLI 2.122 only for the hosted `supabase db push`; a local `supabase start` / `db reset` has not been run here.
 4. `npm run dev` starts the API on `PORT` (default 3000).
 
 | Command             | What it does                                   |
@@ -115,6 +115,8 @@ Response 200 (`GET /api/profiles/me` returns the same shape, or 404 until the pr
 }
 ```
 
+A profile row is created automatically at sign-up (so scan and meals work straight away), and `plan` returns 404 until `PUT /api/profiles/me` has been called.
+
 ### GET /api/nutrition/catalog
 
 ```json
@@ -124,13 +126,13 @@ Response 200 (`GET /api/profiles/me` returns the same shape, or 404 until the pr
       "id": "<uuid>",
       "slug": "chicken-karahi",
       "name": "Chicken karahi",
-      "category": "curry",
+      "category": "meat",
       "unit": "katori",
       "gramsPerUnit": 150,
-      "kcalPer100g": 180,
-      "proteinPer100g": 14,
-      "carbsPer100g": 4,
-      "fatPer100g": 12,
+      "kcalPer100g": 241,
+      "proteinPer100g": 13.37,
+      "carbsPer100g": 11.09,
+      "fatPer100g": 15.85,
       "source": "khan2019",
       "basis": "lab",
       "unitBasis": "assumed"
@@ -139,7 +141,7 @@ Response 200 (`GET /api/profiles/me` returns the same shape, or 404 until the pr
 }
 ```
 
-Values above are illustrative. Use `slug` as the dish key everywhere else. `source` is `khan2019` | `farooq2026` | `indb`; `basis` is `lab` | `calculated`; `unitBasis` is `derived` | `assumed`. Fetch this once and cache it: it is also the list for manual dish entry.
+Values above are the real `chicken-karahi` catalog row. Use `slug` as the dish key everywhere else. `source` is `khan2019` | `farooq2026` | `indb`; `basis` is `lab` | `calculated`; `unitBasis` is `derived` | `assumed`. Fetch this once and cache it: it is also the list for manual dish entry.
 
 ### POST /api/scan
 
@@ -181,12 +183,12 @@ See "Scan behaviour" below for how to handle each.
 
 ### POST /api/plan
 
-Fits the confirmed dishes to today's remaining budget (daily budget minus calories already logged today). Needs a saved profile (404 otherwise) and known slugs (404 otherwise).
+Fits the confirmed dishes to today's remaining budget (daily budget minus calories already logged today). Needs a saved profile (404 until `PUT /api/profiles/me` has been called) and known slugs (404 otherwise).
 
 Request: 1 to 10 items, `units` greater than 0 and at most 20.
 
 ```json
-{ "items": [{ "slug": "chicken-karahi", "units": 2 }] }
+{ "items": [{ "slug": "chicken-karahi", "units": 1.5 }] }
 ```
 
 Response 200:
@@ -195,20 +197,20 @@ Response 200:
 {
   "kind": "full",
   "remainingBefore": 1577,
-  "totalCalories": 660,
-  "remainingAfter": 917,
+  "totalCalories": 542,
+  "remainingAfter": 1035,
   "isEstimate": true,
   "items": [
     {
       "slug": "chicken-karahi",
       "name": "Chicken karahi",
       "unit": "katori",
-      "requestedUnits": 2,
-      "units": 2,
-      "calories": 660,
-      "proteinG": 38.2,
-      "carbsG": 9.1,
-      "fatG": 51.4
+      "requestedUnits": 1.5,
+      "units": 1.5,
+      "calories": 542,
+      "proteinG": 30.1,
+      "carbsG": 25,
+      "fatG": 35.7
     }
   ],
   "suggestions": []
@@ -237,7 +239,7 @@ Saves what the user actually confirmed, plus what the scan predicted (used to le
 
 Rules:
 
-- Each item needs `predictedDish` or `confirmedDish` (slug). All five fields are required keys; use `null` for "none".
+- Each item needs a `predictedDish` or `confirmedDish` (slug); `predictedDish: "unknown"` does not count as a predicted dish. All five fields are required keys; use `null` for "none".
 - `confirmedDish: null` means the user removed the item. A dish the user added by hand has `predictedDish: null`, `predictedPortion: null`, `confidence: null`.
 - If `confirmedDish` is set, `confirmedPortion` must be greater than 0 and at most 20.
 - At least one item must have a `confirmedDish`, else 400.
@@ -248,7 +250,7 @@ Response 201:
 ```json
 {
   "id": "<meal uuid>",
-  "totalCalories": 660,
+  "totalCalories": 542,
   "eatenAt": "2026-11-01T13:05:11.123Z",
   "items": [
     {
@@ -269,12 +271,12 @@ Meals eaten today, where "today" is the Pakistan (PKT, UTC+5) calendar day. Olde
 ```json
 {
   "day": "2026-11-01",
-  "totalCalories": 660,
+  "totalCalories": 542,
   "meals": [
     {
       "id": "<meal uuid>",
       "eatenAt": "2026-11-01T13:05:11.123Z",
-      "totalCalories": 660,
+      "totalCalories": 542,
       "items": [
         {
           "predictedDish": "chicken-karahi",
@@ -317,18 +319,18 @@ The step is also the smallest portion the plan will recommend. Each dish has exa
 
 ### Plan `kind`
 
-| `kind`    | Meaning                                                                                                                                                                                               |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `full`    | Everything fits in the remaining budget. `units` equals `requestedUnits`.                                                                                                                             |
-| `reduced` | Too much, so portions were trimmed (largest calorie item first, one step at a time). Compare `units` to `requestedUnits` and show the change.                                                         |
-| `minimum` | Even one step of each dish exceeds the budget. Every item is at its minimum. `remainingAfter` is negative.                                                                                            |
-| `light`   | Budget already used up (`remainingBefore` is 0 or less). Never refuses: every dish is cut to one step, and `suggestions` may offer a light side (salad, raita), never one the user already requested. |
+| `kind`    | Meaning                                                                                                                                                                                                                                                           |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `full`    | Everything fits in the remaining budget. `units` equals `requestedUnits`.                                                                                                                                                                                         |
+| `reduced` | Too much, so portions were trimmed (largest calorie item first, one step at a time). Compare `units` to `requestedUnits` and show the change.                                                                                                                     |
+| `minimum` | Even one step of each dish exceeds the budget. Every item is at its minimum. `remainingAfter` is negative.                                                                                                                                                        |
+| `light`   | Budget already used up (`remainingBefore` is 0 or less). Never refuses: every dish is cut to one step, and `suggestions` may offer a light side (`salad` and `raita` when the catalog has those slugs; today only `raita`), never one the user already requested. |
 
 Never present `light` or `minimum` as an error or a scolding. No medical advice.
 
 ### Estimates
 
-Every number is an estimate. Plan responses and nutrition carry `isEstimate: true`; the app must label calories, grams and macros as estimates (for example "about 660 kcal") everywhere they appear, including the daily log.
+Every number is an estimate. Plan responses and nutrition carry `isEstimate: true`; the app must label calories, grams and macros as estimates (for example "about 542 kcal") everywhere they appear, including the daily log.
 
 ### Privacy note
 
@@ -339,7 +341,7 @@ Buddies see only "logged today" and the streak, never meals, photos or calories.
 1. `PUT /api/profiles/me` once (onboarding). Gives the daily budget.
 2. `GET /api/nutrition/catalog` and cache it.
 3. `POST /api/scan` with a JPEG. On `mode: "manual"`, go straight to manual entry in step 4.
-4. User confirms: fix `needsConfirmation` items with chips, adjust portions in `unit` steps, add or remove dishes. Keep the scan's original `dish`, `portion` and `confidence` as the predicted values.
+4. User confirms: fix `needsConfirmation` items with chips, adjust portions in `unit` steps, add or remove dishes. Keep the scan's original `dish`, `portion` and `confidence` as the predicted values; for an unrecognised item send `predictedDish: "unknown"` (or `null`), which is stored as no predicted dish. Such an item needs a `confirmedDish`, else 400.
 5. `POST /api/plan` with the confirmed `{ slug, units }` list. Show `kind`, the recommended `units`, `remainingAfter`, and the "estimate" label. The user may accept the plan's portions or keep their own.
 6. `POST /api/meals` with predicted and confirmed values per item (the portions the user will actually eat as `confirmedPortion`).
 7. `GET /api/meals/today` to refresh the daily log and total.
