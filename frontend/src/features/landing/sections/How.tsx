@@ -1,5 +1,6 @@
 import type { LayoutChangeEvent } from 'react-native';
 import { fluid, landingType } from '../../../shared/theme/landingTokens';
+import { FlowCard } from '../components/FlowCard';
 import { Grid } from '../components/Grid';
 import { Section } from '../components/Section';
 import { SectionTitle } from '../components/SectionTitle';
@@ -17,7 +18,9 @@ export function How({ onLayout }: { onLayout: (e: LayoutChangeEvent) => void }) 
       <SectionTitle size={landingType.sectionH2}>{content.how.title.join('\n')}</SectionTitle>
       <Grid minCol={300} gap={16} marginTop={fluid(36, 5, 64, width)}>
         {content.how.steps.map((s, i) => (
-          <StepCard key={s.n} n={s.n} title={s.t} body={s.d} visual={visuals[i]} />
+          <FlowCard key={s.n} side={i % 2 ? 'right' : 'left'}>
+            <StepCard n={s.n} title={s.t} body={s.d} visual={visuals[i]} />
+          </FlowCard>
         ))}
       </Grid>
     </Section>

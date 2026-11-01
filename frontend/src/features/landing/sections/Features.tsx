@@ -156,16 +156,16 @@ export function Features({ onLayout }: { onLayout: (e: LayoutChangeEvent) => voi
         {c.title}
       </SectionTitle>
       <Grid minCol={330} gap={16} marginTop={fluid(36, 5, 64, width)}>
-        <FeatureCard title={c.budget.t} body={c.budget.d}>
+        <FeatureCard side="left" title={c.budget.t} body={c.budget.d}>
           <BudgetRing />
         </FeatureCard>
-        <FeatureCard title={c.week.t} body={c.week.d}>
+        <FeatureCard side="right" title={c.week.t} body={c.week.d}>
           <WeekBars />
         </FeatureCard>
-        <FeatureCard title={c.dishes.t} body={c.dishes.d}>
+        <FeatureCard side="left" title={c.dishes.t} body={c.dishes.d}>
           <DishChips />
         </FeatureCard>
-        <FeatureCard lime title={c.checkin.t} body={c.checkin.d}>
+        <FeatureCard side="right" lime title={c.checkin.t} body={c.checkin.d}>
           <CheckIn />
         </FeatureCard>
       </Grid>
