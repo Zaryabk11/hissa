@@ -28,7 +28,23 @@ test('roti and naan portions come out at realistic weights', () => {
   assert.ok(bySlug.naan?.grams_per_unit >= 45 && bySlug.naan.grams_per_unit <= 60);
 });
 
-test('no fried, kofta or kebab row comes from INDB', () => {
-  const bad = rows.filter((r) => r.source === 'indb' && /samosa|kofta|kebab|pakora/.test(r.slug));
-  assert.deepEqual(bad, []);
+test('slugs are unique and kebab-case', () => {
+  const slugs = rows.map((r) => r.slug);
+  assert.equal(new Set(slugs).size, slugs.length);
+  for (const slug of slugs) assert.match(slug, /^[a-z0-9]+(-[a-z0-9]+)*$/, slug);
+});
+
+test('no default-unit portion is over the calorie ceiling', () => {
+  const CEILING_KCAL = 700;
+  for (const r of rows) {
+    const kcal = (r.kcal_per_100g * r.grams_per_unit) / 100;
+    assert.ok(kcal <= CEILING_KCAL, `${r.slug}: ${kcal} kcal per ${r.unit}`);
+  }
+});
+
+test('no fried row comes from INDB', () => {
+  assert.deepEqual(
+    rows.filter((r) => r.category === 'fried' && r.source === 'indb'),
+    [],
+  );
 });

@@ -4,6 +4,8 @@
 
 Precedence when sources disagree: lab (Khan 2019) over paper (Farooq 2026) over INDB.
 
+The seed is upsert only: a row removed from the CSV is **not** deleted from an existing database (the generated `seed.sql` says so in its header). To retire a dish, delete it from the database by hand or in a migration.
+
 ## 1. Khan et al. 2019 (lab-measured): `source=khan2019`, `basis=lab`
 
 I. Khan, F. Yasmeen, J. Ahmad, et al. "Developing a meal-planning exchange list for commonly consumed Pakistani dishes." _Progress in Nutrition_ 21(2): 421-429, 2019. 30 dishes cooked in Khyber Pakhtunkhwa and analysed in duplicate (AOAC proximate analysis). PDF: https://mattioli1885journals.com/index.php/progressinnutrition/article/download/6928/7720/31616
@@ -74,6 +76,18 @@ No source gives household portions for the other dishes, so I chose these defaul
 - Rice dishes and macaroni: 1 plate = 250 g (the paper's Table 1 example also uses 250 g of biryani). Masala fish and malai boti: 1 plate = 150 g. Fries, pakode, gol gappay: 1 plate = 100 g.
 - Pieces: chapli kebab 100 g, chicken tikka 120 g, seekh kebab 50 g, samosa 60 g, puri 30 g, anda paratha 110 g, gulab jamun 40 g, kulfi 70 g, barfi 30 g, jalebi 30 g.
 - Glasses: lassi, falooda, lemonade and milk soda 250 g; coffee 200 g; chai 150 g (the schema has no cup unit, so chai uses `glass`).
+
+## Look-alike slugs
+
+Some slugs sound alike but are different dishes (different source, recipe or serving). They are kept apart on purpose. Slugs spell the lentil word `daal` and the Khan mince dishes `qeema` throughout; no `dal` slug exists.
+
+| Slugs                                                          | Intended distinction                                                                                                                              |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `palak`, `saag`, `palak-gosht`, `aloo-palak`                   | `palak` is the lab spinach dish (Khan). `saag` is the paper's mustard-greens saag (INDB weight: Sarson ka saag). `palak-gosht` is spinach with meat; `aloo-palak` is spinach with potato. |
+| `chawal`, `white-rice`, `vegetable-rice`, `jeera-rice`, `matar-rice` | `chawal` is the lab rice cooked with oil, onion and tomato (194 kcal per 100 g). `white-rice` is plain boiled rice (paper, INDB weight). `vegetable-rice` is the lab rice with vegetables. `jeera-rice` and `matar-rice` are the paper's cumin and pea rice. |
+| `machli`, `fish-curry`                                         | `machli` is the lab masala fish, one plate of 150 g. `fish-curry` is the paper's gravy curry, one bowl of 254 g.                                  |
+| `keema`, `kachalo-qeema`, `karela-qeema`, `macaroni-qeema`, `shimla-mirch-qeema` | `keema` is the paper's plain minced meat. The `qeema` slugs are the lab's mince cooked with a named vegetable or pasta; the spelling follows Khan's table names. |
+| `choley`, `chana-daal`                                         | `choley` is whole chickpea curry (Khan "Gram/Chick pea"). `chana-daal` is split chickpea lentils (Khan "Slit chick pea lentils").                 |
 
 ## Licensing
 

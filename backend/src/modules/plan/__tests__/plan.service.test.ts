@@ -92,6 +92,9 @@ describe('plan service', () => {
     expect(plan.kind).toBe('light');
     expect(unitsOf(plan)).toEqual({ roti: 1, karahi: 0.5 });
     expect(plan.suggestions.map((s) => [s.slug, s.units])).toEqual([['raita', 0.5]]);
+    expect(plan.totalCalories).toBe(291);
+    expect(plan.remainingBefore).toBe(0);
+    expect(plan.remainingAfter).toBe(-291);
     expect(plan.isEstimate).toBe(true);
   });
 
@@ -118,6 +121,44 @@ describe('plan service', () => {
     ]);
     expect(plan.kind).toBe('minimum');
     expect(calls).toEqual(['roti', 'karahi']);
+  });
+
+  it('lowers the lower index first when two items have equal calories', async () => {
+    const catalog = [...DISHES, dish('chapati', 'roti', 40, 275)];
+    const forward = await setup(400, catalog).buildPlan('u1', [
+      { slug: 'chapati', units: 2 },
+      { slug: 'roti', units: 2 },
+    ]);
+    expect(forward.items.map((i) => i.units)).toEqual([1, 2]);
+    const backward = await setup(400, catalog).buildPlan('u1', [
+      { slug: 'roti', units: 2 },
+      { slug: 'chapati', units: 2 },
+    ]);
+    expect(backward.items.map((i) => i.units)).toEqual([1, 2]);
+  });
+
+  it('treats duplicate slugs as separate items', async () => {
+    const plan = await setup(400).buildPlan('u1', [
+      { slug: 'roti', units: 2 },
+      { slug: 'roti', units: 2 },
+    ]);
+    expect(plan.kind).toBe('reduced');
+    expect(plan.items.map((i) => [i.slug, i.requestedUnits, i.units])).toEqual([
+      ['roti', 2, 1],
+      ['roti', 2, 2],
+    ]);
+  });
+
+  it.each([
+    ['piece', 1],
+    ['glass', 1],
+    ['bowl', 0.5],
+    ['plate', 0.5],
+  ] as const)('lowers a %s item by its step of %s', async (unit, step) => {
+    const catalog = [dish('thing', unit, 100, 100)]; // 100 kcal per unit
+    const plan = await setup(250, catalog).buildPlan('u1', [{ slug: 'thing', units: 3 }]);
+    expect(plan.kind).toBe('reduced');
+    expect(plan.items[0]?.units).toBe(3 - step);
   });
 
   it('propagates the missing-profile error', async () => {

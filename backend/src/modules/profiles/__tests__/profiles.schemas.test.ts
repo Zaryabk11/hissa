@@ -27,7 +27,20 @@ describe('profileBodySchema', () => {
     ['age 121', { age: 121 }],
     ['heightCm 0', { heightCm: 0 }],
     ['weightKg -1', { weightKg: -1 }],
+    ['displayName of 81 characters', { displayName: 'a'.repeat(81) }],
   ])('rejects %s', (_name, patch) => {
     expect(profileBodySchema.safeParse({ ...valid, ...patch }).success).toBe(false);
   });
+
+  it('accepts a displayName of exactly 80 characters', () => {
+    expect(profileBodySchema.safeParse({ ...valid, displayName: 'a'.repeat(80) }).success).toBe(true);
+  });
+
+  it.each(['goal', 'sex', 'age', 'heightCm', 'weightKg', 'activityLevel'])(
+    'rejects a body missing %s',
+    (field) => {
+      const body = Object.fromEntries(Object.entries(valid).filter(([k]) => k !== field));
+      expect(profileBodySchema.safeParse(body).success).toBe(false);
+    },
+  );
 });
