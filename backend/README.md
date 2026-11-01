@@ -85,12 +85,12 @@ Request (all fields required except `displayName`). Do not send a budget: the se
 ```json
 {
   "displayName": "Ayesha",
-  "goal": "lose",
+  "goal": "maintain",
   "sex": "female",
-  "age": 31,
+  "age": 25,
   "heightCm": 160,
-  "weightKg": 68,
-  "activityLevel": "light"
+  "weightKg": 60,
+  "activityLevel": "sedentary"
 }
 ```
 
@@ -105,12 +105,12 @@ Response 200 (`GET /api/profiles/me` returns the same shape, or 404 until the pr
 {
   "id": "<user uuid>",
   "displayName": "Ayesha",
-  "goal": "lose",
+  "goal": "maintain",
   "sex": "female",
-  "age": 31,
+  "age": 25,
   "heightCm": 160,
-  "weightKg": 68,
-  "activityLevel": "light",
+  "weightKg": 60,
+  "activityLevel": "sedentary",
   "dailyCalorieBudget": 1577
 }
 ```
