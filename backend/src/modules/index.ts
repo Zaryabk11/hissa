@@ -18,7 +18,7 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
   const nutrition = createNutritionModule(deps);
   const scan = createScanModule({ ...deps, nutrition: nutrition.service });
   const plan = createPlanModule(deps);
-  const meals = createMealsModule(deps);
+  const meals = createMealsModule({ ...deps, nutrition: nutrition.service });
   const streaks = createStreaksModule(deps);
   const feel = createFeelModule(deps);
 
