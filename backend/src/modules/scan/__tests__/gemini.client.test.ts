@@ -109,6 +109,16 @@ describe('gemini client', () => {
       warn.mockRestore();
     });
 
+    it('rejects with GeminiUnavailableError when the body is not valid JSON at all', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+      const fetchFn = vi.fn(async () => new Response('<html>oops</html>', { status: 200 })) as unknown as typeof fetch;
+      await expect(client(fetchFn).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
+        GeminiUnavailableError,
+      );
+      expect(warn).toHaveBeenCalledWith('Gemini request failed', { error: 'SyntaxError' });
+      warn.mockRestore();
+    });
+
     it('maps a body read that fails to GeminiUnavailableError, not []', async () => {
       const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
       const fetchFn = vi.fn(async () => ({

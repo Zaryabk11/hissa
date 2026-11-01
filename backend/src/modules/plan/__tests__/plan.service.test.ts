@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { NotFoundError } from '../../../shared/errors';
-import type { Dish } from '../../nutrition';
+import { portionFromDish, type Dish } from '../../nutrition';
 import { createPlanService } from '../plan.service';
 
 const dish = (slug: string, unit: Dish['unit'], gramsPerUnit: number, kcalPer100g: number) =>
-  ({ slug, name: slug, unit, gramsPerUnit, kcalPer100g }) as Dish;
+  ({
+    slug,
+    name: slug,
+    unit,
+    gramsPerUnit,
+    kcalPer100g,
+    proteinPer100g: 8,
+    carbsPer100g: 20,
+    fatPer100g: 5,
+  }) as Dish;
 const DISHES = [
   dish('roti', 'roti', 40, 275),
   dish('karahi', 'katori', 150, 241),
@@ -43,6 +52,15 @@ describe('plan service', () => {
     expect(plan.remainingBefore).toBe(600);
     expect(plan.remainingAfter).toBe(18);
     expect(plan.isEstimate).toBe(true);
+  });
+
+  it('passes the macros through from portionFromDish', async () => {
+    const plan = await setup(600).buildPlan('u1', REQUEST);
+    plan.items.forEach((item) => {
+      const n = portionFromDish(DISHES.find((d) => d.slug === item.slug) as Dish, item.units);
+      expect([item.proteinG, item.carbsG, item.fatG]).toEqual([n.proteinG, n.carbsG, n.fatG]);
+      expect(Number.isNaN(item.proteinG)).toBe(false);
+    });
   });
 
   it('lowers the highest-calorie item first until it fits', async () => {
