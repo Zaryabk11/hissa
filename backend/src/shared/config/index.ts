@@ -9,8 +9,6 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(1),
   GEMINI_MODEL: z.string().min(1).default('gemini-3.1-flash-lite'),
   SCAN_DAILY_CAP: z.coerce.number().int().positive().default(10),
-  FATSECRET_CLIENT_ID: z.string().min(1),
-  FATSECRET_CLIENT_SECRET: z.string().min(1),
 });
 
 export type Config = z.infer<typeof envSchema>;

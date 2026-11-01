@@ -6,8 +6,6 @@ const minimalEnv = {
   SUPABASE_ANON_KEY: 'anon',
   SUPABASE_SERVICE_ROLE_KEY: 'service',
   GEMINI_API_KEY: 'gemini',
-  FATSECRET_CLIENT_ID: 'id',
-  FATSECRET_CLIENT_SECRET: 'secret',
 };
 
 describe('loadConfig', () => {

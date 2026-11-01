@@ -7,13 +7,13 @@ const modules = ['auth', 'profiles', 'scan', 'nutrition', 'plan', 'meals', 'stre
 
 // Layer rule: routes -> controller -> service -> repository. Each layer lists what it must not import.
 const forbiddenByLayer = {
-  routes: ['service', 'repository', 'client', 'local-table'],
-  controller: ['routes', 'repository', 'client', 'local-table'],
+  routes: ['service', 'repository', 'client'],
+  controller: ['routes', 'repository', 'client'],
   service: ['routes', 'controller'],
-  repository: ['routes', 'controller', 'service', 'client', 'local-table'],
+  repository: ['routes', 'controller', 'service', 'client'],
   client: ['routes', 'controller', 'service', 'repository'],
-  schemas: ['routes', 'controller', 'service', 'repository', 'client', 'local-table'],
-  types: ['routes', 'controller', 'service', 'repository', 'client', 'local-table'],
+  schemas: ['routes', 'controller', 'service', 'repository', 'client'],
+  types: ['routes', 'controller', 'service', 'repository', 'client'],
 };
 
 // Module rule: another module may only be imported through its index.
@@ -33,10 +33,7 @@ const restrictedFor = (self, layer) => [
 
 const moduleRules = modules.flatMap((self) =>
   Object.keys(forbiddenByLayer).map((layer) => ({
-    files: [
-      `src/modules/${self}/*.${layer}.ts`,
-      ...(layer === 'client' ? [`src/modules/${self}/local-table.ts`] : []),
-    ],
+    files: [`src/modules/${self}/*.${layer}.ts`],
     rules: { 'no-restricted-imports': ['error', { patterns: restrictedFor(self, layer) }] },
   })),
 );
