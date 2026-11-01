@@ -1,24 +1,29 @@
 node_modules/
 dist/
 .expo/
+.expo-shared/
+*.tsbuildinfo
 .env
 .env.*
 !.env.example
 *.log
 .DS_Store
 coverage/
+__pycache__/
+*.py[cod]
 database/supabase/.temp/
 
 graphify-out/
 /skills
 .claude-logs/.state/
 
-# large or local-only research downloads (datasets, papers, quota sheet)
-nutrients-18-03173-s001.zip
-nutrients-4519868-supplementary.pdf
-Gemini-API - Sheet1.csv
-SMF-DataSet-Flat/
-archive.zip
+# Local research downloads; keep curated app data in database/data/
+/SMF-DataSet-Flat/
+/dataset/
+/datasets/
+/*.zip
+/*.pdf
+/*.csv
 
 # subagent-driven-development scratch (ledger, briefs, reports)
 .superpowers/
