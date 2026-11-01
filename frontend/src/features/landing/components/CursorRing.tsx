@@ -3,6 +3,10 @@ import { Platform } from 'react-native';
 import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
+/** True only on web with a mouse-like pointer. Native and touch screens get false. */
+export const hasFinePointer = () =>
+  Platform.OS === 'web' && typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
+
 const SIZE = 40;
 const GROW = 72 / 40;
 const INTERACTIVE = 'a, button, [role="button"], [role="link"]';
@@ -79,6 +83,6 @@ function Ring() {
 
 /** Web-only follower ring for fine pointers (mouse, trackpad). Renders nothing on native or touch screens. */
 export function CursorRing() {
-  const [fine] = useState(() => Platform.OS === 'web' && typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches);
+  const [fine] = useState(hasFinePointer);
   return fine ? <Ring /> : null;
 }

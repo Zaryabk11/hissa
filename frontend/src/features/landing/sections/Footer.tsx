@@ -1,6 +1,6 @@
 import RNMaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { ComponentType, ReactElement, ReactNode } from 'react';
+import { useRef, useState, type ComponentRef, type ComponentType, type ReactElement, type ReactNode } from 'react';
 import { Platform, Pressable, Text, View, type TextStyle } from 'react-native';
 import {
   fluid,
@@ -10,6 +10,7 @@ import {
   landingSpacing,
   landingType,
 } from '../../../shared/theme/landingTokens';
+import { MeshBlobs } from '../components/MeshBlobs';
 import { content, type SectionId } from '../content';
 import { useLandingLayout } from '../hooks/useLandingLayout';
 
@@ -19,9 +20,7 @@ const MaskedView = RNMaskedView as unknown as ComponentType<{ maskElement: React
 const gradient = [landingColors.lime, landingColors.wordmarkMid, landingColors.wordmarkEnd] as const;
 
 /** Gradient-filled "hissa". Native masks a gradient; MaskedView is a no-op on web, so CSS clips one there. */
-function Wordmark() {
-  const { width } = useLandingLayout();
-  const fs = fluid(landingType.wordmark.min, landingType.wordmark.vw, landingType.wordmark.max, width);
+function Wordmark({ fs }: { fs: number }) {
   const text: TextStyle = {
     fontFamily: landingFonts.display800,
     fontSize: fs,
@@ -62,6 +61,10 @@ function Wordmark() {
 
 export function Footer({ onNavigate }: { onNavigate: (id: SectionId) => void }) {
   const { width, gutter } = useLandingLayout();
+  const fs = fluid(landingType.wordmark.min, landingType.wordmark.vw, landingType.wordmark.max, width);
+  const panel = useRef<ComponentRef<typeof View>>(null);
+  // Seeded with the size the panel will have (wordmark line plus its padding) so the blobs are placed on first paint.
+  const [size, setSize] = useState({ w: Math.min(landingSpacing.maxWidth, width - gutter * 2) - 2, h: fs * 1.17 });
   const link = { fontFamily: landingFonts.body500, fontSize: 16, color: landingColors.textLink };
   return (
     <View
@@ -104,6 +107,8 @@ export function Footer({ onNavigate }: { onNavigate: (id: SectionId) => void }) 
         </View>
       </View>
       <View
+        ref={panel}
+        onLayout={(e) => setSize({ w: e.nativeEvent.layout.width - 2, h: e.nativeEvent.layout.height - 2 })}
         style={{
           marginTop: 48,
           overflow: 'hidden',
@@ -113,7 +118,8 @@ export function Footer({ onNavigate }: { onNavigate: (id: SectionId) => void }) 
           borderColor: landingColors.line,
         }}
       >
-        <Wordmark />
+        <MeshBlobs w={size.w} h={size.h} panel={panel} />
+        <Wordmark fs={fs} />
       </View>
       <View style={{ marginTop: 24, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }}>
         <Text style={{ fontFamily: landingFonts.body400, fontSize: 14, color: landingColors.textFaint }}>{c.copyright}</Text>
