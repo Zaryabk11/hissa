@@ -10,7 +10,7 @@ export function createApp(config: Config = loadConfig()): Express {
   const db = createDb(config);
   const requireAuth = createRequireAuth(db);
 
-  app.use(express.json());
+  app.use(express.json({ limit: '8mb' }));
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
   });

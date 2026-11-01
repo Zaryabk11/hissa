@@ -9,6 +9,13 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     res.status(err.status).json({ error: { code: err.code, message: err.message } });
     return;
   }
+  // body-parser errors (oversized or malformed body) carry a 4xx status and expose = true.
+  const { status, expose } = err as { status?: unknown; expose?: unknown };
+  if (typeof status === 'number' && status >= 400 && status < 500 && expose === true) {
+    const code = status === 413 ? 'payload_too_large' : 'bad_request';
+    res.status(status).json({ error: { code, message: (err as Error).message } });
+    return;
+  }
   logger.error('Unhandled error', err);
   res.status(500).json({ error: { code: 'internal_error', message: 'Something went wrong' } });
 };

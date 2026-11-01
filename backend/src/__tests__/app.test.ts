@@ -15,9 +15,16 @@ describe('app', () => {
   });
 
   it('module routes reach the stub service', async () => {
-    const res = await request(createApp()).get('/api/scan');
+    const res = await request(createApp()).get('/api/streaks');
     expect(res.status).toBe(501);
     expect(res.body.error.code).toBe('not_implemented');
+  });
+
+  it('POST /api/scan with an oversized body returns 413', async () => {
+    const res = await request(createApp())
+      .post('/api/scan')
+      .send({ image: 'a'.repeat(9_000_000) });
+    expect(res.status).toBe(413);
   });
 
   it('unknown routes return 404', async () => {
