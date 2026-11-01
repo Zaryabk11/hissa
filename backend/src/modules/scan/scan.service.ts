@@ -51,6 +51,7 @@ export function createScanService({
       // insert: parallel requests can all pass the pre-check, but only `dailyCap` of them end up
       // at or under the cap. The over-cap row stays, which is acceptable.
       await repository.recordScan(userId, day);
+      // If this count throws, the recorded slot stays consumed and the user sees a 500 (accepted edge).
       if ((await repository.countScansForDay(userId, day)) > dailyCap) {
         return { mode: 'manual', reason: 'daily_cap' };
       }

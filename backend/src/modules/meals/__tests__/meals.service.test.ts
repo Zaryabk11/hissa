@@ -145,7 +145,10 @@ describe('meals service', () => {
 
   it('rejects an unknown slug with NotFoundError before inserting anything', async () => {
     const { service, repository, nutrition } = setup();
-    nutrition.getDish.mockRejectedValueOnce(new NotFoundError('Unknown dish: nope'));
+    nutrition.getDish.mockImplementation(async (slug: string) => {
+      if (slug === 'nope') throw new NotFoundError('Unknown dish: nope');
+      return { id: `id-${slug}`, slug } as Dish;
+    });
     await expect(
       service.saveMeal('u1', { items: [item(), item({ predictedDish: 'nope' })] }),
     ).rejects.toBeInstanceOf(NotFoundError);

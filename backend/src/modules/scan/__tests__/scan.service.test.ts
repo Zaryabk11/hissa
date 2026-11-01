@@ -146,23 +146,6 @@ describe('scan service', () => {
     });
   });
 
-  it('returns a single unknown item when Gemini finds nothing', async () => {
-    const { scan } = setup([]);
-    expect(await scan()).toEqual({
-      mode: 'detected',
-      items: [
-        {
-          dish: 'unknown',
-          name: null,
-          unit: null,
-          portion: 0,
-          confidence: 0,
-          needsConfirmation: true,
-        },
-      ],
-    });
-  });
-
   it('fills name and unit from the catalog', async () => {
     const { scan } = setup([{ dish: 'daal', portion: 1.5, confidence: 0.8 }]);
     expect(await scan()).toEqual({

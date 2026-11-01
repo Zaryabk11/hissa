@@ -83,10 +83,10 @@ Some slugs sound alike but are different dishes (different source, recipe or ser
 
 | Slugs                                                          | Intended distinction                                                                                                                              |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `palak`, `saag`, `palak-gosht`, `aloo-palak`                   | `palak` is the lab spinach dish (Khan). `saag` is the paper's mustard-greens saag (INDB weight: Sarson ka saag). `palak-gosht` is spinach with meat; `aloo-palak` is spinach with potato. |
-| `chawal`, `white-rice`, `vegetable-rice`, `jeera-rice`, `matar-rice` | `chawal` is the lab rice cooked with oil, onion and tomato (194 kcal per 100 g). `white-rice` is plain boiled rice (paper, INDB weight). `vegetable-rice` is the lab rice with vegetables. `jeera-rice` and `matar-rice` are the paper's cumin and pea rice. |
-| `machli`, `fish-curry`                                         | `machli` is the lab masala fish, one plate of 150 g. `fish-curry` is the paper's gravy curry, one bowl of 254 g.                                  |
-| `keema`, `kachalo-qeema`, `karela-qeema`, `macaroni-qeema`, `shimla-mirch-qeema` | `keema` is the paper's plain minced meat. The `qeema` slugs are the lab's mince cooked with a named vegetable or pasta; the spelling follows Khan's table names. |
+| `palak`, `saag`, `palak-gosht`, `aloo-palak`                   | `palak` is the lab spinach dish (Khan). `saag` is the paper's mustard-greens saag (INDB weight: Sarson ka saag). `palak-gosht` and `aloo-palak` are the paper's dishes, named for palak with gosht and with aloo; no recipe is claimed. |
+| `chawal`, `white-rice`, `vegetable-rice`, `jeera-rice`, `matar-rice` | `chawal` is the lab rice cooked with oil, onion and tomato (194 kcal per 100 g). `white-rice` is the paper's rice (INDB weight: Boiled rice). `vegetable-rice` is a lab rice dish (Khan). `jeera-rice` is the paper's rice (INDB weight: Cumin pulao). `matar-rice` is the paper's rice, named for matar. |
+| `machli`, `fish-curry`                                         | `machli` is the lab masala fish (not a curry), one plate of 150 g. `fish-curry` is the paper's gravy curry, one bowl of 254 g.                                  |
+| `keema`, `kachalo-qeema`, `karela-qeema`, `macaroni-qeema`, `shimla-mirch-qeema` | `keema` is the paper's dish (Farooq). The `qeema` slugs are the lab's dishes (Khan), and their spelling follows Khan's table names. |
 | `choley`, `chana-daal`                                         | `choley` is whole chickpea curry (Khan "Gram/Chick pea"). `chana-daal` is split chickpea lentils (Khan "Slit chick pea lentils").                 |
 
 ## Licensing

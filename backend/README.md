@@ -298,7 +298,7 @@ Meals eaten today, where "today" is the Pakistan (PKT, UTC+5) calendar day. Olde
 ### Scan
 
 - **Manual fallback is never a dead end.** `mode: "manual"` means no detection was done. Show manual dish entry from the catalog (`GET /api/nutrition/catalog`) and continue the normal flow.
-  - `reason: "daily_cap"`: the user used all `SCAN_DAILY_CAP` scans (default 10) for the PKT day. The scan is not run and not counted.
+  - `reason: "daily_cap"`: the user used all `SCAN_DAILY_CAP` scans (default 10) for the PKT day. Normally the scan is not run and not counted; if two scans race for the last slot, the loser may leave a recorded row and both can be refused.
   - `reason: "gemini_unavailable"`: Gemini failed or timed out. The attempt still counts toward the cap.
 - **`needsConfirmation: true`** means show correction chips for that item instead of treating it as settled. It is true when confidence is below 0.6, when the dish is `unknown`, or when the model's portion was out of range (0 or above 20) and was replaced by `1`. When false, still let the user edit.
 - **Nothing recognised:** `items` is a single entry `{ "dish": "unknown", "name": null, "unit": null, "portion": 0, "confidence": 0, "needsConfirmation": true }`. Treat it as "we could not tell", and send the user to manual entry. Whenever at least one catalog dish is recognised, `unknown` items are dropped, so a mixed result never contains `unknown` rows and the single `unknown` item above appears only when nothing was recognised.
