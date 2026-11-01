@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Text, View, type LayoutChangeEvent } from 'react-native';
+import Animated, { Easing, useAnimatedProps, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { fluid, landingColors, landingFonts, landingType } from '../../../shared/theme/landingTokens';
 import { Eyebrow } from '../components/Eyebrow';
@@ -8,11 +10,24 @@ import { Section } from '../components/Section';
 import { SectionTitle } from '../components/SectionTitle';
 import { content } from '../content';
 import { useLandingLayout } from '../hooks/useLandingLayout';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 const c = content.features;
 
-/** Static ring at its final state: 950 of 1,800 left, dashoffset 323 of 628. */
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const RING_EMPTY = 628;
+const RING_FINAL = 323;
+
+/** Draws once on mount from empty to 323 of 628; reduced motion starts at that final state. */
 function BudgetRing() {
+  const reduced = useReducedMotion();
+  const offset = useSharedValue(reduced ? RING_FINAL : RING_EMPTY);
+  useEffect(() => {
+    offset.value = reduced
+      ? RING_FINAL
+      : withDelay(300, withTiming(RING_FINAL, { duration: 2000, easing: Easing.out(Easing.cubic) }));
+  }, [reduced, offset]);
+  const animatedProps = useAnimatedProps(() => ({ strokeDashoffset: offset.value }));
   return (
     <View
       accessible
@@ -23,7 +38,7 @@ function BudgetRing() {
       <View style={{ width: 180, height: 180 }}>
         <Svg width={180} height={180} viewBox="0 0 220 220">
           <Circle cx={110} cy={110} r={100} fill="none" stroke={landingColors.ringTrack} strokeWidth={10} />
-          <Circle
+          <AnimatedCircle
             cx={110}
             cy={110}
             r={100}
@@ -31,13 +46,16 @@ function BudgetRing() {
             stroke={landingColors.lime}
             strokeWidth={10}
             strokeLinecap="round"
-            strokeDasharray={628}
-            strokeDashoffset={323}
+            strokeDasharray={RING_EMPTY}
+            animatedProps={animatedProps}
             rotation={-90}
             origin="110, 110"
           />
         </Svg>
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontFamily: landingFonts.body500, fontSize: 14, color: landingColors.textMuted }}>
+            {c.budget.about}
+          </Text>
           <Text style={{ fontFamily: landingFonts.display700, fontSize: 44, lineHeight: 44, color: landingColors.text }}>
             {c.budget.value}
           </Text>

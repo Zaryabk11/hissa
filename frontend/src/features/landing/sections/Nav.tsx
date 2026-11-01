@@ -2,6 +2,7 @@ import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 import { landingColors, landingFonts, landingSpacing } from '../../../shared/theme/landingTokens';
 import { LandingButton } from '../components/LandingButton';
 import { content, type SectionId } from '../content';
+import { openGetHissa } from '../getHissa';
 import { useLandingLayout } from '../hooks/useLandingLayout';
 
 /** 12 + 44 + 12 padding, plus the 1px border. Pages offset their content by this. */
@@ -77,7 +78,7 @@ export function Nav({ onNavigate }: { onNavigate: (id: SectionId) => void }) {
             ))}
           </View>
         )}
-        <LandingButton size="nav" label={content.nav.cta} onPress={() => onNavigate('join')} />
+        <LandingButton size="nav" label={content.nav.cta} onPress={openGetHissa} />
       </View>
     </View>
   );

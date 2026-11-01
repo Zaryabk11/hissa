@@ -1,48 +1,13 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { fluid, landingColors, landingFonts, landingType } from '../../../shared/theme/landingTokens';
+import { HeroStage } from '../components/HeroStage';
 import { LandingButton } from '../components/LandingButton';
 import { content, type SectionId } from '../content';
+import { openGetHissa } from '../getHissa';
 import { useLandingLayout } from '../hooks/useLandingLayout';
 
 const MIN_COL = 420;
-
-const ring = (d: number, inset: number, color: string) => ({
-  position: 'absolute' as const,
-  top: -d * inset,
-  left: -d * inset,
-  right: -d * inset,
-  bottom: -d * inset,
-  borderRadius: 99,
-  borderWidth: 1,
-  borderColor: color,
-});
-
-/** Lime disc with two halo rings, centred in its box. Static for now. */
-function HeroStage({ columnWidth }: { columnWidth: number }) {
-  const { width } = useLandingLayout();
-  const d = Math.min(columnWidth * 0.88, 440);
-  return (
-    <View
-      style={{ minHeight: fluid(340, 44, 500, width), alignItems: 'center', justifyContent: 'center' }}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <View
-        style={{
-          width: d,
-          height: d,
-          borderRadius: 99,
-          backgroundColor: landingColors.lime,
-          transform: [{ translateY: -d * 0.02 }],
-        }}
-      >
-        <View style={ring(d, 0.05, landingColors.limeAlpha35)} />
-        <View style={ring(d, 0.11, landingColors.limeAlpha15)} />
-      </View>
-    </View>
-  );
-}
 
 type Props = { contentWidth: number; gutter: number; onNavigate: (id: SectionId) => void };
 
@@ -52,6 +17,7 @@ export function Hero({ contentWidth, gutter, onNavigate }: Props) {
   const twoCol = contentWidth >= MIN_COL * 2 + gap;
   // Seed with the expected column width so the stage paints on the first frame; onLayout then corrects it.
   const [stageW, setStageW] = useState(twoCol ? (contentWidth - gap) / 2 : contentWidth);
+  const [stageReady, setStageReady] = useState(false);
   const h1 = fluid(landingType.heroH1.min, landingType.heroH1.vw, landingType.heroH1.max, width);
   const bodySize = fluid(17, 1.5, 19, width);
   const word = {
@@ -130,12 +96,15 @@ export function Hero({ contentWidth, gutter, onNavigate }: Props) {
           {content.hero.body}
         </Text>
         <View style={{ marginTop: 32, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          <LandingButton label={content.hero.primary} onPress={() => onNavigate('join')} />
+          <LandingButton label={content.hero.primary} onPress={openGetHissa} />
           <LandingButton variant="outline" label={content.hero.secondary} onPress={() => onNavigate('how')} />
         </View>
       </View>
-      <View style={{ flex: twoCol ? 1 : undefined }} onLayout={(e) => setStageW(e.nativeEvent.layout.width)}>
-        {stageW > 0 && <HeroStage columnWidth={stageW} />}
+      <View style={{ flex: twoCol ? 1 : undefined }} onLayout={(e) => {
+          setStageW(e.nativeEvent.layout.width);
+          setStageReady(true);
+        }}>
+        {stageW > 0 && <HeroStage columnWidth={stageW} ready={stageReady} />}
       </View>
     </View>
   );

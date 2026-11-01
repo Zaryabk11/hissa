@@ -1,3 +1,6 @@
+// Placeholder: the store / waitlist link every "Get Hissa" button opens. Empty means the buttons do nothing.
+export const GET_HISSA_URL = '';
+
 export type SectionId = 'top' | 'how' | 'features' | 'buddy' | 'faq' | 'join';
 
 export const content = {
@@ -67,6 +70,7 @@ export const content = {
     budget: {
       t: "A budget you don't have to read",
       d: "Calories stay in the background, always marked as an estimate. You see what's left today.",
+      about: 'About',
       value: '950',
       unit: 'kcal left',
       label: 'About 950 kcal left today, an estimate',

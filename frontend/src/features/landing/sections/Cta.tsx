@@ -2,6 +2,7 @@ import { Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native
 import { fluid, landingColors, landingFonts } from '../../../shared/theme/landingTokens';
 import { LandingButton } from '../components/LandingButton';
 import { content, type SectionId } from '../content';
+import { openGetHissa } from '../getHissa';
 import { useLandingLayout } from '../hooks/useLandingLayout';
 
 const c = content.cta;
@@ -72,7 +73,7 @@ export function Cta({ onLayout, onNavigate }: { onLayout: (e: LayoutChangeEvent)
           {c.body}
         </Text>
         <View style={{ marginTop: 36, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          <LandingButton size="xl" variant="ink" label={c.primary} onPress={() => onNavigate('join')} />
+          <LandingButton size="xl" variant="ink" label={c.primary} onPress={openGetHissa} />
           <LandingButton size="xl" variant="inkOutline" label={c.secondary} onPress={() => onNavigate('how')} />
         </View>
       </View>

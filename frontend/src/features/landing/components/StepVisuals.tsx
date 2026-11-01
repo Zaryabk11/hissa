@@ -1,12 +1,18 @@
 import { Platform, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import Svg, { Circle, Defs, Path, Pattern, Rect } from 'react-native-svg';
 import { landingColors, landingFonts } from '../../../shared/theme/landingTokens';
 import { content } from '../content';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+
+// The band rests at top 70; it sweeps from the visual's top edge (-70) to its bottom edge (230 - 56 - 70).
+const scan = { from: { transform: [{ translateY: -70 }] }, to: { transform: [{ translateY: 104 }] } };
 
 const mono = Platform.select({ web: 'ui-monospace, Menlo, monospace', default: 'monospace' });
 
 /** Striped placeholder with a dashed ring and a static scan band. */
 export function SnapVisual() {
+  const reduced = useReducedMotion();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
@@ -35,17 +41,26 @@ export function SnapVisual() {
           {content.how.snapPlaceholder}
         </Text>
       </View>
-      <View
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: 70,
-          height: 56,
-          backgroundColor: landingColors.limeAlpha16,
-          borderBottomWidth: 2,
-          borderBottomColor: landingColors.lime,
-        }}
+      <Animated.View
+        style={[
+          {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 70,
+            height: 56,
+            backgroundColor: landingColors.limeAlpha16,
+            borderBottomWidth: 2,
+            borderBottomColor: landingColors.lime,
+          },
+          !reduced && {
+            animationName: scan,
+            animationDuration: '2.4s',
+            animationTimingFunction: 'ease-in-out',
+            animationIterationCount: 'infinite',
+            animationDirection: 'alternate',
+          },
+        ]}
       />
     </View>
   );
