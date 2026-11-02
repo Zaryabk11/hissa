@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Platform, View, type LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 import { landingColors } from '../../shared/theme/landingTokens';
 import { Background } from './components/Background';
@@ -26,6 +27,7 @@ export function LandingPage() {
   const scrollY = useScrollViewOffset(scroll);
   const [ys, setYs] = useState<Partial<Record<SectionId, number>>>({});
   const { gutter, contentWidth } = useLandingLayout();
+  const navHeight = NAV_HEIGHT + useSafeAreaInsets().top;
   const intro = useHeroIntroState();
   // Content and viewport heights, so the robot knows how far the page can scroll.
   const size = useRef({ content: 0, view: 0 });
@@ -40,7 +42,7 @@ export function LandingPage() {
   };
   const go = (id: SectionId) => {
     const y = ys[id];
-    if (y != null) scroll.current?.scrollTo({ y: Math.max(0, y - NAV_HEIGHT), animated: true });
+    if (y != null) scroll.current?.scrollTo({ y: Math.max(0, y - navHeight), animated: true });
   };
 
   return (
@@ -51,7 +53,7 @@ export function LandingPage() {
           <Animated.ScrollView
             ref={scroll}
             style={{ flex: 1, zIndex: 1 }}
-            contentContainerStyle={{ paddingTop: NAV_HEIGHT }}
+            contentContainerStyle={{ paddingTop: navHeight }}
             onLayout={(e) => {
               size.current.view = e.nativeEvent.layout.height;
               notifyLayout();

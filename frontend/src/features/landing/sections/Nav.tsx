@@ -1,4 +1,5 @@
 import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { landingColors, landingFonts, landingSpacing } from '../../../shared/theme/landingTokens';
 import { LandingButton } from '../components/LandingButton';
 import { content, type SectionId } from '../content';
@@ -13,10 +14,12 @@ const blur = Platform.OS === 'web' ? ({ backdropFilter: 'blur(14px)' } as unknow
 
 export function Nav({ onNavigate }: { onNavigate: (id: SectionId) => void }) {
   const { gutter, isMobile } = useLandingLayout();
+  const { top } = useSafeAreaInsets(); // keeps the bar below the iPhone status bar and notch
   return (
     <View
       style={[
         {
+          paddingTop: top,
           position: 'absolute',
           top: 0,
           left: 0,

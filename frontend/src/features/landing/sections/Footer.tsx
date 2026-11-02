@@ -61,7 +61,7 @@ function Wordmark({ fs }: { fs: number }) {
 }
 
 export function Footer({ onNavigate }: { onNavigate: (id: SectionId) => void }) {
-  const { width, gutter } = useLandingLayout();
+  const { width, gutter, isMobile } = useLandingLayout();
   const fs = fluid(landingType.wordmark.min, landingType.wordmark.vw, landingType.wordmark.max, width);
   const panel = useRef<ComponentRef<typeof View>>(null);
   // Seeded with the size the panel will have (wordmark line plus its padding) so the blobs are placed on first paint.
@@ -111,7 +111,7 @@ export function Footer({ onNavigate }: { onNavigate: (id: SectionId) => void }) 
         ref={panel}
         onLayout={(e) => setSize({ w: e.nativeEvent.layout.width - 2, h: e.nativeEvent.layout.height - 2 })}
         style={{
-          marginTop: 48,
+          marginTop: isMobile ? 128 : 48, // on phones the robot stands above the panel
           overflow: 'hidden',
           borderRadius: landingRadii.mesh,
           backgroundColor: landingColors.meshPanel,

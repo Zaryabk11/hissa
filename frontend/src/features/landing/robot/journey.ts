@@ -17,7 +17,7 @@ type Scroll = { y: number; max: number };
 const REMEASURE_MS = 500; // safety net: re-measure at least this often
 const MIN_GAP_MS = 150; // and never more often than this
 const ROBOT_WIDTH = 0.55; // robot width as a share of its height with arms down
-const MIN_MARGIN = 40; // narrower side margins than this cannot hold the robot, so it only shows at the anchors
+const MIN_MARGIN = 40; // narrower side margins than this cannot hold the robot, so it stays a small companion in the corner
 const WALK_TAU = 1.1; // seconds: exponential smoothing of x toward its target
 const WALK_MIN_SPEED = 240; // px/s floor, so the last stretch of a walk does not crawl
 const WALK_START = 14; // px away from the target to start walking...
@@ -101,7 +101,7 @@ export function createJourney(getScroll: () => Scroll) {
     // Distance from the viewport edge to where text starts: the margin the robot has to live in.
     const edge = Math.max((vw - 1120) / 2, fluid(16, 4, 40, vw));
     // Scaled to the real margin so it never crosses into the text. Phones and margins under MIN_MARGIN cannot hold it,
-    // so there it only exists at the hero, buddy and footer anchors.
+    // so there it is a small companion in the bottom corner that grows at the hero, buddy and footer anchors.
     const walks = !mobile && edge >= MIN_MARGIN;
     // Where the robot is headed for an anchor with weight w (0 far away, 1 there): with a margin it commits halfway,
     // and then walks. Without one it fades in and out steeply instead (grow).
@@ -113,12 +113,12 @@ export function createJourney(getScroll: () => Scroll) {
     const sizeTo = (A: number, on: boolean, g: number) => {
       size = walks ? (on ? A : size) : lerp(size, A, g);
     };
-    const gx = mobile ? 28 : edge / 2;
+    const gx = walks ? edge / 2 : 30;
     const side = sideAt(sy + vh / 2);
 
     let x = side > 0 ? vw - gx : gx;
     let y = vh - (mobile ? 16 : vh * 0.18) + Math.sin(sy / 160) * 12;
-    size = walks ? Math.min(240, (edge - 12) / ROBOT_WIDTH) : 0;
+    size = walks ? Math.min(240, (edge - 12) / ROBOT_WIDTH) : Math.max(56, Math.min(84, vw * 0.18));
     let yaw = -side * 0.55;
     let mode: Placement['mode'] = Math.abs(vel) > 70 ? 'run' : 'idle';
     let isHero = false;
@@ -174,13 +174,16 @@ export function createJourney(getScroll: () => Scroll) {
     if (word) {
       lw = sm((sy - (maxScroll - vh * 0.7)) / (vh * 0.7 - 6));
       const wtop = word.top - sy;
-      const target = Math.max(120, Math.min(240, word.width * 0.2));
+      const target = mobile ? 100 : Math.max(120, Math.min(240, word.width * 0.2));
       // Under 1200px the footer text rows are wide enough to sit under the robot's path. So it comes in later, with no
       // arc, and stands inside the wordmark panel instead of on its top edge.
       const narrow = vw < 1200;
       const lg = narrow ? sm((lw - 0.8) / 0.2) : grow(lw);
       const lh = narrow ? (lw > 0.8 ? 1 : 0) : heads(lw);
-      const feet = narrow
+      // On phones it stands on the panel's top edge, so it never covers the wordmark.
+      const feet = mobile
+        ? wtop + 14
+        : narrow
         ? Math.min(wtop + word.height - 8, Math.max(wtop + word.height * 0.2, wtop + target))
         : wtop + word.height * 0.2;
       x = lerp(x, word.left + word.width / 2, lh);
