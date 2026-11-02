@@ -41,8 +41,9 @@ function Soft({ color, d, sigma }: { color: string; d: number; sigma: number }) 
     <Svg width={2 * R} height={2 * R} style={{ position: 'absolute', left: r - R, top: r - R }}>
       <Defs>
         <RadialGradient id={id} cx="50%" cy="50%" r="50%">
-          {stops.map(([offset, a]) => (
-            <Stop key={offset} offset={offset} stopColor={color} stopOpacity={a * peak} />
+          {stops.map(([offset, a], i) => (
+            // Index key: offsets collide (two 0s) while the panel is still unmeasured and r is 0.
+            <Stop key={i} offset={offset} stopColor={color} stopOpacity={a * peak} />
           ))}
         </RadialGradient>
       </Defs>

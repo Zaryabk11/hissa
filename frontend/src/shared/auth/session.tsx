@@ -1,19 +1,19 @@
 import type { Session } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState } from 'react-native';
+import { secureStorage } from './secureStorage';
 import { supabase } from './supabase';
 import { getSessionSnapshot, setUsableSession, subscribeSession } from './session-state';
 
 const inviteKey = 'hissa.pending-invite';
 export async function rememberInvite(code: string): Promise<void> {
-  if (/^[A-Z0-9]{6}$/.test(code)) await SecureStore.setItemAsync(inviteKey, code);
+  if (/^[A-Z0-9]{6}$/.test(code)) await secureStorage.setItem(inviteKey, code);
 }
 export async function getPendingInvite(): Promise<string | null> {
-  return SecureStore.getItemAsync(inviteKey);
+  return secureStorage.getItem(inviteKey);
 }
 export async function clearPendingInvite(): Promise<void> {
-  await SecureStore.deleteItemAsync(inviteKey);
+  await secureStorage.removeItem(inviteKey);
 }
 
 type SessionState = { session: Session | null; loading: boolean; signOut: () => Promise<void> };
