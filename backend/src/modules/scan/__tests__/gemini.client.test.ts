@@ -18,7 +18,7 @@ function geminiReply(text: string, status = 200): typeof fetch {
 }
 
 function client(fetchFn: typeof fetch, timeoutMs?: number) {
-  return createGeminiClient({ apiKey: 'secret-key', model: 'gemini-test', fetchFn, timeoutMs });
+  return createGeminiClient({ apiKey: 'secret-key', model: 'gemini-test', fetchFn, timeoutMs, retryDelayMs: 0 });
 }
 
 describe('gemini client', () => {
@@ -78,6 +78,22 @@ describe('gemini client', () => {
     await expect(client(geminiReply('', 503)).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
       GeminiUnavailableError,
     );
+  });
+
+  it('retries a 503 and returns the later answer', async () => {
+    const ok = JSON.stringify({ candidates: [{ content: { parts: [{ text: '[]' }] } }] });
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 503 }))
+      .mockResolvedValueOnce(new Response(ok, { status: 200 }));
+    await expect(client(fetchFn as unknown as typeof fetch).detectDishes(photo, catalog)).resolves.toEqual([]);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up after three 503s', async () => {
+    const fetchFn = geminiReply('', 503);
+    await expect(client(fetchFn).detectDishes(photo, catalog)).rejects.toBeInstanceOf(GeminiUnavailableError);
+    expect(fetchFn).toHaveBeenCalledTimes(3);
   });
 
   describe('timeout', () => {

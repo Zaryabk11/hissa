@@ -37,6 +37,8 @@ export function createGeminiClient(opts: {
   model: string;
   fetchFn?: typeof fetch;
   timeoutMs?: number;
+  /** Pause before retrying a 503 (Gemini asking us to come back). Tests pass 0. */
+  retryDelayMs?: number;
 }): GeminiClient {
   const fetchFn = opts.fetchFn ?? fetch;
   const timeoutMs = opts.timeoutMs ?? 20000;
@@ -80,12 +82,19 @@ export function createGeminiClient(opts: {
 
       let json: { candidates?: { content?: { parts?: { text?: string }[] } }[] };
       try {
-        const res = await fetchFn(url, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', 'x-goog-api-key': opts.apiKey },
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(timeoutMs),
-        });
+        const call = () =>
+          fetchFn(url, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-goog-api-key': opts.apiKey },
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(timeoutMs),
+          });
+        // The model answers 503 "high demand" in about a second and usually succeeds on the next try.
+        let res = await call();
+        for (let retry = 1; res.status === 503 && retry <= 2; retry++) {
+          await new Promise((r) => setTimeout(r, (opts.retryDelayMs ?? 700) * retry));
+          res = await call();
+        }
         if (!res.ok)
           throw unavailable({ status: res.status }, `Gemini returned HTTP ${res.status}`);
         json = await res.json();

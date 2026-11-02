@@ -1,5 +1,5 @@
 import 'react-native-url-polyfill/auto';
-import { createClient, processLock } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { secureStorage } from './secureStorage';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -13,6 +13,5 @@ export const supabase = createClient(url, key, {
     persistSession: true,
     detectSessionInUrl: false,
     flowType: 'pkce',
-    lock: processLock,
   },
 });

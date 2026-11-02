@@ -1,6 +1,7 @@
-import { Text, View, type LayoutChangeEvent } from 'react-native';
+import { Platform, Text, View, type LayoutChangeEvent } from 'react-native';
 import { fluid, landingColors, landingFonts, landingType } from '../../../shared/theme/landingTokens';
 import { Eyebrow } from '../components/Eyebrow';
+import { RobotPair } from '../components/RobotArt';
 import { LandingButton } from '../components/LandingButton';
 import { Section } from '../components/Section';
 import { SectionTitle } from '../components/SectionTitle';
@@ -67,6 +68,12 @@ export function Buddy({ onLayout, onNavigate }: { onLayout: (e: LayoutChangeEven
         >
           {c.streak}
         </Text>
+        {Platform.OS !== 'web' && (
+          // Native stand-in for the two handshaking 3D robots, between the number and the dots.
+          <View style={{ position: 'absolute', left: 0, right: 0, top: streak * 0.82 + 16, bottom: 92, alignItems: 'center', justifyContent: 'center' }}>
+            <RobotPair size={Math.min(130, streak * 0.6)} />
+          </View>
+        )}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', gap: 12 }}>
           <Text style={{ fontFamily: landingFonts.body500, fontSize: 16, color: landingColors.text }}>{c.days}</Text>
           <StreakDots />

@@ -1,10 +1,9 @@
 import { useRef, useState } from 'react';
-import { Platform, View, type LayoutChangeEvent } from 'react-native';
+import { View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 import { landingColors } from '../../shared/theme/landingTokens';
 import { Background } from './components/Background';
-import { CursorRing } from './components/CursorRing';
 import { ScrollYContext } from './components/FlowCard';
 import type { SectionId } from './content';
 import { useLandingLayout } from './hooks/useLandingLayout';
@@ -77,7 +76,6 @@ export function LandingPage() {
           </Animated.ScrollView>
         </ScrollYContext.Provider>
         <Nav onNavigate={go} />
-        {Platform.OS === 'web' && <CursorRing />}
         {intro.enabled && (
           <RobotLayer events={intro.events} onFail={intro.fail} getScroll={getScroll} />
         )}

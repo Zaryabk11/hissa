@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Platform } from 'react-native';
+import { CursorRing } from '../src/features/landing/components/CursorRing';
 import { hydrateAnswers } from '../src/features/onboarding/store';
 import { SessionProvider, useSession } from '../src/shared/auth/session';
 
@@ -32,6 +33,8 @@ export default function RootLayout() {
   return (
     <SessionProvider>
       <Routes />
+      {/* One ring for every screen: it hides the native cursor, so it must not live on a single route. */}
+      {Platform.OS === 'web' && <CursorRing />}
     </SessionProvider>
   );
 }

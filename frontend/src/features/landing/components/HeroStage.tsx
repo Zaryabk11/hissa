@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated from 'react-native-reanimated';
 import { fluid, landingColors } from '../../../shared/theme/landingTokens';
 import { HERO_STAGE_ID } from '../robot/types';
 import { useLandingLayout } from '../hooks/useLandingLayout';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { RobotArt } from './RobotArt';
 
 const ring = (d: number, inset: number, color: string) => ({
   position: 'absolute' as const,
@@ -81,6 +82,12 @@ export function HeroStage({ columnWidth, ready }: { columnWidth: number; ready: 
         >
           <Animated.View style={[ring(d, 0.05, landingColors.limeAlpha35), !reduced && { animationName: ring1Pulse, animationDelay: '0.3s', ...loop }]} />
           <Animated.View style={[ring(d, 0.11, landingColors.limeAlpha15), !reduced && { animationName: ring2Pulse, animationDelay: '0.6s', ...loop }]} />
+          {/* The 3D robot only runs on web; native gets a flat one so the disc is not empty. */}
+          {Platform.OS !== 'web' && (
+            <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+              <RobotArt size={d * 0.72} />
+            </View>
+          )}
         </Animated.View>
       </View>
       {!reduced && <Skeleton d={d} ready={ready} />}

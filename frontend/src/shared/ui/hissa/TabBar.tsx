@@ -104,9 +104,10 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
               onPress={press}
               style={
                 isScan
-                  ? { flex: 1, height: SCAN_SIZE + 8 + 20, marginTop: -RAISE, alignItems: 'center' }
+                  ? { width: SCAN_SIZE + 8 + 24, height: SCAN_SIZE + 8 + 20, marginTop: -RAISE, alignItems: 'center' }
                   : {
-                      flex: 1,
+                      // Today is as wide as Food & Feel plus Buddy, so the raised Scan button sits at the bar's centre.
+                      flex: name === 'today' ? 2 : 1,
                       minHeight: MIN_TAP + 18,
                       marginTop: 22,
                       alignItems: 'center',
