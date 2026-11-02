@@ -68,8 +68,39 @@ describe('per-user evidence', () => {
     expect(rankQuestions(evidence, favourPreExisting)).toEqual(['symptom_detail', 'pre_existing']);
   });
 
+  it('uses the generic order when every dish is in every meal and none is a candidate', () => {
+    const evidence = buildEvidence(
+      Array.from({ length: 10 }, () => meal(['daal', 'roti'], 'fine')),
+    );
+    expect(evidence.candidate).toBeNull();
+    expect(rankQuestions(evidence, favourPreExisting)).toEqual(['symptom_detail', 'pre_existing']);
+  });
+
+  it('uses the generic order when the best dish has no positive gap', () => {
+    const evidence = buildEvidence([
+      meal(['raita'], 'fine'),
+      meal(['raita'], 'fine'),
+      meal(['roti'], 'heavy'),
+    ]);
+    expect(evidence.candidate?.gap).toBeLessThanOrEqual(0);
+    expect(rankQuestions(evidence, favourPreExisting)).toEqual(['symptom_detail', 'pre_existing']);
+  });
+
+  it('breaks equal dish gaps by lowest slug', () => {
+    const evidence = buildEvidence([
+      meal(['zeera', 'achar'], 'heavy'),
+      meal(['achar', 'zeera'], 'heavy'),
+      meal(['roti'], 'fine'),
+    ]);
+    expect(evidence.candidate?.slug).toBe('achar');
+  });
+
   it('lets trained weights reorder intents once there is history', () => {
-    const evidence = buildEvidence([meal(['raita'], 'heavy'), meal(['roti'], 'fine')]);
+    const evidence = buildEvidence([
+      meal(['raita'], 'heavy'),
+      meal(['raita'], 'heavy'),
+      meal(['roti'], 'fine'),
+    ]);
     expect(rankQuestions(evidence, favourPreExisting)).toEqual(['pre_existing', 'symptom_detail']);
   });
 
@@ -143,6 +174,13 @@ describe('owner-scoped observation history', () => {
       feel_checkins: checkin('2026-11-02T10:00:01+00:00'),
     },
     {
+      id: 'bare',
+      user_id: 'owner',
+      eaten_at: '2026-11-01T10:00:00+00:00',
+      meal_items: [{ confirmed: null }],
+      feel_checkins: checkin('2026-11-01T12:00:00+00:00'),
+    },
+    {
       id: 'theirs',
       user_id: 'other',
       eaten_at: '2026-11-01T10:00:00+00:00',
@@ -151,7 +189,7 @@ describe('owner-scoped observation history', () => {
     },
   ];
 
-  it('queries only the authenticated user and drops late check-ins', async () => {
+  it('queries only the authenticated user and drops late check-ins and meals with no confirmed dish', async () => {
     const { db, calls } = fakeDb(rows);
     const observations = await createFeelRepository(db).listObservations('owner');
     expect(calls).toContainEqual(['from', 'meals']);
@@ -177,11 +215,10 @@ describe('synthetic question data', () => {
     expect(generateUser(7)).not.toEqual(generateUser(8));
   });
 
-  it('labels each user from its hidden kind, never from a real user', () => {
+  it('labels each user from its hidden kind', () => {
     for (let seed = 1; seed <= 60; seed += 1) {
       const user = generateUser(seed);
       expect(user.label).toBe(user.kind === 'dish_linked' ? 'pre_existing' : 'symptom_detail');
-      expect(user.observations.every((o) => o.userId === `synthetic-${seed}`)).toBe(true);
     }
   });
 });

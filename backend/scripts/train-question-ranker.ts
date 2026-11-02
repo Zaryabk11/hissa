@@ -1,6 +1,7 @@
 // Fits the question ranker on SYNTHETIC users and writes src/modules/feel/question-weights.ts.
-// Run from backend/: npm run train:questions
+// Run from anywhere: npm run train:questions -w backend
 import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   FEATURES,
   buildEvidence,
@@ -69,5 +70,5 @@ export const trainingReport = {
   heldOutAccuracy: ${heldOutAccuracy},
 };
 `;
-writeFileSync('src/modules/feel/question-weights.ts', file);
+writeFileSync(join(__dirname, '../src/modules/feel/question-weights.ts'), file);
 console.log({ baselineAccuracy, heldOutAccuracy, weights: weights.pre_existing });

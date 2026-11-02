@@ -74,6 +74,8 @@ export function createFeelRepository(db: Db) {
       return { id: data.id as string };
     },
     // Owner's checked-in meals; a check-in made over 24 h after the meal is too late to attribute.
+    // ponytail: reads the whole history per call, add a window/limit if per-user meals grow large.
+    // Task 7: move the 24 h cut-off into the service (repositories hold no business rules).
     async listObservations(userId: string): Promise<MealObservation[]> {
       const { data, error } = await db
         .from('meals')
@@ -102,7 +104,8 @@ export function createFeelRepository(db: Db) {
             symptom: r.feel_checkins.symptom,
             answerId: r.feel_checkins.answer_id,
           };
-        });
+        })
+        .filter((o) => o.dishes.length > 0);
     },
   };
 }

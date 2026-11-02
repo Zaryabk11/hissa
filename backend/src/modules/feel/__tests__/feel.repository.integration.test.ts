@@ -34,17 +34,15 @@ describe.skipIf(!enabled)('feel disposable database integration', () => {
         [dishId, 'Raita'],
         [predictedId, 'Predicted only'],
       ]) {
-        const { error } = await db
-          .from('dishes')
-          .insert({
-            id,
-            slug: id,
-            name,
-            category: 'other',
-            unit: 'katori',
-            grams_per_unit: 100,
-            local_calories: 100,
-          });
+        const { error } = await db.from('dishes').insert({
+          id,
+          slug: id,
+          name,
+          category: 'other',
+          unit: 'katori',
+          grams_per_unit: 100,
+          local_calories: 100,
+        });
         expect(error).toBeNull();
       }
       expect(
@@ -84,15 +82,13 @@ describe.skipIf(!enabled)('feel disposable database integration', () => {
       ).toBe('23503');
       expect(
         (
-          await db
-            .from('feel_checkins')
-            .insert({
-              user_id: owner,
-              meal_id: mealId,
-              energy: 'okay',
-              stomach: 'fine',
-              symptom: 'invalid',
-            })
+          await db.from('feel_checkins').insert({
+            user_id: owner,
+            meal_id: mealId,
+            energy: 'okay',
+            stomach: 'fine',
+            symptom: 'invalid',
+          })
         ).error?.code,
       ).toBe('23514');
       const responses = await Promise.allSettled(

@@ -82,7 +82,8 @@ export function scoreIntents(
 }
 
 export function rankQuestions(e: Evidence, weights: QuestionWeights): QuestionIntent[] {
-  if (e.n < 2) return [...GENERIC_ORDER];
+  // No usable dish candidate means no dish-linked question to ask.
+  if (e.n < 2 || !e.candidate || e.candidate.gap <= 0) return [...GENERIC_ORDER];
   const score = scoreIntents(e, weights);
   // Stable sort keeps symptom_detail first on a tie.
   return [...GENERIC_ORDER].sort((a, b) => score[b] - score[a]);
