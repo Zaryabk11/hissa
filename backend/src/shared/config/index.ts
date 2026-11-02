@@ -7,8 +7,13 @@ const envSchema = z.object({
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   GEMINI_API_KEY: z.string().min(1),
-  FATSECRET_CLIENT_ID: z.string().min(1),
-  FATSECRET_CLIENT_SECRET: z.string().min(1),
+  // An empty value (a blank line in .env) falls back to the default.
+  GEMINI_MODEL: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().min(1).default('gemini-3.1-flash-lite'),
+  ),
+  GEMINI_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
+  SCAN_DAILY_CAP: z.coerce.number().int().positive().default(10),
 });
 
 export type Config = z.infer<typeof envSchema>;

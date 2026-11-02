@@ -17,7 +17,7 @@ Hissa is a portion coach app for desi households. See `docs/PRD.md` and `docs/ar
 
 1. Dependency direction: routes -> controller -> service -> repository. Never skip or reverse a layer.
 2. A module imports another module only through that module's `index.ts`. Never its repository or internals.
-3. External APIs (Gemini, FatSecret) sit behind clients inside their module, injected into services so tests can mock them.
+3. External APIs (Gemini) sit behind clients inside their module, injected into services so tests can mock them.
 4. Controllers hold no business logic. Repositories hold no business rules. Services never touch HTTP.
 5. The backend uses the Supabase service role, which bypasses RLS: scope every query to the authenticated user.
 
@@ -34,4 +34,4 @@ Hissa is a portion coach app for desi households. See `docs/PRD.md` and `docs/ar
 
 ## Session Logs
 
-Always commit `.claude-logs/` with your changes.
+Claude Code, Codex CLI, and VS Code Copilot hooks write user prompts and final assistant responses to `.claude-logs/`. Do not add tool calls, tool results, or intermediate reasoning to these logs. Always commit `.claude-logs/` with your changes.

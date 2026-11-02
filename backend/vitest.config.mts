@@ -9,8 +9,6 @@ export default defineConfig({
       SUPABASE_ANON_KEY: 'test-anon-key',
       SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
       GEMINI_API_KEY: 'test-gemini-key',
-      FATSECRET_CLIENT_ID: 'test-fatsecret-id',
-      FATSECRET_CLIENT_SECRET: 'test-fatsecret-secret',
     },
   },
 });

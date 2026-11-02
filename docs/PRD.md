@@ -20,15 +20,20 @@ Trackers record what you already ate. In most Pakistani homes the household cook
 | 2. Duo Streaks   | Should ship | ~25%   | Two real users paired, shared streak updates from real scans          |
 | 3. Food and Feel | Could ship  | ~15%   | 2-tap feel check-in after a meal, one weekly insight from logged data |
 
+Status: Module 1 is done on the backend and database (v1). Modules 2 and 3 are not started.
+
 ### 1. Portion Coach
 
-Photo -> Gemini picks dishes from OUR catalog (structured output with an enum plus "unknown") -> user confirms with correction chips -> FatSecret nutrition per serving, local desi table as fallback -> plan engine fits portions (roti, katori, plate) to the remaining daily budget -> meal saved with predicted AND confirmed values.
+**Status: done (v1, backend and database).** Verified end to end against a hosted Supabase project with real Gemini. The Expo app is not part of this status.
+
+Photo -> Gemini picks dishes from OUR catalog (structured output with an enum plus "unknown") -> user confirms with correction chips -> nutrition per serving from our Pakistani dish catalog in the database (78 dishes, see `data-sources.md`) -> plan engine fits portions (roti, katori, plate) to the remaining daily budget -> meal saved with predicted AND confirmed values.
 
 - Gemini never produces calorie numbers.
 - Low-confidence or unknown dishes always ask the user, never silently guess.
 - Budget used up: show a light plan (salad, raita, half portions), never "don't eat".
 - Corrections are saved with the original prediction.
-- Works when FatSecret is down (local table).
+- Nutrition comes from our own catalog table, so it does not depend on a third-party nutrition API.
+- A per-user daily scan cap (10) and a manual dish picker keep the flow working when the cap is hit or Gemini is down.
 
 ### 2. Duo Streaks
 
@@ -41,6 +46,7 @@ Two users share one streak. A day counts when a person saves at least one meal. 
 ## Guardrails
 
 - Every number shown is an estimate. No medical advice.
+- Nutrition numbers come from the database catalog, never from Gemini.
 - English UI only for v1.
 
 ## Out of scope for v1
@@ -65,7 +71,7 @@ Training our own vision model, barcode or packaged food, workouts and wearables,
 
 - Expo app or responsive web first? Both teammates must be able to test on a phone.
 - Who owns A (AI + backend) and B (app + UX)?
-- Which 30 to 40 dishes go in the catalog?
+- Which 30 to 40 dishes go in the catalog? Answered: 78 dishes, 30 lab-measured (Khan 2019) and 48 from Farooq 2026; see `docs/data-sources.md`.
 - Does 8x provide a template repo?
-- Not in the PRD but needed: onboarding must collect sex (Mifflin-St Jeor requires it) — added to `profiles`.
-- FatSecret Basic forbids long-term caching; apply for Premier Free on day 1.
+- Not in the PRD but needed: onboarding must collect sex (Mifflin-St Jeor requires it). Answered: `sex` is already a `profiles` column and the profile endpoint takes it.
+- The FatSecret note (Basic forbids long-term caching, apply for Premier Free) no longer applies: FatSecret was dropped for the database catalog.

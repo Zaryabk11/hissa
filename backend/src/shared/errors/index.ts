@@ -32,3 +32,9 @@ export class NotImplementedError extends AppError {
     super(501, 'not_implemented', `${what} is not implemented yet`);
   }
 }
+
+export class ServiceUnavailableError extends AppError {
+  constructor(message: string) {
+    super(503, 'auth_unavailable', message);
+  }
+}

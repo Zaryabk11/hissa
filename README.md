@@ -6,9 +6,17 @@ A portion coach for desi households: photograph the meal, get a plan in roti, ka
 - [docs/architecture.md](docs/architecture.md) module and layer rules
 - [AGENTS.md](AGENTS.md) rules for coding agents
 
+## Status
+
+v1 (Portion Coach: photo, Gemini names dishes, confirm, portion plan, saved meal, today's log) is done on the backend and database. The Expo app is not part of v1. Next: v2 Duo Streaks, then v3 Food and Feel.
+
+- [docs/PRD.md](docs/PRD.md) module status
+- [backend/README.md](backend/README.md) API contract and run steps
+- [Roadmap](docs/superpowers/plans/2026-11-01-roadmap-v1-v2-v3.md) and the [v1 plan](docs/superpowers/plans/2026-11-01-v1-portion-coach.md)
+
 ## Setup
 
-Needs Node 20+.
+Needs Node 22.13 or newer (Node 24.3+ recommended; this is what the dependencies require, and Node 25 is not supported by Vitest). Developed on Node 24.
 
 ```
 npm install
@@ -22,8 +30,8 @@ Check the API: `curl http://localhost:3000/api/health` returns `{"status":"ok"}`
 
 ## Scripts
 
-`npm run dev | build | test | lint` (the last three run in every workspace).
+`npm run dev | build | test | lint` (the last three run in every workspace). `npm run test:data` checks the dish catalog and seed builder.
 
 ## Database
 
-`database/supabase/` is a Supabase CLI project. From `database/`: `npx supabase start`, then `npx supabase db reset` applies the migration and `seed.sql` (needs Docker).
+`database/supabase/` is a Supabase CLI project. From `database/`: `npx supabase start`, then `npx supabase db reset` applies the migrations and `seed.sql` (needs Docker). `seed.sql` is generated from `database/data/catalog.csv`; see [docs/data-sources.md](docs/data-sources.md). Hosted setup is in [backend/README.md](backend/README.md).

@@ -1,12 +1,176 @@
-import { describe, expect, it } from 'vitest';
-import type { Db } from '../../../shared/db';
-import { NotImplementedError } from '../../../shared/errors';
-import { createMealsRepository } from '../meals.repository';
+import { describe, expect, it, vi } from 'vitest';
+import { NotFoundError, ValidationError } from '../../../shared/errors';
+import { logger } from '../../../shared/logger';
+import { pktDayBounds } from '../../../shared/time/pkt';
+import type { Dish, PortionNutrition } from '../../nutrition';
 import { createMealsService } from '../meals.service';
+import type { Meal, SaveMealItemInput } from '../meals.types';
+
+const NOW = new Date('2026-11-01T19:30:00Z'); // already 2026-11-02 in PKT
+const CAL: Record<string, number> = { roti: 100, daal: 150 };
+const item = (patch: Partial<SaveMealItemInput> = {}): SaveMealItemInput => ({
+  predictedDish: 'roti',
+  predictedPortion: 2,
+  confirmedDish: 'roti',
+  confirmedPortion: 2,
+  confidence: 0.9,
+  ...patch,
+});
+
+function setup(listed: Meal[] = []) {
+  const repository = {
+    insertMeal: vi.fn(async () => ({ id: 'm1', eatenAt: '2026-11-01T19:30:00.000Z' })),
+    insertItems: vi.fn(async () => {}),
+    deleteMeal: vi.fn(async () => {}),
+    listMealsBetween: vi.fn(async () => listed),
+  };
+  const nutrition = {
+    getDish: vi.fn(async (slug: string) => ({ id: `id-${slug}`, slug }) as Dish),
+    portionNutrition: vi.fn(
+      async (slug: string, units: number) =>
+        ({
+          calories: (CAL[slug] ?? 0) * units,
+        }) as PortionNutrition,
+    ),
+  };
+  const service = createMealsService({ repository, nutrition, now: () => NOW });
+  return { service, repository, nutrition };
+}
 
 describe('meals service', () => {
-  it('saveMeal is a stub that reports not implemented', async () => {
-    const service = createMealsService({ repository: createMealsRepository({} as Db) });
-    await expect(service.saveMeal()).rejects.toBeInstanceOf(NotImplementedError);
+  it('saves an unknown scan item as a user-added dish without looking up "unknown"', async () => {
+    const { service, repository, nutrition } = setup();
+    await service.saveMeal('u1', {
+      items: [
+        item({
+          predictedDish: 'unknown',
+          predictedPortion: 0,
+          confirmedDish: 'roti',
+          confirmedPortion: 2,
+          confidence: 0,
+        }),
+      ],
+    });
+    expect(nutrition.getDish).not.toHaveBeenCalledWith('unknown');
+    expect(repository.insertItems).toHaveBeenCalledWith([
+      {
+        meal_id: 'm1',
+        predicted_dish_id: null,
+        confirmed_dish_id: 'id-roti',
+        predicted_portion: 0,
+        confirmed_portion: 2,
+        confidence: 0,
+      },
+    ]);
+  });
+
+  it('sums confirmed calories; a removed item adds 0 and keeps its prediction', async () => {
+    const { service, repository } = setup();
+    const removed = item({
+      predictedDish: 'daal',
+      predictedPortion: 1,
+      confirmedDish: null,
+      confirmedPortion: null,
+    });
+    const meal = await service.saveMeal('u1', { items: [item(), removed] });
+    expect(meal.totalCalories).toBe(200);
+    expect(meal.id).toBe('m1');
+    expect(repository.insertMeal).toHaveBeenCalledWith('u1', 200);
+    expect(repository.insertItems).toHaveBeenCalledWith([
+      {
+        meal_id: 'm1',
+        predicted_dish_id: 'id-roti',
+        confirmed_dish_id: 'id-roti',
+        predicted_portion: 2,
+        confirmed_portion: 2,
+        confidence: 0.9,
+      },
+      {
+        meal_id: 'm1',
+        predicted_dish_id: 'id-daal',
+        confirmed_dish_id: null,
+        predicted_portion: 1,
+        confirmed_portion: null,
+        confidence: 0.9,
+      },
+    ]);
+  });
+
+  it('stores a user-added item with a null prediction', async () => {
+    const { service, repository } = setup();
+    await service.saveMeal('u1', {
+      items: [
+        item({
+          predictedDish: null,
+          predictedPortion: null,
+          confirmedDish: 'daal',
+          confirmedPortion: 1,
+          confidence: null,
+        }),
+      ],
+    });
+    expect(repository.insertItems).toHaveBeenCalledWith([
+      expect.objectContaining({ predicted_dish_id: null, confirmed_dish_id: 'id-daal' }),
+    ]);
+  });
+
+  it('rejects a meal with no confirmed dish and writes nothing', async () => {
+    const { service, repository } = setup();
+    const removed = item({ confirmedDish: null, confirmedPortion: null });
+    await expect(service.saveMeal('u1', { items: [removed] })).rejects.toEqual(
+      new ValidationError('A meal needs at least one confirmed dish'),
+    );
+    expect(repository.insertMeal).not.toHaveBeenCalled();
+  });
+
+  it('deletes the meal when the items insert fails and rethrows', async () => {
+    const { service, repository } = setup();
+    const boom = new Error('items failed');
+    repository.insertItems.mockRejectedValueOnce(boom);
+    await expect(service.saveMeal('u1', { items: [item()] })).rejects.toBe(boom);
+    expect(repository.deleteMeal).toHaveBeenCalledWith('u1', 'm1');
+  });
+
+  it('keeps the original error when the compensating delete also fails', async () => {
+    const { service, repository } = setup();
+    const boom = new Error('items failed');
+    repository.insertItems.mockRejectedValueOnce(boom);
+    repository.deleteMeal.mockRejectedValueOnce(new Error('delete failed'));
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    await expect(service.saveMeal('u1', { items: [item()] })).rejects.toBe(boom);
+    expect(repository.deleteMeal).toHaveBeenCalledWith('u1', 'm1');
+    expect(warn).toHaveBeenCalledExactlyOnceWith('Compensating meal delete failed', {
+      mealId: 'm1',
+    });
+    warn.mockRestore();
+  });
+
+  it('rejects an unknown slug with NotFoundError before inserting anything', async () => {
+    const { service, repository, nutrition } = setup();
+    nutrition.getDish.mockImplementation(async (slug: string) => {
+      if (slug === 'nope') throw new NotFoundError('Unknown dish: nope');
+      return { id: `id-${slug}`, slug } as Dish;
+    });
+    await expect(
+      service.saveMeal('u1', { items: [item(), item({ predictedDish: 'nope' })] }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(repository.insertMeal).not.toHaveBeenCalled();
+    expect(repository.insertItems).not.toHaveBeenCalled();
+  });
+
+  it('listToday queries the PKT day bounds of now for the user and sums calories', async () => {
+    const meals = [
+      { id: 'a', eatenAt: 'x', totalCalories: 300, items: [] },
+      { id: 'b', eatenAt: 'y', totalCalories: 450, items: [] },
+    ];
+    const { service, repository } = setup(meals);
+    const { startIso, endIso } = pktDayBounds('2026-11-02');
+    await expect(service.listToday('u1')).resolves.toEqual({
+      day: '2026-11-02',
+      meals,
+      totalCalories: 750,
+    });
+    expect(repository.listMealsBetween).toHaveBeenCalledWith('u1', startIso, endIso);
+    await expect(service.caloriesToday('u1')).resolves.toBe(750);
   });
 });
