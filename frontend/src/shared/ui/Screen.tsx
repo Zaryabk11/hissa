@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 
 export function Screen({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
       <Text style={styles.title}>{title}</Text>
       {children}
-    </View>
+    </SafeAreaView>
   );
 }
 
