@@ -156,6 +156,9 @@ export function CheckinPanel() {
           selected={false}
           onPress={() => {
             setMessage(null);
+            setEnergy(null);
+            setStomach(null);
+            setSymptom(undefined);
             setSkipped([...skipped, due.mealId]);
           }}
         />

@@ -148,7 +148,7 @@ export function BuddyPanel() {
     const failure = 'That invitation could not be used.';
     if (!(await act(() => respondInvite(code, decision), failure, DEAD_ANSWER))) return;
     handled.current = code;
-    if (alive.current) setInvite(null);
+    setInvite(null); // not gated on alive: leaving the tab mid-request must not bring the card back
     await clearPendingInvite();
   }
 

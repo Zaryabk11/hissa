@@ -28,7 +28,11 @@ export async function apiAuthed<T>(path: string, init: RequestInit = {}): Promis
   }
   const headers = new Headers(init.headers);
   headers.set('Authorization', `Bearer ${session.access_token}`);
-  const res = await fetch(`${baseUrl}${path}`, { ...init, headers });
+  const res = await fetch(`${baseUrl}${path}`, {
+    signal: AbortSignal.timeout(15_000),
+    ...init,
+    headers,
+  });
   if (res.status === 401) {
     setUsableSession(null);
     await supabase.auth.signOut({ scope: 'local' });
