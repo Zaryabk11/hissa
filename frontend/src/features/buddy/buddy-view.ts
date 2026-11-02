@@ -9,6 +9,7 @@ export type BuddyView =
       ownLoggedToday: boolean;
       buddyLoggedToday: boolean;
       canNudge: boolean;
+      nudgeSent: boolean;
       unreadNudge: boolean;
     };
 
@@ -23,7 +24,8 @@ export function buddyView(status: BuddyStatus): BuddyView {
     streak: status.streak,
     ownLoggedToday: status.ownLoggedToday,
     buddyLoggedToday,
-    canNudge: !buddyLoggedToday,
+    canNudge: !buddyLoggedToday && !status.nudgedToday,
+    nudgeSent: !buddyLoggedToday && status.nudgedToday,
     unreadNudge: status.unreadNudge,
   };
 }
@@ -31,4 +33,10 @@ export function buddyView(status: BuddyStatus): BuddyView {
 export function normalizeCode(input: string): string | null {
   const code = input.trim().toUpperCase();
   return /^[A-Z0-9]{6}$/.test(code) ? code : null;
+}
+
+// apiAuthed throws Error('<METHOD> <path> failed with <status>'); null means no HTTP answer (offline, signed out).
+export function httpStatus(error: unknown): number | null {
+  const match = error instanceof Error ? /failed with (\d{3})$/.exec(error.message) : null;
+  return match ? Number(match[1]) : null;
 }

@@ -14,13 +14,30 @@ import {
   sendNudge,
   type BuddyStatus,
 } from '../api/buddy';
-import { buddyView, normalizeCode } from '../buddy-view';
+import { buddyView, httpStatus, normalizeCode } from '../buddy-view';
 
 const REFRESH_MS = 5000;
+const OFFLINE = 'Could not reach Hissa. Retrying.';
+const RETRY = 'Could not reach Hissa. Try again.';
+const DEAD_ANSWER = [400, 404, 409]; // the server says this invitation can no longer be used
 
-function Button({ label, onPress }: { label: string; onPress: () => void }) {
+function Button({
+  label,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.button}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.button, disabled && styles.disabled]}
+    >
       <Text style={styles.buttonText}>{label}</Text>
     </Pressable>
   );
@@ -32,21 +49,40 @@ export function BuddyPanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [invite, setInvite] = useState<string | null>(null); // a code someone sent me
   const [typed, setTyped] = useState('');
+  const [pending, setPending] = useState(false); // a button action is in flight
+  const acting = useRef(false);
   const acked = useRef(false);
+  const alive = useRef(false); // true only while the tab is focused: gates setState after an await
+  const busy = useRef(false); // a status request is in flight; ticks never overlap
   const handled = useRef<string | null>(null); // an answered code is not offered again
+  const failed = useRef(new Set<string>()); // codes the server rejected; not re-previewed on focus
 
+  const say = (text: string | null) => {
+    if (alive.current) setMessage(text);
+  };
+
+  // ponytail: a tick skipped while an action's own refresh is in flight can leave the screen up to 5s stale.
   const refresh = useCallback(async () => {
+    if (busy.current) return;
+    busy.current = true;
     try {
       const next = await getBuddyStatus();
+      if (!alive.current) return;
       setStatus(next);
+      setMessage((m) => (m === OFFLINE ? null : m));
       // Without push, an unread nudge is shown once when the app is next open.
-      if (next.unreadNudge && !acked.current) {
+      if (!next.unreadNudge) acked.current = false;
+      else if (!acked.current) {
         acked.current = true;
         setMessage('Your buddy nudged you to log a meal today.');
-        await ackNudge();
+        await ackNudge().catch(() => {
+          acked.current = false; // retried on the next refresh
+        });
       }
     } catch {
-      setMessage('Could not reach Hissa. Retrying.');
+      if (alive.current) setMessage(OFFLINE);
+    } finally {
+      busy.current = false;
     }
   }, []);
 
@@ -55,9 +91,14 @@ export function BuddyPanel() {
     if (!code) return setMessage('That is not a valid six-character code.');
     try {
       await previewInvite(code);
+      if (!alive.current) return;
       setInvite(code);
       setMessage(null);
-    } catch {
+    } catch (error) {
+      if (!alive.current) return;
+      const status = httpStatus(error);
+      if (status !== 400 && status !== 404) return setMessage(RETRY); // keep the code to retry
+      failed.current.add(code);
       setMessage('That invitation is not valid or has already been used.');
       await clearPendingInvite();
     }
@@ -66,32 +107,49 @@ export function BuddyPanel() {
   // Refresh every few seconds while the tab is visible, so a buddy's saved meal shows up quickly.
   useFocusEffect(
     useCallback(() => {
+      alive.current = true;
       void refresh();
       void (async () => {
         const code = params.code ?? (await getPendingInvite());
-        if (code && code !== handled.current) await openInvite(code);
+        if (alive.current && code && code !== handled.current && !failed.current.has(code))
+          await openInvite(code);
       })();
       const id = setInterval(() => void refresh(), REFRESH_MS);
-      return () => clearInterval(id);
+      return () => {
+        alive.current = false;
+        clearInterval(id);
+      };
     }, [refresh, openInvite, params.code]),
   );
 
-  async function act(run: () => Promise<unknown>, failure: string) {
+  // Resolves true when the call settled: it worked, or the server said the invitation is dead.
+  async function act(run: () => Promise<unknown>, failure: string, dead = [400]): Promise<boolean> {
+    if (acting.current) return false;
+    acting.current = true;
+    setPending(true);
+    let settled = true;
     try {
       await run();
-      setMessage(null);
-    } catch {
-      setMessage(failure);
+      say(null);
+    } catch (error) {
+      const status = httpStatus(error);
+      settled = status !== null && dead.includes(status);
+      say(settled ? failure : RETRY);
     }
+    acting.current = false;
+    setPending(false);
     await refresh();
+    return settled;
   }
 
   async function answer(decision: 'accept' | 'decline') {
-    if (!invite) return;
-    handled.current = invite;
-    await act(() => respondInvite(invite, decision), 'That invitation could not be used.');
+    const code = invite;
+    if (!code) return;
+    const failure = 'That invitation could not be used.';
+    if (!(await act(() => respondInvite(code, decision), failure, DEAD_ANSWER))) return;
+    handled.current = code;
+    if (alive.current) setInvite(null);
     await clearPendingInvite();
-    setInvite(null);
   }
 
   async function share(code: string) {
@@ -104,20 +162,21 @@ export function BuddyPanel() {
   return (
     <View>
       {message ? (
-        <Text accessibilityLiveRegion="polite" style={styles.message}>
+        <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.message}>
           {message}
         </Text>
       ) : null}
       {invite ? (
         <View style={styles.card}>
           <Text style={styles.text}>You have been invited to be accountability buddies.</Text>
-          <Button label="Accept" onPress={() => void answer('accept')} />
-          <Button label="Decline" onPress={() => void answer('decline')} />
+          <Button disabled={pending} label="Accept" onPress={() => void answer('accept')} />
+          <Button disabled={pending} label="Decline" onPress={() => void answer('decline')} />
         </View>
       ) : null}
       {view?.kind === 'none' ? (
         <View style={styles.card}>
           <Button
+            disabled={pending}
             label="Create invite"
             onPress={() => void act(createInvite, 'Could not create an invite.')}
           />
@@ -137,7 +196,11 @@ export function BuddyPanel() {
         <View style={styles.card}>
           <Text style={styles.text}>Your invite code: {view.code}</Text>
           <Button label="Share invite" onPress={() => void share(view.code)} />
-          <Button label="Cancel invite" onPress={() => void act(endPair, 'Could not cancel.')} />
+          <Button
+            disabled={pending}
+            label="Cancel invite"
+            onPress={() => void act(endPair, 'Could not cancel.')}
+          />
         </View>
       ) : null}
       {view?.kind === 'active' ? (
@@ -151,11 +214,17 @@ export function BuddyPanel() {
           </Text>
           {view.canNudge ? (
             <Button
+              disabled={pending}
               label="Nudge buddy"
               onPress={() => void act(sendNudge, 'You can nudge once per day.')}
             />
           ) : null}
-          <Button label="End pairing" onPress={() => void act(endPair, 'Could not end pairing.')} />
+          {view.nudgeSent ? <Text style={styles.text}>Nudge sent</Text> : null}
+          <Button
+            disabled={pending}
+            label="End pairing"
+            onPress={() => void act(endPair, 'Could not end pairing.')}
+          />
         </View>
       ) : null}
     </View>
@@ -180,5 +249,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: theme.colors.text,
   },
+  disabled: { opacity: 0.5 },
   buttonText: { color: theme.colors.background, fontSize: 16 },
 });

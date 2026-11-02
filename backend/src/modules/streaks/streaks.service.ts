@@ -32,6 +32,7 @@ export type BuddyStatus = {
   ownLoggedToday: boolean;
   buddyLoggedToday: boolean | null;
   unreadNudge: boolean;
+  nudgedToday: boolean;
 };
 export function createStreaksService({ repository }: StreaksDeps) {
   return {
@@ -60,6 +61,7 @@ export function createStreaksService({ repository }: StreaksDeps) {
         ownLoggedToday: own.has(today),
         buddyLoggedToday: state.pairStatus === 'active' ? buddy.has(today) : null,
         unreadNudge: state.pairStatus === 'active' && state.unreadNudge,
+        nudgedToday: state.pairStatus === 'active' && state.nudgedToday,
       };
     },
     async nudge(userId: string, now = new Date()): Promise<void> {

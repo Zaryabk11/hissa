@@ -7,6 +7,7 @@ export type BuddyStatus = {
   ownLoggedToday: boolean;
   buddyLoggedToday: boolean | null;
   unreadNudge: boolean;
+  nudgedToday: boolean;
 };
 export type InvitationPreview = { code: string; status: 'pending' };
 

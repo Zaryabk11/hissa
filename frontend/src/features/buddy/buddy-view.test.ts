@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buddyView, normalizeCode } from './buddy-view';
+import { buddyView, httpStatus, normalizeCode } from './buddy-view';
 import type { BuddyStatus } from './api/buddy';
 
 const base: BuddyStatus = {
@@ -9,6 +9,7 @@ const base: BuddyStatus = {
   ownLoggedToday: false,
   buddyLoggedToday: null,
   unreadNudge: false,
+  nudgedToday: false,
 };
 
 describe('buddyView', () => {
@@ -38,6 +39,7 @@ describe('buddyView', () => {
       ownLoggedToday: true,
       buddyLoggedToday: false,
       canNudge: true,
+      nudgeSent: false,
       unreadNudge: true,
     });
   });
@@ -45,6 +47,36 @@ describe('buddyView', () => {
   it('cannot nudge a buddy who already logged today', () => {
     const view = buddyView({ ...base, pairStatus: 'active', buddyLoggedToday: true });
     expect(view).toMatchObject({ kind: 'active', canNudge: false });
+  });
+});
+
+describe('nudge state', () => {
+  it('shows nudge sent instead of the button once the server says it was delivered', () => {
+    const view = buddyView({ ...base, pairStatus: 'active', nudgedToday: true });
+    expect(view).toMatchObject({ kind: 'active', canNudge: false, nudgeSent: true });
+  });
+  it('a buddy who logged needs no nudge and no nudge-sent label', () => {
+    const view = buddyView({
+      ...base,
+      pairStatus: 'active',
+      buddyLoggedToday: true,
+      nudgedToday: true,
+    });
+    expect(view).toMatchObject({ kind: 'active', canNudge: false, nudgeSent: false });
+  });
+});
+
+describe('httpStatus', () => {
+  it('reads the status from an apiAuthed error', () => {
+    expect(httpStatus(new Error('POST /api/streaks/nudge failed with 400'))).toBe(400);
+  });
+  it.each([
+    new Error('Network request failed'),
+    new Error('Sign in again to continue.'),
+    'x',
+    null,
+  ])('is null for %j', (error) => {
+    expect(httpStatus(error)).toBeNull();
   });
 });
 

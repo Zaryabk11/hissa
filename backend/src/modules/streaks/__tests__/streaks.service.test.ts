@@ -43,6 +43,7 @@ describe('saved-meal buddy status', () => {
       ownLoggedToday: false,
       buddyLoggedToday: false,
       unreadNudge: false,
+      nudgedToday: false,
     });
   });
   it('includes today when both logged and resets after a missing yesterday', async () => {
@@ -52,6 +53,13 @@ describe('saved-meal buddy status', () => {
     });
     expect((await service.getStatus('u1', now)).streak).toBe(1);
     expect((await service.getStatus('u1', new Date('2026-11-06T19:00:00Z'))).streak).toBe(0);
+  });
+  it('reports the callers own delivered nudge only while paired', async () => {
+    expect((await setup({ nudgedToday: true }).service.getStatus('u1', now)).nudgedToday).toBe(
+      true,
+    );
+    const none = setup({ nudgedToday: true, pairStatus: 'none' });
+    expect((await none.service.getStatus('u1', now)).nudgedToday).toBe(false);
   });
   it('does not return internal rows or historical days', async () => {
     const { service } = setup({ meals: [{ calories: 500 }], userId: 'secret' });
@@ -63,6 +71,7 @@ describe('saved-meal buddy status', () => {
         'ownLoggedToday',
         'buddyLoggedToday',
         'unreadNudge',
+        'nudgedToday',
       ].sort(),
     );
   });
