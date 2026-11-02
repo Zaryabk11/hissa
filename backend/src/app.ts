@@ -10,6 +10,16 @@ export function createApp(config: Config = loadConfig()): Express {
   const db = createDb(config);
   const requireAuth = createRequireAuth(db);
 
+  // The Expo web app sends bearer tokens across origins. Answer its preflight before auth.
+  app.use((req, res, next) => {
+    if (!req.path.startsWith('/api/')) return next();
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    next();
+  });
+
   // Small default body limit for every route. Only /api/scan takes photos: its 8 MB parser is mounted
   // after requireAuth below, so anonymous clients get a 401 before any large body is parsed.
   const smallJson = express.json({ limit: '100kb' });

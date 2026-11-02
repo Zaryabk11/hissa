@@ -11,6 +11,21 @@ vi.mock('../shared/middleware/auth', () => ({
 }));
 
 describe('app', () => {
+  it('allows the Expo web preflight and the subsequent API response', async () => {
+    const preflight = await request(createApp())
+      .options('/api/profiles/me')
+      .set('Origin', 'http://localhost:8081')
+      .set('Access-Control-Request-Method', 'PUT')
+      .set('Access-Control-Request-Headers', 'authorization,content-type');
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers['access-control-allow-origin']).toBe('*');
+    expect(preflight.headers['access-control-allow-methods']).toContain('PUT');
+    expect((preflight.headers['access-control-allow-headers'] ?? '').toLowerCase()).toContain('authorization');
+
+    const response = await request(createApp()).get('/api/auth').set('Origin', 'http://localhost:8081');
+    expect(response.headers['access-control-allow-origin']).toBe('*');
+  });
+
   it('GET /api/health returns ok without auth', async () => {
     const res = await request(createApp()).get('/api/health');
     expect(res.status).toBe(200);
