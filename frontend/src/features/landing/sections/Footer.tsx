@@ -13,6 +13,7 @@ import {
 import { MeshBlobs } from '../components/MeshBlobs';
 import { content, type SectionId } from '../content';
 import { useLandingLayout } from '../hooks/useLandingLayout';
+import { WORD_ANCHOR_ID } from '../robot/types';
 
 const c = content.footer;
 // The package's typings don't resolve against this repo's @types/react, so give it the one prop shape used here.
@@ -32,7 +33,7 @@ function Wordmark({ fs }: { fs: number }) {
     paddingBottom: fs * 0.12,
   };
   return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View nativeID={WORD_ANCHOR_ID} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {Platform.OS === 'web' ? (
         <Text
           style={[

@@ -6,6 +6,7 @@ import { Section } from '../components/Section';
 import { SectionTitle } from '../components/SectionTitle';
 import { content, type SectionId } from '../content';
 import { useLandingLayout } from '../hooks/useLandingLayout';
+import { BUDDY_ANCHOR_ID } from '../robot/types';
 
 const c = content.buddy;
 
@@ -31,7 +32,7 @@ export function Buddy({ onLayout, onNavigate }: { onLayout: (e: LayoutChangeEven
   const { width } = useLandingLayout();
   const streak = fluid(landingType.streak.min, landingType.streak.vw, landingType.streak.max, width);
   return (
-    <Section band onLayout={onLayout} paddingY={fluid(72, 10, 120, width)} style={{ paddingBottom: fluid(48, 6, 80, width), overflow: 'hidden' }}>
+    <Section band nativeID="sec-buddy" onLayout={onLayout} paddingY={fluid(72, 10, 120, width)} style={{ paddingBottom: fluid(48, 6, 80, width), overflow: 'hidden' }}>
       <Eyebrow>{c.eyebrow}</Eyebrow>
       <SectionTitle size={landingType.sectionH2} maxEm={10} marginTop={16}>
         {c.title}
@@ -49,6 +50,7 @@ export function Buddy({ onLayout, onNavigate }: { onLayout: (e: LayoutChangeEven
         {c.body}
       </Text>
       <View
+        nativeID={BUDDY_ANCHOR_ID}
         accessible
         accessibilityLabel={c.label}
         style={{ height: fluid(360, 46, 470, width), marginTop: 24, alignItems: 'center' }}

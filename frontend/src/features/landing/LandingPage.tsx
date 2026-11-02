@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Platform, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 import { landingColors } from '../../shared/theme/landingTokens';
@@ -8,6 +8,7 @@ import { ScrollYContext } from './components/FlowCard';
 import type { SectionId } from './content';
 import { useLandingLayout } from './hooks/useLandingLayout';
 import { HeroIntroContext, useHeroIntroState } from './robot/HeroIntro';
+import { notifyLayout } from './robot/layoutSignal';
 import { RobotLayer } from './robot/RobotLayer';
 import { Buddy } from './sections/Buddy';
 import { Cta } from './sections/Cta';
@@ -26,6 +27,12 @@ export function LandingPage() {
   const [ys, setYs] = useState<Partial<Record<SectionId, number>>>({});
   const { gutter, contentWidth } = useLandingLayout();
   const intro = useHeroIntroState();
+  // Content and viewport heights, so the robot knows how far the page can scroll.
+  const size = useRef({ content: 0, view: 0 });
+  const getScroll = () => ({
+    y: scrollY.get(),
+    max: Math.max(1, size.current.content - size.current.view),
+  });
 
   const mark = (id: SectionId) => (e: LayoutChangeEvent) => {
     const y = e.nativeEvent.layout.y;
@@ -45,8 +52,16 @@ export function LandingPage() {
             ref={scroll}
             style={{ flex: 1, zIndex: 1 }}
             contentContainerStyle={{ paddingTop: NAV_HEIGHT }}
+            onLayout={(e) => {
+              size.current.view = e.nativeEvent.layout.height;
+              notifyLayout();
+            }}
+            onContentSizeChange={(_w, h) => {
+              size.current.content = h;
+              notifyLayout();
+            }}
           >
-            <View onLayout={mark('top')}>
+            <View nativeID="sec-top" onLayout={mark('top')}>
               <Hero contentWidth={contentWidth} gutter={gutter} onNavigate={go} />
             </View>
             <Marquee />
@@ -61,7 +76,9 @@ export function LandingPage() {
         </ScrollYContext.Provider>
         <Nav onNavigate={go} />
         {Platform.OS === 'web' && <CursorRing />}
-        {intro.enabled && <RobotLayer events={intro.events} onFail={intro.fail} />}
+        {intro.enabled && (
+          <RobotLayer events={intro.events} onFail={intro.fail} getScroll={getScroll} />
+        )}
       </View>
     </HeroIntroContext.Provider>
   );

@@ -21,7 +21,7 @@ export function Cta({ onLayout, onNavigate }: { onLayout: (e: LayoutChangeEvent)
   const h2 = fluid(48, 9, 120, width);
   const body = fluid(17, 2, 22, width);
   return (
-    <View onLayout={onLayout} style={{ paddingHorizontal: gutter }}>
+    <View nativeID="sec-join" onLayout={onLayout} style={{ paddingHorizontal: gutter }}>
       <View
         style={{
           width: '100%',

@@ -68,7 +68,7 @@ export function Faq({ onLayout }: { onLayout: (e: LayoutChangeEvent) => void }) 
   const { width } = useLandingLayout();
   const [open, setOpen] = useState(-1);
   return (
-    <Section onLayout={onLayout} paddingY={fluid(72, 10, 120, width)}>
+    <Section nativeID="sec-faq" onLayout={onLayout} paddingY={fluid(72, 10, 120, width)}>
       <Grid minCol={320} gap={fluid(32, 6, 72, width)}>
         <SectionTitle size={landingType.faqH2}>{c.title}</SectionTitle>
         <View style={{ borderTopWidth: 1, borderColor: landingColors.line }}>

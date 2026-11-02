@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -21,6 +21,8 @@ import { useLandingLayout } from '../hooks/useLandingLayout';
 import { useHeroIntro, type HeroIntro } from '../robot/HeroIntro';
 
 const MIN_COL = 420;
+// The widest headline line ("ONE MORE") is 5.02em in Bricolage ExtraBold at this tracking; 5.1em keeps it on one line.
+const HEADLINE_EM = 5.1;
 
 const popIn = Easing.bezier(0.2, 1.5, 0.4, 1);
 const settle = Easing.bezier(0.2, 0.8, 0.2, 1);
@@ -77,7 +79,9 @@ function HeroFade({
     transform: [{ translateY: 24 * (1 - t.value) }],
     pointerEvents: intro.done.value > 0 ? 'auto' : 'none',
   }));
-  return <Animated.View style={anim}>{children}</Animated.View>;
+  // visibility:hidden removes it from the tab order and screen readers but keeps its space, so nothing shifts.
+  const hidden = { visibility: intro.finished ? 'visible' : 'hidden' } as ViewStyle;
+  return <Animated.View style={[hidden, anim]}>{children}</Animated.View>;
 }
 
 type Props = { contentWidth: number; gutter: number; onNavigate: (id: SectionId) => void };
@@ -89,11 +93,14 @@ export function Hero({ contentWidth, gutter, onNavigate }: Props) {
     transform: [{ translateX: intro.shakeX.value }, { translateY: intro.shakeY.value }],
   }));
   const gap = fluid(24, 4, 56, width);
-  const twoCol = contentWidth >= MIN_COL * 2 + gap;
-  // Seed with the expected column width so the stage paints on the first frame; onLayout then corrects it.
-  const [stageW, setStageW] = useState(twoCol ? (contentWidth - gap) / 2 : contentWidth);
-  const [stageReady, setStageReady] = useState(false);
   const h1 = fluid(landingType.heroH1.min, landingType.heroH1.vw, landingType.heroH1.max, width);
+  // The text column is never narrower than the headline needs; the stage gets what is left.
+  const textMin = Math.max(MIN_COL, h1 * HEADLINE_EM);
+  const twoCol = contentWidth >= textMin + MIN_COL + gap;
+  const textW = Math.max(textMin, (contentWidth - gap) / 2);
+  // Seed with the expected column width so the stage paints on the first frame; onLayout then corrects it.
+  const [stageW, setStageW] = useState(twoCol ? contentWidth - gap - textW : contentWidth);
+  const [stageReady, setStageReady] = useState(false);
   const bodySize = fluid(17, 1.5, 19, width);
   const word = {
     fontFamily: landingFonts.display800,
@@ -101,7 +108,8 @@ export function Hero({ contentWidth, gutter, onNavigate }: Props) {
     lineHeight: h1 * 0.9,
     letterSpacing: h1 * -0.045,
     textTransform: 'uppercase',
-  } as const;
+    whiteSpace: 'nowrap', // web only: a phrase never wraps
+  } as TextStyle;
 
   return (
     <View
@@ -132,7 +140,7 @@ export function Hero({ contentWidth, gutter, onNavigate }: Props) {
       >
         +
       </Text>
-      <Animated.View style={[{ flex: twoCol ? 1 : undefined }, shake]}>
+      <Animated.View style={[twoCol ? { flex: 1, minWidth: textMin } : null, shake]}>
         <View
           style={{
             alignSelf: 'flex-start',

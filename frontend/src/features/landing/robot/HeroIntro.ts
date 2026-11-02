@@ -14,6 +14,8 @@ export type HeroIntro = {
   shakeY: SharedValue<number>;
   /** False until the scene has rendered; the hero stage shows its shimmer until then. */
   ready: boolean;
+  /** True once the intro is over; until then the subtext and buttons are out of the tab order and screen readers. */
+  finished: boolean;
 };
 
 export const HeroIntroContext = createContext<HeroIntro | null>(null);
@@ -38,12 +40,19 @@ export function useHeroIntroState() {
   const shakeX = useSharedValue(0);
   const shakeY = useSharedValue(0);
   const [ready, setReady] = useState(!pending);
+  const [finished, setFinished] = useState(!pending);
+  // Set once a fallback has fired: the scene is unmounted and any late event from it is ignored.
+  const [off, setOff] = useState(false);
+  const offRef = useRef(false);
   const sceneReady = useRef(false);
 
   const showAll = useCallback(() => {
+    offRef.current = true;
     words.set(3);
     done.set(1);
     setReady(true);
+    setFinished(true);
+    setOff(true);
   }, [words, done]);
 
   useEffect(() => {
@@ -57,12 +66,20 @@ export function useHeroIntroState() {
   const events: SceneEvents = useMemo(
     () => ({
       onReady: () => {
+        if (offRef.current) return;
         sceneReady.current = true;
         setReady(true);
       },
-      onPunch: (k) => words.set(k + 1),
-      onIntroEnd: () => done.set(1),
+      onPunch: (k) => {
+        if (!offRef.current) words.set(k + 1);
+      },
+      onIntroEnd: () => {
+        if (offRef.current) return;
+        done.set(1);
+        setFinished(true);
+      },
       onShake: (x, y) => {
+        if (offRef.current) return;
         shakeX.set(x);
         shakeY.set(y);
       },
@@ -70,6 +87,9 @@ export function useHeroIntroState() {
     [words, done, shakeX, shakeY],
   );
 
-  const value: HeroIntro = useMemo(() => ({ words, done, shakeX, shakeY, ready }), [words, done, shakeX, shakeY, ready]);
-  return { value, events, fail: showAll, enabled: pending };
+  const value: HeroIntro = useMemo(
+    () => ({ words, done, shakeX, shakeY, ready, finished }),
+    [words, done, shakeX, shakeY, ready, finished],
+  );
+  return { value, events, fail: showAll, enabled: pending && !off };
 }

@@ -14,7 +14,7 @@ const visuals = [<SnapVisual key="s" />, <ConfirmVisual key="c" />, <EatVisual k
 export function How({ onLayout }: { onLayout: (e: LayoutChangeEvent) => void }) {
   const { width } = useLandingLayout();
   return (
-    <Section band onLayout={onLayout} paddingY={fluid(72, 10, 120, width)}>
+    <Section band nativeID="sec-how" onLayout={onLayout} paddingY={fluid(72, 10, 120, width)}>
       <SectionTitle size={landingType.sectionH2}>{content.how.title.join('\n')}</SectionTitle>
       <Grid minCol={300} gap={16} marginTop={fluid(36, 5, 64, width)}>
         {content.how.steps.map((s, i) => (

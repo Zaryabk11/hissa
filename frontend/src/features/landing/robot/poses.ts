@@ -25,10 +25,12 @@ type Ctx = {
   ti?: number;
   /** Buddy handshake: true once the shake should wave. */
   wave?: boolean;
+  /** Handshake partner: reach with the other arm, waving out of phase. */
+  mirror?: boolean;
 };
 
 /** Target pose for a mode, plus the easing rate K (higher snaps faster). The scene eases the live pose toward it. */
-export function targetPose(mode: Mode, { t, yaw, ti = 0, wave = false }: Ctx): { pose: Pose; K: number } {
+export function targetPose(mode: Mode, { t, yaw, ti = 0, wave = false, mirror = false }: Ctx): { pose: Pose; K: number } {
   const g: Pose = { sh0: 0.05, sh1: 0.05, el0: -0.2, el1: -0.2, h0: 0, h1: 0, lean: 0, yaw, tw: 0, bob: 0 };
   const breathe = Math.sin(t * 2.4) * 0.03;
   let K = 12;
@@ -52,9 +54,10 @@ export function targetPose(mode: Mode, { t, yaw, ti = 0, wave = false }: Ctx): {
     g.bob = Math.abs(Math.sin(t * 5)) * 0.06;
   }
   if (mode === 'shake') {
-    g.sh0 = -1.5;
-    g.el0 = -0.25 + (wave ? Math.sin(t * 13) * 0.2 : 0.2);
-    g.sh1 = 0.1;
+    const reach = mirror ? 1 : 0;
+    g[reach ? 'sh1' : 'sh0'] = -1.5;
+    g[reach ? 'el1' : 'el0'] = -0.25 + (wave ? Math.sin(t * 13 + reach) * 0.2 : 0.2);
+    g[reach ? 'sh0' : 'sh1'] = 0.1;
     g.bob = breathe;
   }
   if (mode === 'punch') {

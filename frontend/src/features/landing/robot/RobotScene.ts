@@ -3,7 +3,7 @@ import { landingColors } from '../../../shared/theme/landingTokens';
 import { buildRobot, disposeRobot, type Robot } from './buildRobot';
 import { Particles } from './particles';
 import { easePose, STRIKES, targetPose } from './poses';
-import type { Placement, PlacementContext, SceneEvents } from './types';
+import type { Frame, FrameContext, SceneEvents } from './types';
 
 const INTRO_DROP = 1.0; // seconds the robot takes to fall in
 const INTRO_END = 4.0; // seconds until the subtext and buttons appear
@@ -11,13 +11,14 @@ const INTRO_PUNCH_MODE_END = 4.2;
 
 /**
  * One transparent WebGL scene over the page, in CSS pixels (orthographic, y up). The page supplies where the
- * robot stands each frame through `getPlacement`; for e1 that is the hero stage, e2 adds the scroll journey there.
+ * robots stand each frame through `getFrame` (see journey.ts); null hides them. The scene owns the render loop,
+ * pose easing, the hero punch intro and particles.
  * Throws if WebGL cannot be created. Call `dispose` to free the renderer, geometry and materials.
  */
 export function createRobotScene(
   canvas: HTMLCanvasElement,
   events: SceneEvents,
-  getPlacement: (ctx: PlacementContext) => Placement | null,
+  getFrame: (ctx: FrameContext) => Frame | null,
 ) {
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
@@ -47,7 +48,9 @@ export function createRobotScene(
   scene.add(key, rim, fill);
 
   const robot: Robot = buildRobot(false);
-  scene.add(robot.root);
+  const buddy: Robot = buildRobot(true); // light grey handshake partner
+  buddy.root.visible = false;
+  scene.add(robot.root, buddy.root);
   const particles = new Particles(scene);
   const fistAt = new THREE.Vector3();
 
@@ -87,12 +90,19 @@ export function createRobotScene(
       events.onReady();
     }
 
-    const place = getPlacement({ vw, vh });
-    if (!place) {
+    const frame = getFrame({ vw, vh, dt, t: clock });
+    const place = frame?.main;
+    if (!frame || !place) {
       robot.root.visible = false;
+      buddy.root.visible = false;
     } else {
       const intro = place.hero && clock < INTRO_PUNCH_MODE_END;
-      const { pose: target, K } = targetPose(intro ? 'punch' : place.mode, { t: clock, yaw: place.yaw, ti: clock });
+      const { pose: target, K } = targetPose(intro ? 'punch' : place.mode, {
+        t: clock,
+        yaw: place.yaw,
+        ti: clock,
+        wave: place.wave,
+      });
       easePose(robot.pose, target, dt, K);
 
       // Drop in: ease down over INTRO_DROP, with a small bounce after landing.
@@ -108,6 +118,16 @@ export function createRobotScene(
       }
       apply(robot, place.x, place.y - drop, place.size);
 
+      const p2 = frame.buddy;
+      if (p2) {
+        const { pose: t2, K: K2 } = targetPose('shake', { t: clock, yaw: p2.yaw, wave: p2.wave, mirror: true });
+        easePose(buddy.pose, t2, dt, K2);
+        apply(buddy, p2.x, p2.y, p2.size);
+      } else {
+        buddy.root.visible = false;
+      }
+      frame.bursts.forEach((b) => particles.burst(b.x, vh - b.y, b.count, b.speed));
+
       if (intro) {
         STRIKES.forEach((strike, k) => {
           if (fired[k] || clock < strike) return;
@@ -119,10 +139,17 @@ export function createRobotScene(
           events.onPunch(k);
         });
       }
-      if (place.hero && clock >= INTRO_END && !introEnded) {
-        introEnded = true;
-        events.onIntroEnd();
-      }
+    }
+    // The intro always finishes on time, even if the user scrolled away from the hero: reveal what was not punched.
+    if (clock >= INTRO_END && !introEnded) {
+      introEnded = true;
+      fired.forEach((f, k) => {
+        if (!f) {
+          fired[k] = true;
+          events.onPunch(k);
+        }
+      });
+      events.onIntroEnd();
     }
 
     particles.update(dt);
@@ -158,6 +185,7 @@ export function createRobotScene(
       events.onShake(0, 0);
       particles.dispose();
       disposeRobot(robot);
+      disposeRobot(buddy);
       renderer.dispose();
       renderer.forceContextLoss();
     },

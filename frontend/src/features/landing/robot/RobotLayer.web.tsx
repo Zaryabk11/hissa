@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react';
-import { heroPlacement } from './placement';
+import { createJourney } from './journey';
 import { createRobotScene } from './RobotScene';
 import type { RobotLayerProps } from './RobotLayer';
 
 /** Web: one fixed, transparent, click-through canvas over the page, created once and fully disposed on unmount. */
-export function RobotLayer({ events, onFail }: RobotLayerProps) {
+export function RobotLayer({ events, onFail, getScroll }: RobotLayerProps) {
   // Latest callbacks without recreating the scene when the parent re-renders.
-  const latest = useRef({ events, onFail });
+  const latest = useRef({ events, onFail, getScroll });
   useEffect(() => {
-    latest.current = { events, onFail };
+    latest.current = { events, onFail, getScroll };
   });
 
   useEffect(() => {
@@ -16,6 +16,7 @@ export function RobotLayer({ events, onFail }: RobotLayerProps) {
     canvas.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:15';
     canvas.setAttribute('aria-hidden', 'true');
     document.body.appendChild(canvas);
+    const journey = createJourney(() => latest.current.getScroll());
     let scene: ReturnType<typeof createRobotScene>;
     try {
       scene = createRobotScene(
@@ -26,15 +27,17 @@ export function RobotLayer({ events, onFail }: RobotLayerProps) {
           onIntroEnd: () => latest.current.events.onIntroEnd(),
           onShake: (x, y) => latest.current.events.onShake(x, y),
         },
-        heroPlacement,
+        journey.getFrame,
       );
     } catch {
+      journey.dispose();
       canvas.remove();
       latest.current.onFail();
       return;
     }
     return () => {
       scene.dispose();
+      journey.dispose();
       canvas.remove();
     };
   }, []);

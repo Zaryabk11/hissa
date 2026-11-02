@@ -9,14 +9,17 @@ type Props = {
   band?: boolean;
   paddingY?: number;
   onLayout?: (e: LayoutChangeEvent) => void;
+  /** DOM id (web); the robot journey finds sections by it. */
+  nativeID?: string;
   style?: ViewStyle;
 };
 
 /** Full-width row with a centred inner column: max 1120 plus the fluid gutter. */
-export function Section({ children, band, paddingY = 0, onLayout, style }: Props) {
+export function Section({ children, band, paddingY = 0, onLayout, nativeID, style }: Props) {
   const { gutter } = useLandingLayout();
   return (
     <View
+      nativeID={nativeID}
       onLayout={onLayout}
       style={
         band && {

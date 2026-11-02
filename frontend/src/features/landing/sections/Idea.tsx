@@ -13,7 +13,7 @@ export function Idea() {
   const { width } = useLandingLayout();
   const c = content.idea;
   return (
-    <Section paddingY={fluid(72, 11, 140, width)}>
+    <Section nativeID="sec-idea" paddingY={fluid(72, 11, 140, width)}>
       <Eyebrow>{c.eyebrow}</Eyebrow>
       <SectionTitle variant="statement" size={landingType.ideaH2} maxEm={15} marginTop={20}>
         {c.titleBefore}

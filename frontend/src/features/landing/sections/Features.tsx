@@ -150,7 +150,7 @@ function CheckIn() {
 export function Features({ onLayout }: { onLayout: (e: LayoutChangeEvent) => void }) {
   const { width } = useLandingLayout();
   return (
-    <Section onLayout={onLayout} paddingY={fluid(72, 10, 120, width)}>
+    <Section nativeID="sec-features" onLayout={onLayout} paddingY={fluid(72, 10, 120, width)}>
       <Eyebrow>{c.eyebrow}</Eyebrow>
       <SectionTitle size={landingType.sectionH2} marginTop={16}>
         {c.title}
