@@ -125,6 +125,29 @@ describe.skipIf(!enabled)('feel disposable database integration', () => {
         },
       ]);
       expect(await service.getDue(owner, new Date('2026-11-02T12:00:00Z'))).toBeNull();
+      // Evidence history: owner-only, confirmed dishes, and no check-in made over 24 h after the meal.
+      const observed = async (user: string) =>
+        (await repository.listObservations(user)).filter((o) => o.mealId === mealId);
+      const setCheckinTime = async (at: string) =>
+        expect(
+          (await db.from('feel_checkins').update({ created_at: at }).eq('meal_id', mealId)).error,
+        ).toBeNull();
+      await setCheckinTime('2026-11-03T10:30:00Z');
+      expect(await observed(owner)).toEqual([
+        {
+          userId: owner,
+          mealId,
+          eatenAt: '2026-11-02T10:30:00+00:00',
+          dishes: [{ slug: dishId, category: 'other' }],
+          energy: 'okay',
+          stomach: 'fine',
+          symptom: null,
+          answerId: null,
+        },
+      ]);
+      expect(await observed(other)).toEqual([]);
+      await setCheckinTime('2026-11-03T10:30:01Z');
+      expect(await observed(owner)).toEqual([]);
     } finally {
       await db.from('meals').delete().eq('id', mealId).eq('user_id', owner);
       await db.from('dishes').delete().in('id', [dishId, predictedId]);

@@ -7,7 +7,8 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node --env-file-if-exists=.env dist/server.js",
     "test": "vitest run",
-    "lint": "eslint . && tsc --noEmit"
+    "lint": "eslint . && tsc --noEmit",
+    "train:questions": "tsx scripts/train-question-ranker.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

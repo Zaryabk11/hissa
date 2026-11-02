@@ -15,3 +15,14 @@ export interface DueCheckin {
   eatenAt: string;
   dishes: string[];
 }
+// One whole meal with its check-in; confirmed dishes only.
+export interface MealObservation {
+  userId: string;
+  mealId: string;
+  eatenAt: string;
+  dishes: { slug: string; category: string }[];
+  energy: CheckinInput['energy'];
+  stomach: CheckinInput['stomach'];
+  symptom: NonNullable<CheckinInput['symptom']> | null;
+  answerId: string | null;
+}

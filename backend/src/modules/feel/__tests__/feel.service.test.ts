@@ -27,6 +27,9 @@ function setup(ageMinutes = 90, dishes = ['raita'], insertError?: unknown) {
       meal.checkedIn = true;
       return { id: 'checkin' };
     },
+    async listObservations() {
+      return [];
+    },
   };
   return { service: createFeelService({ repository }), saved };
 }
