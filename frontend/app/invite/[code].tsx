@@ -13,5 +13,9 @@ export default function InviteHandoff() {
   }, [code, valid]);
   if (!valid) return <Redirect href="/" />;
   if (loading || !saved) return <ActivityIndicator accessibilityLabel="Opening invitation" />;
-  return <Redirect href={session ? { pathname: '/(tabs)/buddy', params: { code } } : '/(auth)/sign-in'} />;
+  return (
+    <Redirect
+      href={session ? { pathname: '/(tabs)/buddy', params: { code } } : '/(auth)/sign-in'}
+    />
+  );
 }

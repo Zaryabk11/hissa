@@ -1,0 +1,56 @@
+// All scan-flow copy, from docs/design/Hissa Screens.html (screens g, h, i, q).
+export const scanContent = {
+  close: 'Close',
+  camera: {
+    frame: 'Put your plate in the frame',
+    take: 'Take photo',
+    gallery: 'Choose from gallery',
+    asking: {
+      title: 'Hissa needs your camera',
+      body: 'It only looks at your plate. Nothing is shared with your buddy.',
+      allow: 'Allow camera',
+    },
+    denied: {
+      title: 'The camera is switched off',
+      body: 'No worries. You can turn it on in settings, or pick a photo from your gallery instead.',
+      webBody: 'No worries. You can allow the camera in your browser settings, or pick a photo instead.',
+      settings: 'Open settings',
+    },
+    none: {
+      title: 'No camera here',
+      body: 'You can still pick a photo of your plate.',
+    },
+    pick: 'Pick a photo',
+  },
+  scanning: {
+    title: 'Looking at your plate',
+    sub: 'A few seconds, hang on',
+    photo: 'Your photo',
+  },
+  review: {
+    title: 'Is this right?',
+    sub: 'Tap to confirm, fix anything off',
+    photo: 'Your plate',
+    confirmed: 'Confirmed',
+    swap: (name: string) => `Swap ${name}`,
+    question: (name: string) => `${name}, tap to answer`,
+    askTitle: (a: string[]) => `${a.join(' or ')}?`,
+    swapTitle: (name: string) => `Swap ${name} for`,
+    somethingElse: 'Something else',
+    remove: 'Not on my plate',
+    undo: (s: number) => `Undo, ${s}s`,
+    undoLabel: (name: string) => `Undo removing ${name}`,
+    addDish: 'Add dish',
+    addTitle: 'Add a dish',
+    estimate: (n: string) => `About ${n} kcal, an estimate`,
+    cta: 'Show my plan',
+    save: 'Add to today',
+    empty: 'Nothing left on the plate. Add a dish to continue.',
+  },
+  noPlate: {
+    title: "Couldn't see a plate",
+    body: 'It might be dark or too close. Try again with the whole plate in the frame, or pick a photo from your gallery.',
+    retry: 'Try again',
+    gallery: 'Pick from gallery',
+  },
+} as const;

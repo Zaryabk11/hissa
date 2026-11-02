@@ -1,0 +1,63 @@
+// All Today and tab copy, from docs/design/Hissa Screens.html (screens e, f, o, p).
+export const todayContent = {
+  greeting: (name: string) => (name ? `Salaam, ${name}` : 'Salaam'),
+  ring: {
+    left: 'kcal left',
+    forToday: 'kcal for today',
+    estimate: 'Estimate',
+    label: (n: string, unit: string) => `About ${n} ${unit}, an estimate`,
+    atBudget: "You're at today's budget. A lighter plate next is a kind choice.",
+  },
+  meals: {
+    title: "Today's meals",
+    logged: (n: number) => `${n} logged`,
+    kcal: (n: string) => `About ${n} kcal`,
+  },
+  streak: {
+    days: 'days',
+    pending: (buddy: string) => `You logged, ${buddy} hasn't yet`,
+    both: (buddy: string) => `You and ${buddy} both logged today`,
+    you: 'You',
+    buddyFallback: 'your buddy',
+    nudge: 'Nudge',
+    nudged: 'Nudged',
+    nudgeLabel: (buddy: string) => `Nudge ${buddy}`,
+    label: (n: number) => `${n} day streak together`,
+  },
+  week: {
+    title: 'Your week so far',
+    sub: 'Each bar is a day, the dashed line is your budget',
+    near: 'Most days land close to your budget. That is steady.',
+    big: 'A few bigger days. A lighter plate now and then evens it out.',
+    average: (n: string) => `About ${n} kcal a day on average`,
+    basis: (n: number) => `Based on ${n} days, all numbers are estimates`,
+    label: 'Estimated calories per day, last 7 days',
+  },
+  sheet: {
+    done: 'Done',
+    remove: 'Remove meal',
+    total: (n: string) => `About ${n} kcal, estimate`,
+    dishKcal: (n: string) => `About ${n} kcal`,
+    less: (name: string) => `Less ${name}`,
+    more: (name: string) => `More ${name}`,
+    close: 'Close',
+    edit: (name: string) => `Edit ${name}`,
+  },
+  undo: {
+    removed: 'Meal removed',
+    undo: (s: number) => `Undo, ${s}s`,
+    undoLabel: 'Undo removing the meal',
+  },
+  empty: {
+    title: 'Nothing on the plate yet',
+    body: 'Snap your first meal and your hissa shows up here.',
+    cta: 'Scan a meal',
+  },
+  loading: 'Loading today',
+  tabs: { today: 'Today', scan: 'Scan a meal', buddy: 'Buddy' },
+  comingSoon: {
+    title: { buddy: 'Buddy' },
+    body: 'Coming soon',
+    sub: 'This part of Hissa is still being built.',
+  },
+} as const;

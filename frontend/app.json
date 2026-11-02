@@ -25,7 +25,20 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Hissa uses the camera to look at your plate. Photos stay on your phone until you confirm a meal."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Hissa reads the photo you pick so it can look at your plate."
+        }
+      ]
     ]
   }
 }

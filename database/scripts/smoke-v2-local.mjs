@@ -29,7 +29,11 @@ const call = async (base, path, { token, key = ANON, method = 'GET', body, heade
   });
   const text = await res.text();
   let json = null;
-  try { json = text ? JSON.parse(text) : null; } catch { json = text; }
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = text;
+  }
   return { status: res.status, json };
 };
 const api = (token, path, opts = {}) => call(API, path, { ...opts, token });
@@ -63,13 +67,19 @@ try {
 
   const inv = await api(a.token, '/api/streaks/invites', { method: 'POST' });
   const code = inv.json?.code;
-  check('A creates invite (6 chars A-Z0-9)', inv.status === 201 && /^[A-Z0-9]{6}$/.test(code ?? ''), show(inv));
+  check(
+    'A creates invite (6 chars A-Z0-9)',
+    inv.status === 201 && /^[A-Z0-9]{6}$/.test(code ?? ''),
+    show(inv),
+  );
 
   const prev = await api(b.token, `/api/streaks/invites/${code}`);
   const prevText = JSON.stringify(prev.json);
   check(
     'B previews invite, no ids/emails',
-    prev.status === 200 && !prevText.includes(a.id) && !prevText.includes('@') &&
+    prev.status === 200 &&
+      !prevText.includes(a.id) &&
+      !prevText.includes('@') &&
       Object.keys(prev.json).sort().join() === 'code,status',
     show(prev),
   );
@@ -120,9 +130,19 @@ try {
   check('B sees unreadNudge', bStat.json?.unreadNudge === true, show(bStat));
   const ack = await api(b.token, '/api/streaks/nudge/ack', { method: 'POST' });
   const bStat2 = await api(b.token, '/api/streaks');
-  check('ack clears unreadNudge', ack.status === 204 && bStat2.json?.unreadNudge === false, `${show(ack)} ${show(bStat2)}`);
+  check(
+    'ack clears unreadNudge',
+    ack.status === 204 && bStat2.json?.unreadNudge === false,
+    `${show(ack)} ${show(bStat2)}`,
+  );
 
-  const item = { predictedDish: null, predictedPortion: null, confirmedDish: slug, confirmedPortion: 1, confidence: null };
+  const item = {
+    predictedDish: null,
+    predictedPortion: null,
+    confirmedDish: slug,
+    confirmedPortion: 1,
+    confidence: null,
+  };
   const meal = await api(a.token, '/api/meals', { method: 'POST', body: { items: [item] } });
   const mealId = meal.json?.id;
   check('A saves meal', meal.status === 201 && !!mealId, show(meal));
@@ -132,7 +152,13 @@ try {
   const bView = await api(b.token, '/api/streaks');
   check('B sees buddyLoggedToday true', bView.json?.buddyLoggedToday === true, show(bView));
   const keys = 'buddyLoggedToday,ownLoggedToday,pairStatus,pendingInviteCode,streak,unreadNudge';
-  check('streaks keys are exactly BuddyStatus', Object.keys(bView.json ?? {}).sort().join() === keys, show(bView));
+  check(
+    'streaks keys are exactly BuddyStatus',
+    Object.keys(bView.json ?? {})
+      .sort()
+      .join() === keys,
+    show(bView),
+  );
 
   const n3 = await api(b.token, '/api/streaks/nudge', { method: 'POST' });
   check('nudge rejected after buddy logged', n3.status >= 400, show(n3));
@@ -146,15 +172,29 @@ try {
     ['feel_checkins', `user_id=eq.${a.id}`],
   ]) {
     const r = await call(SB, `/rest/v1/${table}?select=*&${filter}`, { token: b.token });
-    check(`B cannot read A's ${table}`, (r.status === 200 && r.json.length === 0) || [401, 403].includes(r.status), show(r));
+    check(
+      `B cannot read A's ${table}`,
+      (r.status === 200 && r.json.length === 0) || [401, 403].includes(r.status),
+      show(r),
+    );
   }
-  const insMeal = await call(SB, '/rest/v1/meals', { token: b.token, method: 'POST', body: { user_id: b.id } });
+  const insMeal = await call(SB, '/rest/v1/meals', {
+    token: b.token,
+    method: 'POST',
+    body: { user_id: b.id },
+  });
   check('direct insert into meals rejected', insMeal.status >= 400, show(insMeal));
   const own = await api(b.token, '/api/meals', { method: 'POST', body: { items: [item] } });
   const insItem = await call(SB, '/rest/v1/meal_items', {
-    token: b.token, method: 'POST', body: { meal_id: own.json?.id, confirmed_dish_id: cat.json.dishes[0].id, confirmed_portion: 1 },
+    token: b.token,
+    method: 'POST',
+    body: { meal_id: own.json?.id, confirmed_dish_id: cat.json.dishes[0].id, confirmed_portion: 1 },
   });
-  check('direct insert into meal_items rejected', own.status === 201 && insItem.status >= 400, `${show(own)} ${show(insItem)}`);
+  check(
+    'direct insert into meal_items rejected',
+    own.status === 201 && insItem.status >= 400,
+    `${show(own)} ${show(insItem)}`,
+  );
 
   // Feel check-in.
   const due0 = await api(a.token, '/api/feel/due');
@@ -165,7 +205,11 @@ try {
     headers: { prefer: 'return=minimal' },
   });
   const due1 = await api(a.token, '/api/feel/due');
-  check('backdated meal becomes due', back.status === 204 && due1.json?.mealId === mealId, `${show(back)} ${show(due1)}`);
+  check(
+    'backdated meal becomes due',
+    back.status === 204 && due1.json?.mealId === mealId,
+    `${show(back)} ${show(due1)}`,
+  );
   const ans = { mealId, energy: 'good', stomach: 'fine' };
   const ci1 = await api(a.token, '/api/feel/checkins', { method: 'POST', body: ans });
   check('check-in saves', ci1.status >= 200 && ci1.status < 300, show(ci1));

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position:relative;width:390px;height:84px;font-family:Figtree,sans-serif">
+<div style="position:absolute;left:0;right:0;bottom:0;height:84px;background:var(--surf);border-top:1px solid var(--hair);display:grid;grid-template-columns:1fr 1fr 1fr;padding-top:26px;box-sizing:border-box">
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:{{ c0 }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"><path d="M3 11l9-8 9 8v10H3z"></path></svg><span style="font:500 12px/16px Figtree">Today</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:{{ c1 }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M3 20c0-3.5 3-5.5 6-5.5s6 2 6 5.5M17 14.5c2.5 0 4 1.5 4 4"></path></svg><span style="font:500 12px/16px Figtree">Buddy</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:{{ c2 }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg><span style="font:500 12px/16px Figtree">Profile</span></div>
+</div>
+<div style="position:absolute;left:163px;bottom:64px;width:64px;height:64px;border-radius:999px;background:var(--pri);color:var(--onpri);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(27,37,80,.12);border:4px solid var(--bg);box-sizing:content-box;margin:-4px 0 0 -4px" aria-label="Scan a meal"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:84},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;today&quot;,&quot;buddy&quot;,&quot;profile&quot;],&quot;default&quot;:&quot;today&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.active || 'today';
+    const c = k => (a === k ? 'var(--pri)' : 'var(--muted)');
+    return { c0: c('today'), c1: c('buddy'), c2: c('profile') };
+  }
+}
+</script>
+</body>
+</html>

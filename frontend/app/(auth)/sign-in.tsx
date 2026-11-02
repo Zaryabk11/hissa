@@ -9,13 +9,21 @@ export default function SignIn() {
   const signIn = async () => {
     setBusy(true);
     setError(null);
-    try { await signInWithGoogle(); }
-    catch { setError('Could not sign in. Please try again.'); }
-    finally { setBusy(false); }
+    try {
+      await signInWithGoogle();
+    } catch {
+      setError('Could not sign in. Please try again.');
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <Screen title="Sign in">
-      <Button title={busy ? 'Opening Google…' : 'Continue with Google'} disabled={busy} onPress={signIn} />
+      <Button
+        title={busy ? 'Opening Google…' : 'Continue with Google'}
+        disabled={busy}
+        onPress={signIn}
+      />
       {error && <Text accessibilityRole="alert">{error}</Text>}
     </Screen>
   );
