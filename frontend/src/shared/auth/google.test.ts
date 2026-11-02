@@ -82,3 +82,18 @@ it("always returns to hissa:// on iOS, because Supabase rejects an IP-address ho
   expect(mocks.openAuthSessionAsync).toHaveBeenCalledWith('https://example.com/auth', 'hissa://');
   expect(mocks.exchangeCodeForSession).toHaveBeenCalledWith('abc');
 });
+it('accepts the callback Supabase actually sends: it drops the slashes from hissa:// (hissa:?code=...)', async () => {
+  mocks.os.mockReturnValue('ios');
+  mocks.openAuthSessionAsync.mockResolvedValue({ type: 'success', url: 'hissa:?code=abc' });
+  await signInWithGoogle();
+  expect(mocks.exchangeCodeForSession).toHaveBeenCalledWith('abc');
+});
+it('still rejects a callback to a different host on the same scheme', async () => {
+  mocks.createURL.mockReturnValue('exp://192.168.1.5:8081');
+  mocks.openAuthSessionAsync.mockResolvedValue({
+    type: 'success',
+    url: 'exp://evil.example:8081?code=abc',
+  });
+  await expect(signInWithGoogle()).rejects.toThrow();
+  expect(mocks.exchangeCodeForSession).not.toHaveBeenCalled();
+});

@@ -18,8 +18,12 @@ export async function signInWithGoogle(): Promise<void> {
   if (!data.url) throw new Error('Could not open Google sign-in.');
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
   if (result.type !== 'success') return;
-  if (!result.url.startsWith(redirectTo)) throw new Error('Unexpected sign-in callback.');
-  const code = new URL(result.url).searchParams.get('code');
+  // Compare scheme and host, not the raw string: Supabase rewrites `hissa://` to `hissa:?code=...`.
+  const returned = new URL(result.url);
+  const expected = new URL(redirectTo);
+  if (returned.protocol !== expected.protocol || returned.host !== expected.host)
+    throw new Error('Unexpected sign-in callback.');
+  const code = returned.searchParams.get('code');
   if (!code) throw new Error('Google sign-in was not completed. Please try again.');
   const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
   if (sessionError) throw sessionError;
