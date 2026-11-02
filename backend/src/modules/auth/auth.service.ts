@@ -1,15 +1,8 @@
-import { NotImplementedError } from '../../shared/errors';
-import type { AuthRepository } from './auth.repository';
-
-interface AuthDeps {
-  repository: AuthRepository;
-}
-
-// Business rules for auth.
-export function createAuthService(_deps: AuthDeps) {
+// The middleware has already authenticated this id; no database read is needed.
+export function createAuthService() {
   return {
-    async getCurrentUser(): Promise<never> {
-      throw new NotImplementedError('auth.getCurrentUser');
+    async getCurrentUser(userId: string): Promise<{ id: string }> {
+      return { id: userId };
     },
   };
 }
