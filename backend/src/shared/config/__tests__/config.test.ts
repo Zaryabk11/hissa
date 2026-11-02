@@ -11,7 +11,7 @@ const minimalEnv = {
 describe('loadConfig', () => {
   it('defaults GEMINI_MODEL and SCAN_DAILY_CAP', () => {
     const config = loadConfig(minimalEnv);
-    expect(config.GEMINI_MODEL).toBe('gemini-3.1-flash-lite');
+    expect(config.GEMINI_MODEL).toBe('gemini-flash-lite-latest');
     expect(config.SCAN_DAILY_CAP).toBe(10);
   });
 
@@ -19,14 +19,14 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...minimalEnv, SCAN_DAILY_CAP: '3' }).SCAN_DAILY_CAP).toBe(3);
   });
 
-  it('defaults GEMINI_TIMEOUT_MS to 20000 and accepts an override', () => {
-    expect(loadConfig(minimalEnv).GEMINI_TIMEOUT_MS).toBe(20000);
+  it('defaults GEMINI_TIMEOUT_MS to 10000 and accepts an override', () => {
+    expect(loadConfig(minimalEnv).GEMINI_TIMEOUT_MS).toBe(10000);
     expect(loadConfig({ ...minimalEnv, GEMINI_TIMEOUT_MS: '30000' }).GEMINI_TIMEOUT_MS).toBe(30000);
   });
 
   it('falls back to the default GEMINI_MODEL when it is set to an empty string', () => {
     expect(loadConfig({ ...minimalEnv, GEMINI_MODEL: '' }).GEMINI_MODEL).toBe(
-      'gemini-3.1-flash-lite',
+      'gemini-flash-lite-latest',
     );
   });
 

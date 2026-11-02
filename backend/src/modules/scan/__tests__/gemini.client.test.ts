@@ -18,7 +18,13 @@ function geminiReply(text: string, status = 200): typeof fetch {
 }
 
 function client(fetchFn: typeof fetch, timeoutMs?: number) {
-  return createGeminiClient({ apiKey: 'secret-key', model: 'gemini-test', fetchFn, timeoutMs, retryDelayMs: 0 });
+  return createGeminiClient({
+    apiKey: 'secret-key',
+    model: 'gemini-test',
+    fetchFn,
+    timeoutMs,
+    retryDelayMs: 0,
+  });
 }
 
 describe('gemini client', () => {
@@ -86,14 +92,93 @@ describe('gemini client', () => {
       .fn()
       .mockResolvedValueOnce(new Response('{}', { status: 503 }))
       .mockResolvedValueOnce(new Response(ok, { status: 200 }));
-    await expect(client(fetchFn as unknown as typeof fetch).detectDishes(photo, catalog)).resolves.toEqual([]);
+    await expect(
+      client(fetchFn as unknown as typeof fetch).detectDishes(photo, catalog),
+    ).resolves.toEqual([]);
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
   it('gives up after three 503s', async () => {
     const fetchFn = geminiReply('', 503);
-    await expect(client(fetchFn).detectDishes(photo, catalog)).rejects.toBeInstanceOf(GeminiUnavailableError);
+    await expect(client(fetchFn).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
+      GeminiUnavailableError,
+    );
     expect(fetchFn).toHaveBeenCalledTimes(3);
+  });
+
+  describe('retries a slow call', () => {
+    // Gemini's latency has a long tail (1 s to almost 60 s for the same photo); a fresh request is usually fast.
+    const timeoutError = () => new DOMException('The operation timed out', 'TimeoutError');
+
+    it('retries a timed-out call and returns the later answer', async () => {
+      const fetchFn = vi
+        .fn()
+        .mockRejectedValueOnce(timeoutError())
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              candidates: [
+                {
+                  content: {
+                    parts: [{ text: '[{"dish":"daal","portion_units":1,"confidence":0.9}]' }],
+                  },
+                },
+              ],
+            }),
+          ),
+        ) as unknown as typeof fetch;
+      const out = await client(fetchFn).detectDishes(photo, catalog);
+      expect(out).toEqual([{ dish: 'daal', portion: 1, confidence: 0.9 }]);
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives up after three timeouts', async () => {
+      const fetchFn = vi.fn(async () => {
+        throw timeoutError();
+      }) as unknown as typeof fetch;
+      await expect(client(fetchFn).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
+        GeminiUnavailableError,
+      );
+      expect(fetchFn).toHaveBeenCalledTimes(3);
+    });
+
+    it('retries a 429 (per-minute quota) and returns the later answer', async () => {
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce(new Response('{}', { status: 429 }))
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              candidates: [
+                {
+                  content: {
+                    parts: [{ text: '[{"dish":"roti","portion_units":2,"confidence":0.8}]' }],
+                  },
+                },
+              ],
+            }),
+          ),
+        ) as unknown as typeof fetch;
+      const out = await client(fetchFn).detectDishes(photo, catalog);
+      expect(out).toEqual([{ dish: 'roti', portion: 2, confidence: 0.8 }]);
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives up after three 429s', async () => {
+      const fetchFn = geminiReply('', 429);
+      await expect(client(fetchFn).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
+        GeminiUnavailableError,
+      );
+      expect(fetchFn).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not retry a client error such as HTTP 400', async () => {
+      const fetchFn = geminiReply('', 400);
+      await expect(client(fetchFn).detectDishes(photo, catalog)).rejects.toBeInstanceOf(
+        GeminiUnavailableError,
+      );
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('timeout', () => {
@@ -104,10 +189,10 @@ describe('gemini client', () => {
       timeout.mockRestore();
     });
 
-    it('defaults to 20000 ms', async () => {
+    it('defaults to 10000 ms per attempt', async () => {
       const timeout = vi.spyOn(AbortSignal, 'timeout');
       await client(geminiReply('[]')).detectDishes(photo, catalog);
-      expect(timeout).toHaveBeenCalledExactlyOnceWith(20000);
+      expect(timeout).toHaveBeenCalledExactlyOnceWith(10000);
       timeout.mockRestore();
     });
 

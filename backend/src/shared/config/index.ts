@@ -10,9 +10,9 @@ const envSchema = z.object({
   // An empty value (a blank line in .env) falls back to the default.
   GEMINI_MODEL: z.preprocess(
     (v) => (v === '' ? undefined : v),
-    z.string().min(1).default('gemini-3.1-flash-lite'),
+    z.string().min(1).default('gemini-flash-lite-latest'),
   ),
-  GEMINI_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
+  GEMINI_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
   SCAN_DAILY_CAP: z.coerce.number().int().positive().default(10),
 });
 

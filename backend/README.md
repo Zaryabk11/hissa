@@ -25,16 +25,16 @@ Regenerate the catalog seed with `node database/scripts/build-seed.mjs`.
 
 ### Environment
 
-| Variable                    | Default                 | Notes                      |
-| --------------------------- | ----------------------- | -------------------------- |
-| `PORT`                      | `3000`                  |                            |
-| `SUPABASE_URL`              | required                |                            |
-| `SUPABASE_ANON_KEY`         | required                |                            |
-| `SUPABASE_SERVICE_ROLE_KEY` | required                | Server only. Bypasses RLS. |
-| `GEMINI_API_KEY`            | required                | Server only.               |
-| `GEMINI_MODEL`              | `gemini-3.1-flash-lite` | Empty value uses default   |
-| `GEMINI_TIMEOUT_MS`         | `20000`                 | Gemini call timeout (ms)   |
-| `SCAN_DAILY_CAP`            | `10`                    | Scans per user per PKT day |
+| Variable                    | Default                    | Notes                                             |
+| --------------------------- | -------------------------- | ------------------------------------------------- |
+| `PORT`                      | `3000`                     |                                                   |
+| `SUPABASE_URL`              | required                   |                                                   |
+| `SUPABASE_ANON_KEY`         | required                   |                                                   |
+| `SUPABASE_SERVICE_ROLE_KEY` | required                   | Server only. Bypasses RLS.                        |
+| `GEMINI_API_KEY`            | required                   | Server only.                                      |
+| `GEMINI_MODEL`              | `gemini-flash-lite-latest` | Empty value uses default                          |
+| `GEMINI_TIMEOUT_MS`         | `10000`                    | Gemini timeout per attempt (ms), up to 3 attempts |
+| `SCAN_DAILY_CAP`            | `10`                       | Scans per user per PKT day                        |
 
 The server refuses to start if a required variable is missing.
 

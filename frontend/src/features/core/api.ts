@@ -54,7 +54,8 @@ export const scanPhoto = (image: string, mimeType: string) => {
   const m = /^data:([^;,]+)[^,]*,/.exec(image);
   return apiAuthed<ScanResult>('/api/scan', {
     ...json({ image: m ? image.slice(m[0].length) : image, mimeType: m?.[1] ?? mimeType }),
-    signal: AbortSignal.timeout(30_000),
+    // Longer than the API's worst case (3 Gemini attempts of 10 s plus pauses), so the API answers first.
+    signal: AbortSignal.timeout(45_000),
   });
 };
 export const getPlan = (items: { slug: string; units: number }[]) =>

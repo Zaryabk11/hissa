@@ -32,6 +32,8 @@ const answerSchema = z.array(
   z.object({ dish: z.string(), portion_units: z.number(), confidence: z.number() }),
 );
 
+const MAX_ATTEMPTS = 3;
+
 export function createGeminiClient(opts: {
   apiKey: string;
   model: string;
@@ -41,7 +43,7 @@ export function createGeminiClient(opts: {
   retryDelayMs?: number;
 }): GeminiClient {
   const fetchFn = opts.fetchFn ?? fetch;
-  const timeoutMs = opts.timeoutMs ?? 20000;
+  const timeoutMs = opts.timeoutMs ?? 10000; // per attempt
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${opts.model}:generateContent`;
 
   return {
@@ -89,12 +91,23 @@ export function createGeminiClient(opts: {
             body: JSON.stringify(body),
             signal: AbortSignal.timeout(timeoutMs),
           });
-        // The model answers 503 "high demand" in about a second and usually succeeds on the next try.
-        let res = await call();
-        for (let retry = 1; res.status === 503 && retry <= 2; retry++) {
-          await new Promise((r) => setTimeout(r, (opts.retryDelayMs ?? 700) * retry));
-          res = await call();
+        // A call can hang for a minute while the next one answers in seconds, so a short per-attempt
+        // timeout with a retry beats one long wait. A 503 "high demand" or a 429 quota hit is retried the same way.
+        let res: Response | undefined;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          try {
+            res = await call();
+          } catch (err) {
+            if (err instanceof Error && err.name === 'TimeoutError' && attempt < MAX_ATTEMPTS)
+              continue;
+            throw err;
+          }
+          if ((res.status !== 503 && res.status !== 429) || attempt === MAX_ATTEMPTS) break;
+          // A 429 is the free tier's per-minute quota; Gemini asks for about 3 s, so wait longer than for a 503.
+          const pause = (opts.retryDelayMs ?? 700) * (res.status === 429 ? 4 : 1) * attempt;
+          await new Promise((r) => setTimeout(r, pause));
         }
+        if (!res) throw new Error('No response');
         if (!res.ok)
           throw unavailable({ status: res.status }, `Gemini returned HTTP ${res.status}`);
         json = await res.json();
