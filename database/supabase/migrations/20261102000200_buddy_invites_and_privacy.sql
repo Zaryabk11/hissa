@@ -3,9 +3,10 @@
 alter table public.buddy_pairs drop constraint buddy_pairs_status_check;
 alter table public.buddy_pairs add constraint buddy_pairs_status_check
   check (status in ('pending', 'active', 'ended', 'declined'));
+drop policy buddy_pairs_participants_read on public.buddy_pairs;
 drop policy buddy_pairs_inviter_insert on public.buddy_pairs;
 drop policy buddy_pairs_participants_update on public.buddy_pairs;
-revoke insert, update, delete on public.buddy_pairs from anon, authenticated;
+revoke select, insert, update, delete on public.buddy_pairs from anon, authenticated;
 
 drop policy streak_days_read on public.streak_days;
 create policy streak_days_read on public.streak_days for select to authenticated

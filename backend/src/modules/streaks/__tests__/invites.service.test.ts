@@ -164,7 +164,35 @@ describe.skipIf(!container)('invite database lifecycle and concurrency', () => {
       ),
     ).toBe('t');
   });
+  it('denies direct pair reads including pending codes and historical participant IDs', async () => {
+    await operation(0, 'create');
+    await operation(1, 'accept');
+    await operation(0, 'end');
+    await operation(0, 'create', 'NEW123');
+    await operation(2, 'create', 'OTHER1');
+    await operation(1, 'decline', 'OTHER1');
+    // Model Supabase table grants and JWT identity. Temporary grants exercise
+    // RLS itself even if table privileges are accidentally restored later.
+    const result = await sql(`begin;
+      grant usage on schema auth to authenticated, anon;
+      grant select on public.buddy_pairs to authenticated, anon;
+      create or replace function auth.uid() returns uuid language sql as
+        $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+      set role authenticated;
+      set request.jwt.claim.sub = '${users[0]}';
+      select count(*) from public.buddy_pairs;
+      set request.jwt.claim.sub = '${users[1]}';
+      select count(*) from public.buddy_pairs;
+      set role anon;
+      select count(*) from public.buddy_pairs;
+      rollback;`);
+    expect(result.split('\n').filter((line) => /^\d+$/.test(line))).toEqual(['0', '0', '0']);
+  });
   it('limits RPC execute and direct pair mutations and historical streak reads', async () => {
+    expect(
+      await sql("select has_table_privilege('authenticated','public.buddy_pairs','SELECT')"),
+    ).toBe('f');
+    expect(await sql("select has_table_privilege('anon','public.buddy_pairs','SELECT')")).toBe('f');
     expect(
       await sql(
         "select has_function_privilege('authenticated','public.buddy_invite_operation(uuid,text,text)','EXECUTE')",
