@@ -1,11 +1,12 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../../shared/theme';
 import { getDueCheckin, submitCheckin, type DueCheckin } from '../api/feel';
 import {
   canSubmit,
   needsSymptomDetail,
+  shouldAutoSubmit,
   type Energy,
   type Stomach,
   type Symptom,
@@ -24,17 +25,20 @@ function Choice({
   label,
   selected,
   onPress,
+  disabled = false,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={[styles.choice, selected && styles.selected]}
+      style={[styles.choice, selected && styles.selected, disabled && styles.disabled]}
     >
       <Text style={[styles.choiceText, selected && styles.selectedText]}>{label}</Text>
     </Pressable>
@@ -47,42 +51,55 @@ export function CheckinPanel() {
   const [stomach, setStomach] = useState<Stomach | null>(null);
   const [symptom, setSymptom] = useState<Symptom | undefined>(undefined);
   const [message, setMessage] = useState<string | null>(null);
-  const [skipped, setSkipped] = useState<string | null>(null); // meal id skipped on this screen
+  const [skipped, setSkipped] = useState<string[]>([]); // meal ids skipped on this screen
+  const saving = useRef(false);
 
   const load = useCallback(async () => {
     try {
-      setDue(await getDueCheckin());
+      setDue(await getDueCheckin(skipped));
     } catch {
       setMessage('Could not load your check-in.');
     }
-  }, []);
+  }, [skipped]);
   useFocusEffect(
     useCallback(() => {
+      setMessage(null);
       void load();
     }, [load]),
   );
 
-  async function save() {
-    if (!due || !energy || !stomach) return;
+  async function save(nextEnergy: Energy, nextStomach: Stomach) {
+    if (!due || saving.current) return;
+    saving.current = true;
     try {
       await submitCheckin({
         mealId: due.mealId,
-        energy,
-        stomach,
-        ...(needsSymptomDetail(stomach) && symptom ? { symptom } : {}),
+        energy: nextEnergy,
+        stomach: nextStomach,
+        ...(needsSymptomDetail(nextStomach) && symptom ? { symptom } : {}),
       });
       setEnergy(null);
       setStomach(null);
       setSymptom(undefined);
       setMessage('Thanks. Saved.');
-      await load();
     } catch {
       setMessage('Could not save. This meal may not be due for a check-in.');
+    } finally {
+      saving.current = false;
     }
+    await load(); // the meal may be answered or expired either way
+  }
+
+  function pick(nextEnergy: Energy | null, nextStomach: Stomach | null) {
+    setMessage(null);
+    setEnergy(nextEnergy);
+    setStomach(nextStomach);
+    if (nextEnergy && nextStomach && shouldAutoSubmit(nextEnergy, nextStomach))
+      void save(nextEnergy, nextStomach);
   }
 
   if (due === undefined) return <Text style={styles.text}>{message ?? 'Loading…'}</Text>;
-  if (due === null || due.mealId === skipped)
+  if (due === null)
     return <Text style={styles.text}>{message ?? 'Nothing to check in on right now.'}</Text>;
 
   return (
@@ -95,7 +112,7 @@ export function CheckinPanel() {
             key={value}
             label={value}
             selected={energy === value}
-            onPress={() => setEnergy(value)}
+            onPress={() => pick(value, stomach)}
           />
         ))}
       </View>
@@ -106,7 +123,7 @@ export function CheckinPanel() {
             key={value}
             label={value}
             selected={stomach === value}
-            onPress={() => setStomach(value)}
+            onPress={() => pick(energy, value)}
           />
         ))}
       </View>
@@ -126,12 +143,22 @@ export function CheckinPanel() {
         </>
       ) : null}
       <View style={styles.row}>
+        {needsSymptomDetail(stomach) ? (
+          <Choice
+            label="Save"
+            selected={false}
+            disabled={!canSubmit(energy, stomach)}
+            onPress={() => energy && stomach && void save(energy, stomach)}
+          />
+        ) : null}
         <Choice
-          label="Save"
+          label="Skip"
           selected={false}
-          onPress={() => canSubmit(energy, stomach) && void save()}
+          onPress={() => {
+            setMessage(null);
+            setSkipped([...skipped, due.mealId]);
+          }}
         />
-        <Choice label="Skip" selected={false} onPress={() => setSkipped(due.mealId)} />
       </View>
       {message ? <Text style={styles.message}>{message}</Text> : null}
     </View>
@@ -153,6 +180,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.muted,
   },
   selected: { backgroundColor: theme.colors.text },
+  disabled: { opacity: 0.4 },
   choiceText: { color: theme.colors.text },
   selectedText: { color: theme.colors.background },
 });

@@ -15,3 +15,11 @@ do $$ begin
       foreign key (meal_id, user_id) references public.meals(id, user_id) on delete cascade;
   end if;
 end $$;
+
+-- Check-ins are written only by the backend, which enforces the 90 minute to 24 hour
+-- window. Owners keep read access.
+drop policy if exists feel_checkins_owner on public.feel_checkins;
+drop policy if exists feel_checkins_read on public.feel_checkins;
+create policy feel_checkins_read on public.feel_checkins for select to authenticated
+  using (user_id = (select auth.uid()));
+revoke insert, update, delete on public.feel_checkins from anon, authenticated;

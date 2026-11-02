@@ -6,11 +6,11 @@ import type { FeelRepository } from '../feel.repository';
 const now = new Date('2026-11-02T12:00:00Z');
 const mealId = '11111111-1111-4111-8111-111111111111';
 const input = { mealId, energy: 'okay' as const, stomach: 'fine' as const };
-function setup(ageMinutes = 90) {
+function setup(ageMinutes = 90, dishes = ['raita'], insertError?: unknown) {
   const meal = {
     id: mealId,
     eatenAt: new Date(now.getTime() - ageMinutes * 60000).toISOString(),
-    dishes: ['raita'],
+    dishes,
     checkedIn: false,
   };
   const saved: unknown[] = [];
@@ -22,6 +22,7 @@ function setup(ageMinutes = 90) {
       return userId === 'owner' && id === mealId ? meal : null;
     },
     async insertCheckin(userId, value) {
+      if (insertError) throw insertError;
       saved.push({ userId, ...value });
       meal.checkedIn = true;
       return { id: 'checkin' };
@@ -43,6 +44,30 @@ describe('timely whole-meal check-ins', () => {
   });
   it('does not expose another owner’s meal', async () => {
     expect(await setup().service.getDue('other', now)).toBeNull();
+  });
+  it('does not ask about a meal with no confirmed dishes', async () => {
+    expect(await setup(90, []).service.getDue('owner', now)).toBeNull();
+  });
+  it('offers a newer due meal when the older one is skipped', async () => {
+    const at = (minutes: number) => new Date(now.getTime() - minutes * 60000).toISOString();
+    const meals = [
+      { id: 'older', eatenAt: at(300), dishes: ['roti'], checkedIn: false },
+      { id: 'newer', eatenAt: at(120), dishes: ['dal'], checkedIn: false },
+    ];
+    const service = createFeelService({
+      repository: { listCandidates: async () => meals } as unknown as FeelRepository,
+    });
+    expect((await service.getDue('owner', now))?.mealId).toBe('older');
+    expect((await service.getDue('owner', now, ['older']))?.mealId).toBe('newer');
+    expect(await service.getDue('owner', now, ['older', 'newer'])).toBeNull();
+  });
+  it('turns a duplicate-check-in database error into a 400', async () => {
+    const { service } = setup(90, ['raita'], { code: '23505' });
+    await expect(service.submitCheckin('owner', input, now)).rejects.toMatchObject({ status: 400 });
+  });
+  it('lets other database errors through', async () => {
+    const { service } = setup(90, ['raita'], new Error('db down'));
+    await expect(service.submitCheckin('owner', input, now)).rejects.toThrow('db down');
   });
   it('rejects another owner’s meal on submission', async () => {
     const { service, saved } = setup();

@@ -1,5 +1,4 @@
 import type { Db } from '../../shared/db';
-import { ValidationError } from '../../shared/errors';
 import type { CheckinInput, CheckinMeal } from './feel.types';
 
 interface MealRow {
@@ -57,7 +56,6 @@ export function createFeelRepository(db: Db) {
         })
         .select('id')
         .single();
-      if (error?.code === '23505') throw new ValidationError('This meal already has a check-in.');
       if (error) throw error;
       return { id: data.id as string };
     },

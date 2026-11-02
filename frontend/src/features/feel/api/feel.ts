@@ -3,7 +3,8 @@ import type { Energy, Stomach, Symptom } from '../feel-view';
 
 export type DueCheckin = { mealId: string; eatenAt: string; dishes: string[] } | null;
 
-export const getDueCheckin = () => apiAuthed<DueCheckin>('/api/feel/due');
+export const getDueCheckin = (skip: string[] = []) =>
+  apiAuthed<DueCheckin>(`/api/feel/due${skip.length ? `?skip=${skip.join(',')}` : ''}`);
 export const submitCheckin = (body: {
   mealId: string;
   energy: Energy;

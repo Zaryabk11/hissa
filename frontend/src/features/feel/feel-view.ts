@@ -7,3 +7,7 @@ export const needsSymptomDetail = (stomach: Stomach | null): boolean => stomach 
 
 export const canSubmit = (energy: Energy | null, stomach: Stomach | null): boolean =>
   energy !== null && stomach !== null;
+
+// Two taps (energy + stomach) save the baseline; "heavy" waits for the optional symptom row.
+export const shouldAutoSubmit = (energy: Energy | null, stomach: Stomach | null): boolean =>
+  canSubmit(energy, stomach) && !needsSymptomDetail(stomach);

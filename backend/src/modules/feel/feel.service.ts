@@ -12,14 +12,18 @@ function eligible(meal: CheckinMeal, now: Date): boolean {
 
 export function createFeelService({ repository }: { repository: FeelRepository }) {
   return {
-    async getDue(userId: string, now = new Date()): Promise<DueCheckin | null> {
+    async getDue(
+      userId: string,
+      now = new Date(),
+      skip: string[] = [],
+    ): Promise<DueCheckin | null> {
       const meals = await repository.listCandidates(
         userId,
         new Date(now.getTime() - MAX_AGE).toISOString(),
         new Date(now.getTime() - MIN_AGE).toISOString(),
       );
       const meal = meals
-        .filter((m) => eligible(m, now))
+        .filter((m) => m.dishes.length > 0 && !skip.includes(m.id) && eligible(m, now))
         .sort((a, b) => Date.parse(a.eatenAt) - Date.parse(b.eatenAt))[0];
       return meal ? { mealId: meal.id, eatenAt: meal.eatenAt, dishes: meal.dishes } : null;
     },
@@ -33,10 +37,17 @@ export function createFeelService({ repository }: { repository: FeelRepository }
       const meal = await repository.findMeal(userId, parsed.data.mealId);
       if (!meal) throw new NotFoundError('Meal not found');
       if (!eligible(meal, now)) throw new ValidationError('This meal is not due for a check-in.');
-      return repository.insertCheckin(userId, {
-        ...parsed.data,
-        symptom: parsed.data.symptom ?? null,
-      });
+      try {
+        return await repository.insertCheckin(userId, {
+          ...parsed.data,
+          symptom: parsed.data.symptom ?? null,
+        });
+      } catch (error) {
+        // unique(meal_id): another request already answered this meal.
+        if ((error as { code?: string }).code === '23505')
+          throw new ValidationError('This meal already has a check-in.');
+        throw error;
+      }
     },
   };
 }

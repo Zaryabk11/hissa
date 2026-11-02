@@ -7,7 +7,9 @@ export function createFeelController(service: FeelService) {
   return {
     async getDue(req: Request, res: Response): Promise<void> {
       if (!req.userId) throw new UnauthorizedError();
-      res.json(await service.getDue(req.userId));
+      // ?skip=id,id lets the app step past meals the user skipped on this screen.
+      const skip = typeof req.query.skip === 'string' ? req.query.skip.split(',') : [];
+      res.json(await service.getDue(req.userId, new Date(), skip));
     },
     async submitCheckin(req: Request, res: Response): Promise<void> {
       if (!req.userId) throw new UnauthorizedError();
