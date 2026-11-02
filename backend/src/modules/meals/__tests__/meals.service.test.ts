@@ -33,11 +33,31 @@ function setup(listed: Meal[] = []) {
         }) as PortionNutrition,
     ),
   };
-  const service = createMealsService({ repository, nutrition, now: () => NOW });
-  return { service, repository, nutrition };
+  const streaks = { markMealSaved: vi.fn(async () => {}) };
+  const service = createMealsService({ repository, nutrition, streaks, now: () => NOW });
+  return { service, repository, nutrition, streaks };
 }
 
 describe('meals service', () => {
+  it('marks once with the database time only after items save', async () => {
+    const { service, repository, streaks } = setup();
+    repository.insertItems.mockImplementation(async () => {
+      expect(streaks.markMealSaved).not.toHaveBeenCalled();
+    });
+    await service.saveMeal('u1', { items: [item()] });
+    expect(streaks.markMealSaved).toHaveBeenCalledExactlyOnceWith('u1', '2026-11-01T19:30:00.000Z');
+  });
+  it('never marks a failed item insertion', async () => {
+    const { service, repository, streaks } = setup();
+    repository.insertItems.mockRejectedValueOnce(new Error('items failed'));
+    await expect(service.saveMeal('u1', { items: [item()] })).rejects.toThrow('items failed');
+    expect(streaks.markMealSaved).not.toHaveBeenCalled();
+  });
+  it('returns the saved meal when marking fails so status can repair it', async () => {
+    const { service, streaks } = setup();
+    streaks.markMealSaved.mockRejectedValueOnce(new Error('mark unavailable'));
+    await expect(service.saveMeal('u1', { items: [item()] })).resolves.toMatchObject({ id: 'm1' });
+  });
   it('saves an unknown scan item as a user-added dish without looking up "unknown"', async () => {
     const { service, repository, nutrition } = setup();
     await service.saveMeal('u1', {

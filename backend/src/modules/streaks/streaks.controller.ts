@@ -7,8 +7,16 @@ function actor(req: Request): string {
 }
 export function createStreaksController(service: StreaksService) {
   return {
-    async getStreak(_req: Request, res: Response): Promise<void> {
-      res.json(await service.getStreak());
+    async getStatus(req: Request, res: Response): Promise<void> {
+      res.json(await service.getStatus(actor(req)));
+    },
+    async nudge(req: Request, res: Response): Promise<void> {
+      await service.nudge(actor(req));
+      res.sendStatus(204);
+    },
+    async ackNudge(req: Request, res: Response): Promise<void> {
+      await service.ackNudge(actor(req));
+      res.sendStatus(204);
     },
     async createInvite(req: Request, res: Response): Promise<void> {
       res.status(201).json(await service.createInvite(actor(req)));

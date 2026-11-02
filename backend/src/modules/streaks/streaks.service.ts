@@ -1,11 +1,15 @@
 import { randomInt } from 'node:crypto';
-import { NotImplementedError, ValidationError } from '../../shared/errors';
+import { ValidationError } from '../../shared/errors';
+import { pktDay } from '../../shared/time/pkt';
 import type { StreaksRepository } from './streaks.repository';
 import { inviteCodeSchema } from './streaks.schemas';
 import type { InvitationPreview, InviteDecision } from './streaks.types';
 
 interface StreaksDeps {
   repository: StreaksRepository;
+}
+function previousDay(day: string): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
 }
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 function validateCode(code: string): void {
@@ -21,10 +25,58 @@ async function databaseResult<T>(action: () => Promise<T>): Promise<T> {
     throw error;
   }
 }
+export type BuddyStatus = {
+  pairStatus: 'none' | 'pending' | 'active';
+  pendingInviteCode: string | null;
+  streak: number;
+  ownLoggedToday: boolean;
+  buddyLoggedToday: boolean | null;
+  unreadNudge: boolean;
+};
 export function createStreaksService({ repository }: StreaksDeps) {
   return {
-    async getStreak(): Promise<never> {
-      throw new NotImplementedError('streaks.getStreak');
+    async markMealSaved(userId: string, eatenAt: string): Promise<void> {
+      await repository.markDay(userId, pktDay(new Date(eatenAt)));
+    },
+    async getStatus(userId: string, now = new Date()): Promise<BuddyStatus> {
+      const today = pktDay(now);
+      const state = await repository.status(userId, today);
+      const own = new Set(state.ownDays);
+      const buddy = new Set(state.buddyDays);
+      let streak = 0;
+      if (state.pairStatus === 'active' && state.acceptedAt) {
+        const accepted = pktDay(new Date(state.acceptedAt));
+        let day = today;
+        if (!(own.has(day) && buddy.has(day))) day = previousDay(day);
+        while (day >= accepted && own.has(day) && buddy.has(day)) {
+          streak++;
+          day = previousDay(day);
+        }
+      }
+      return {
+        pairStatus: state.pairStatus,
+        pendingInviteCode: state.pairStatus === 'pending' ? state.pendingInviteCode : null,
+        streak,
+        ownLoggedToday: own.has(today),
+        buddyLoggedToday: state.pairStatus === 'active' ? buddy.has(today) : null,
+        unreadNudge: state.pairStatus === 'active' && state.unreadNudge,
+      };
+    },
+    async nudge(userId: string, now = new Date()): Promise<void> {
+      const day = pktDay(now);
+      const state = await repository.status(userId, day);
+      if (state.pairStatus !== 'active' || state.buddyDays.includes(day) || state.nudgedToday)
+        throw new ValidationError('Nudge unavailable');
+      try {
+        await repository.nudge(userId, day);
+      } catch (error) {
+        if (['P0001', '23505'].includes((error as { code: string }).code))
+          throw new ValidationError('Nudge unavailable');
+        throw error;
+      }
+    },
+    async ackNudge(userId: string): Promise<void> {
+      await repository.ackNudge(userId);
     },
     async createInvite(userId: string): Promise<{ code: string; linkPath: string }> {
       for (let attempt = 0; attempt < 5; attempt++) {

@@ -6,6 +6,7 @@ import { createStreaksRouter } from './streaks.routes';
 import { createStreaksService, type StreaksService } from './streaks.service';
 
 export type { StreaksService };
+export type { BuddyStatus } from './streaks.service';
 
 // The only file other modules may import.
 export function createStreaksModule({ db }: { db: Db }): {

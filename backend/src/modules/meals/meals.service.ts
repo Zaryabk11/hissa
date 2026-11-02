@@ -1,6 +1,7 @@
 import { ValidationError } from '../../shared/errors';
 import { logger } from '../../shared/logger';
 import { pktDay, pktDayBounds } from '../../shared/time/pkt';
+import type { StreaksService } from '../streaks';
 import type { NutritionService } from '../nutrition';
 import type { MealsRepository } from './meals.repository';
 import type { Meal, MealItemRow, SaveMealInput } from './meals.types';
@@ -8,12 +9,18 @@ import type { Meal, MealItemRow, SaveMealInput } from './meals.types';
 interface MealsDeps {
   repository: MealsRepository;
   nutrition: Pick<NutritionService, 'getDish' | 'portionNutrition'>;
+  streaks: Pick<StreaksService, 'markMealSaved'>;
   now?: () => Date;
 }
 
 // Business rules for meals. A predicted dish of "unknown" (what a scan emits) counts as no dish.
 // Calories come from the catalog for the confirmed items only.
-export function createMealsService({ repository, nutrition, now = () => new Date() }: MealsDeps) {
+export function createMealsService({
+  repository,
+  nutrition,
+  streaks,
+  now = () => new Date(),
+}: MealsDeps) {
   async function dishId(slug: string | null): Promise<string | null> {
     return slug === null || slug === 'unknown' ? null : (await nutrition.getDish(slug)).id;
   }
@@ -66,6 +73,12 @@ export function createMealsService({ repository, nutrition, now = () => new Date
           logger.warn('Compensating meal delete failed', { mealId: id });
         }
         throw err;
+      }
+      try {
+        await streaks.markMealSaved(userId, eatenAt);
+      } catch {
+        // A status read repairs from complete saved meals; do not encourage duplicate saves.
+        logger.warn('Saved meal streak mark failed', { mealId: id });
       }
       return { id, eatenAt, totalCalories, items: input.items };
     },

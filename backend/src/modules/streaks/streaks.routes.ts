@@ -4,7 +4,7 @@ import type { StreaksController } from './streaks.controller';
 import { inviteParamsSchema } from './streaks.schemas';
 export function createStreaksRouter(controller: StreaksController): Router {
   const router = Router();
-  router.get('/', controller.getStreak);
+  router.get('/', controller.getStatus);
   router.post('/invites', controller.createInvite);
   router.get('/invites/:code', validate('params', inviteParamsSchema), controller.previewInvite);
   router.post(
@@ -17,6 +17,8 @@ export function createStreaksRouter(controller: StreaksController): Router {
     validate('params', inviteParamsSchema),
     controller.declineInvite,
   );
+  router.post('/nudge', controller.nudge);
+  router.post('/nudge/ack', controller.ackNudge);
   router.post('/end', controller.endPair);
   return router;
 }

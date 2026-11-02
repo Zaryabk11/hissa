@@ -18,7 +18,7 @@ hissa/
     supabase/          config.toml, migrations/, seed.sql (generated)
 ```
 
-Status: v1 (scan, nutrition, profiles, plan, meals) is built. `streaks` and `feel` (v2 and v3) and `auth` are stubs that return 501.
+Status: v1 (scan, nutrition, profiles, plan, meals) is built. `streaks` now implements invitations, saved-meal status, shared streaks and in-app daily nudges. `feel` and `auth` remain stubs in this branch.
 
 ## Backend rules
 
@@ -62,7 +62,7 @@ app photo -> scan: resize (sharp, 1024 px), daily cap check via scan_log,
           -> plan: nutrition (per-100g from the dishes table x grams per unit)
              fitted to the remaining daily budget
           -> meals: save predicted AND confirmed items -> today's log
-          -> streaks (mark the PKT day): v2, not built
+          -> streaks: mark the PKT day after meal items save
 ```
 
 Gemini names dishes only from our catalog. Calories always come from the `dishes` table (`kcal_per_100g * grams_per_unit * units / 100`), never from Gemini and never stored per portion.
@@ -71,7 +71,7 @@ Over the daily cap (10 scans per user per PKT day, `SCAN_DAILY_CAP`) or when Gem
 
 ## Database
 
-RLS is on for every table. The backend uses the service role (bypasses RLS) and must scope every query to the authenticated user. Buddies can read only `streak_days`, never meals.
+RLS is on for every table. The backend uses the service role (bypasses RLS) and must scope every query to the authenticated user. Direct clients read only their own `streak_days`. Buddies receive only current logged flags, shared streak and nudge state through the authenticated API, never historical rows or meals.
 
 Migrations in `database/supabase/migrations/`:
 
@@ -85,3 +85,11 @@ Migrations in `database/supabase/migrations/`:
 ## Decisions
 
 See [decisions/](decisions/).
+
+## Saved-meal buddy status
+
+The registry injects the streaks public service into meals. Successful item insertion calls `markMealSaved(userId, eatenAt)` with the database timestamp; failed item insertion never marks a day. A failed mark is logged while the meal remains saved. A subsequent status read repairs missed marks from complete meals with confirmed items, including the active partner only after checking pair membership.
+
+`GET /api/streaks` returns exactly `pairStatus`, `pendingInviteCode` (the creator's own pending code), `streak`, `ownLoggedToday`, `buddyLoggedToday`, and `unreadNudge`. The shared streak counts consecutive days with both logged since the pair's acceptance PKT day. Today may remain in progress without erasing yesterday's completed streak. PKT is UTC+05:00.
+
+`POST /api/streaks/nudge` sends one in-app nudge per sender per PKT day only while the active buddy has not logged. `POST /api/streaks/nudge/ack` acknowledges only the caller's received nudges in the current pair. Ending a pair hides its old delivery state. The service-only `buddy_status_operation` RPC scopes reads to the actor and active pair; it shares the invitation transaction lock so ending a pair and sending a nudge cannot race. `20261102000300_buddy_nudges.sql` adds sender/day uniqueness, recipient read state, and owner-only streak RLS. Internal day arrays are projected away by the service before any HTTP response.

@@ -1,6 +1,15 @@
 import type { Db } from '../../shared/db';
 import type { InvitationPreview, InviteDecision } from './streaks.types';
 
+export type BuddySnapshot = {
+  pairStatus: 'none' | 'pending' | 'active';
+  pendingInviteCode: string | null;
+  acceptedAt: string | null;
+  ownDays: string[];
+  buddyDays: string[];
+  unreadNudge: boolean;
+  nudgedToday: boolean;
+};
 // The RPC scopes every operation to the authenticated actor. Code lookup is a
 // capability lookup, returning only the approved minimal preview.
 export function createStreaksRepository(db: Db) {
@@ -13,7 +22,31 @@ export function createStreaksRepository(db: Db) {
     if (error) throw error;
     return data;
   }
+  async function buddyOperation(userId: string, action: string, day: string | null = null) {
+    const { data, error } = await db.rpc('buddy_status_operation', {
+      actor_id: userId,
+      operation: action,
+      target_day: day,
+    });
+    if (error) throw error;
+    return data;
+  }
   return {
+    async markDay(userId: string, day: string): Promise<void> {
+      const { error } = await db
+        .from('streak_days')
+        .upsert({ user_id: userId, day }, { onConflict: 'user_id,day' });
+      if (error) throw error;
+    },
+    async status(userId: string, day: string): Promise<BuddySnapshot> {
+      return (await buddyOperation(userId, 'status', day)) as BuddySnapshot;
+    },
+    async nudge(userId: string, day: string): Promise<void> {
+      await buddyOperation(userId, 'nudge', day);
+    },
+    async ackNudge(userId: string): Promise<void> {
+      await buddyOperation(userId, 'ack');
+    },
     async createInvite(userId: string, code: string): Promise<void> {
       await operation(userId, 'create', code);
     },

@@ -17,14 +17,18 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
   const profiles = createProfilesModule(deps);
   const nutrition = createNutritionModule(deps);
   const scan = createScanModule({ ...deps, nutrition: nutrition.service });
-  const meals = createMealsModule({ ...deps, nutrition: nutrition.service });
+  const streaks = createStreaksModule(deps);
+  const meals = createMealsModule({
+    ...deps,
+    nutrition: nutrition.service,
+    streaks: streaks.service,
+  });
   const plan = createPlanModule({
     ...deps,
     profiles: profiles.service,
     meals: meals.service,
     nutrition: nutrition.service,
   });
-  const streaks = createStreaksModule(deps);
   const feel = createFeelModule(deps);
 
   return {

@@ -23,12 +23,6 @@ describe('app', () => {
     expect(res.body).toEqual({ id: 'u1' });
   });
 
-  it('module routes reach the stub service', async () => {
-    const res = await request(createApp()).get('/api/streaks');
-    expect(res.status).toBe(501);
-    expect(res.body.error.code).toBe('not_implemented');
-  });
-
   it('POST /api/scan with an oversized body returns 413', async () => {
     const res = await request(createApp())
       .post('/api/scan')

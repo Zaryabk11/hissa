@@ -1,5 +1,6 @@
 import type { Router } from 'express';
 import type { Db } from '../../shared/db';
+import type { StreaksService } from '../streaks';
 import type { NutritionService } from '../nutrition';
 import { createMealsController } from './meals.controller';
 import { createMealsRepository } from './meals.repository';
@@ -9,11 +10,19 @@ import { createMealsService, type MealsService } from './meals.service';
 export type { MealsService };
 
 // The only file other modules may import.
-export function createMealsModule({ db, nutrition }: { db: Db; nutrition: NutritionService }): {
+export function createMealsModule({
+  db,
+  nutrition,
+  streaks,
+}: {
+  db: Db;
+  nutrition: NutritionService;
+  streaks: StreaksService;
+}): {
   router: Router;
   service: MealsService;
 } {
-  const service = createMealsService({ repository: createMealsRepository(db), nutrition });
+  const service = createMealsService({ repository: createMealsRepository(db), nutrition, streaks });
   const router = createMealsRouter(createMealsController(service));
   return { router, service };
 }
