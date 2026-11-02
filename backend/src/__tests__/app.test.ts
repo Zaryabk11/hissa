@@ -4,7 +4,10 @@ import { createApp } from '../app';
 
 // Auth itself is covered in shared/middleware/__tests__/auth.test.ts.
 vi.mock('../shared/middleware/auth', () => ({
-  createRequireAuth: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+  createRequireAuth: () => (req: { userId?: string }, _res: unknown, next: () => void) => {
+    req.userId = 'u1';
+    next();
+  },
 }));
 
 describe('app', () => {
@@ -12,6 +15,12 @@ describe('app', () => {
     const res = await request(createApp()).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: 'ok' });
+  });
+
+  it('GET /api/auth returns only the authenticated user id', async () => {
+    const res = await request(createApp()).get('/api/auth');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: 'u1' });
   });
 
   it('module routes reach the stub service', async () => {
