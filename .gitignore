@@ -27,3 +27,5 @@ graphify-out/
 
 # subagent-driven-development scratch (ledger, briefs, reports)
 .superpowers/
+
+.worktrees/
