@@ -1,12 +1,15 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export async function signInWithGoogle(): Promise<void> {
-  // `hissa://` in a dev/production build, `exp://<host>/--/` in Expo Go (Android only routes that one back).
-  const redirectTo = Linking.createURL('');
+  // iOS: an auth session catches any return scheme itself, so `hissa://` works in Expo Go and in a
+  // build alike, and avoids Expo Go's `exp://<IP>` that Supabase rejects (it falls back to the site URL).
+  // Android: Expo Go only routes its own `exp://` address back, so use the Expo-provided one.
+  const redirectTo = Platform.OS === 'ios' ? 'hissa://' : Linking.createURL('');
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo, skipBrowserRedirect: true },
