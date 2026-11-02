@@ -62,7 +62,7 @@ export function LandingPage() {
             }}
           >
             <View nativeID="sec-top" onLayout={mark('top')}>
-              <Hero contentWidth={contentWidth} gutter={gutter} onNavigate={go} />
+              <Hero contentWidth={contentWidth} gutter={gutter} />
             </View>
             <Marquee />
             <Idea />
@@ -70,7 +70,7 @@ export function LandingPage() {
             <Features onLayout={mark('features')} />
             <Buddy onLayout={mark('buddy')} onNavigate={go} />
             <Faq onLayout={mark('faq')} />
-            <Cta onLayout={mark('join')} onNavigate={go} />
+            <Cta onLayout={mark('join')} />
             <Footer onNavigate={go} />
           </Animated.ScrollView>
         </ScrollYContext.Provider>

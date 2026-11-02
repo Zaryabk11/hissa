@@ -15,8 +15,8 @@ import {
 } from '../../../shared/theme/landingTokens';
 import { HeroStage } from '../components/HeroStage';
 import { LandingButton } from '../components/LandingButton';
-import { content, type SectionId } from '../content';
-import { openGetHissa } from '../getHissa';
+import { content } from '../content';
+import { openGetHissa, startOnboarding } from '../getHissa';
 import { useLandingLayout } from '../hooks/useLandingLayout';
 import { useHeroIntro, type HeroIntro } from '../robot/HeroIntro';
 
@@ -84,9 +84,9 @@ function HeroFade({
   return <Animated.View style={[hidden, anim]}>{children}</Animated.View>;
 }
 
-type Props = { contentWidth: number; gutter: number; onNavigate: (id: SectionId) => void };
+type Props = { contentWidth: number; gutter: number };
 
-export function Hero({ contentWidth, gutter, onNavigate }: Props) {
+export function Hero({ contentWidth, gutter }: Props) {
   const { width } = useLandingLayout();
   const intro = useHeroIntro();
   const shake = useAnimatedStyle(() => ({
@@ -202,7 +202,7 @@ export function Hero({ contentWidth, gutter, onNavigate }: Props) {
             <LandingButton
               variant="outline"
               label={content.hero.secondary}
-              onPress={() => onNavigate('how')}
+              onPress={startOnboarding}
             />
           </View>
         </HeroFade>

@@ -1,8 +1,8 @@
 import { Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import { fluid, landingColors, landingFonts } from '../../../shared/theme/landingTokens';
 import { LandingButton } from '../components/LandingButton';
-import { content, type SectionId } from '../content';
-import { openGetHissa } from '../getHissa';
+import { content } from '../content';
+import { openGetHissa, startOnboarding } from '../getHissa';
 import { useLandingLayout } from '../hooks/useLandingLayout';
 
 const c = content.cta;
@@ -16,7 +16,7 @@ const ring = (style: ViewStyle): ViewStyle => ({
   ...style,
 });
 
-export function Cta({ onLayout, onNavigate }: { onLayout: (e: LayoutChangeEvent) => void; onNavigate: (id: SectionId) => void }) {
+export function Cta({ onLayout }: { onLayout: (e: LayoutChangeEvent) => void }) {
   const { width, gutter } = useLandingLayout();
   const h2 = fluid(48, 9, 120, width);
   const body = fluid(17, 2, 22, width);
@@ -74,7 +74,7 @@ export function Cta({ onLayout, onNavigate }: { onLayout: (e: LayoutChangeEvent)
         </Text>
         <View style={{ marginTop: 36, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           <LandingButton size="xl" variant="ink" label={c.primary} onPress={openGetHissa} />
-          <LandingButton size="xl" variant="inkOutline" label={c.secondary} onPress={() => onNavigate('how')} />
+          <LandingButton size="xl" variant="inkOutline" label={c.secondary} onPress={startOnboarding} />
         </View>
       </View>
     </View>
