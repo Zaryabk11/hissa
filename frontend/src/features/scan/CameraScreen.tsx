@@ -57,20 +57,20 @@ export function CameraScreen() {
   const [mountFailed, setMountFailed] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const analyse = (uri: string) => {
-    startScan(uri);
+  const analyse = (uri: string, base64: string, mimeType = 'image/jpeg') => {
+    startScan(uri, base64, mimeType);
     router.push('/scanning');
   };
   const choose = async () => {
-    const uri = await pickPhoto();
-    if (uri) analyse(uri);
+    const photo = await pickPhoto();
+    if (photo) analyse(photo.uri, photo.base64, photo.mimeType);
   };
   const take = async () => {
     if (busy) return;
     setBusy(true);
     try {
-      const photo = await camera.current?.takePictureAsync({ quality: 0.6 });
-      if (photo?.uri) analyse(photo.uri);
+      const photo = await camera.current?.takePictureAsync({ quality: 0.6, base64: true });
+      if (photo?.uri && photo.base64) analyse(photo.uri, photo.base64);
     } catch {
       // shortcut: a failed capture just lets the user tap again
     } finally {

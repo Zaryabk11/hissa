@@ -2,15 +2,13 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { hydrateAnswers } from '../src/features/onboarding/store';
-import { hydrateMeals } from '../src/features/today/mealsStore';
 import { SessionProvider, useSession } from '../src/shared/auth/session';
 
 function Routes() {
   const { session, loading } = useSession();
-  // Load saved onboarding answers and meals once; Today shows its skeleton until both are in.
+  // Saved onboarding answers let a newly signed-in user finish the profile they started.
   useEffect(() => {
     hydrateAnswers();
-    hydrateMeals();
   }, []);
   if (loading) return <ActivityIndicator accessibilityLabel="Loading session" />;
   return (

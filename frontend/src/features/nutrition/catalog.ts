@@ -1,6 +1,8 @@
 // Dish catalog for the demo. EVERY number here is an estimate (typical home portions), never a measurement.
 // Pure data: no UI imports.
-export type Unit = 'roti' | 'katori' | 'piece' | 'cup';
+import type { ApiDish } from '../core/api';
+
+export type Unit = 'roti' | 'katori' | 'plate' | 'piece' | 'glass' | 'bowl' | 'cup';
 
 export type Dish = {
   id: string;
@@ -44,5 +46,17 @@ export const CATALOG: Dish[] = [
   { id: 'kheer', name: 'Kheer', unit: 'katori', kcalPerUnit: 250, defaultQty: 1 },
   { id: 'gulab-jamun', name: 'Gulab jamun', unit: 'piece', kcalPerUnit: 150, defaultQty: 1 },
 ];
+
+/** Keep one shared array so existing screens and portion helpers read the server catalog. */
+export function setCatalog(dishes: ApiDish[]) {
+  CATALOG.splice(0, CATALOG.length, ...dishes.map((dish) => ({
+    id: dish.slug,
+    name: dish.name,
+    unit: dish.unit,
+    kcalPerUnit: dish.kcalPer100g * dish.gramsPerUnit / 100,
+    defaultQty: 1,
+    bread: dish.unit === 'roti' || (dish.unit === 'piece' && /naan|paratha/i.test(dish.slug)),
+  })));
+}
 
 export const dishById = (id: string): Dish | undefined => CATALOG.find((d) => d.id === id);

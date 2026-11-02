@@ -1,13 +1,13 @@
 import type { Answers } from './store';
 
-const ACTIVITY = { sitting: 1.2, onFeet: 1.375, active: 1.55 } as const;
-const GOAL = { lighter: 0.85, steady: 1, strength: 1.1 } as const;
+const ACTIVITY = { sitting: 1.2, onFeet: 1.375, active: 1.725 } as const;
 
 /**
- * PLACEHOLDER, not the real budget model: Mifflin-St Jeor x activity x goal, rounded to 50.
- * Replace with the backend's calculation. Always shown to users as an estimate.
+ * Preview of the profile service's Mifflin-St Jeor budget for signed-out onboarding.
+ * The server response replaces this estimate after sign-in.
  */
 export function placeholderDailyKcal(a: Answers): number {
   const bmr = 10 * a.weightKg + 6.25 * a.heightIn * 2.54 - 5 * a.age + (a.sex === 'male' ? 5 : -161);
-  return Math.round((bmr * ACTIVITY[a.activity] * GOAL[a.goal]) / 50) * 50;
+  const maintain = bmr * ACTIVITY[a.activity];
+  return Math.round(a.goal === 'lighter' ? Math.max(maintain - 500, 1200) : maintain);
 }

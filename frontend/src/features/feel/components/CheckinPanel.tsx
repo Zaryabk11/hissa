@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../../shared/theme';
+import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
 import { getDueCheckin, submitCheckin, type DueCheckin } from '../api/feel';
 import {
   canSubmit,
@@ -32,20 +33,22 @@ function Choice({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const t = useHissaTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={[styles.choice, selected && styles.selected, disabled && styles.disabled]}
+      style={[styles.choice, { borderColor: t.hair }, selected && { backgroundColor: t.pri }, disabled && styles.disabled]}
     >
-      <Text style={[styles.choiceText, selected && styles.selectedText]}>{label}</Text>
+      <Text style={[styles.choiceText, { color: selected ? t.onPri : t.ink }]}>{label}</Text>
     </Pressable>
   );
 }
 
 export function CheckinPanel() {
+  const t = useHissaTheme();
   const [due, setDue] = useState<DueCheckin | undefined>(undefined);
   const [energy, setEnergy] = useState<Energy | null>(null);
   const [stomach, setStomach] = useState<Stomach | null>(null);
@@ -98,14 +101,14 @@ export function CheckinPanel() {
       void save(nextEnergy, nextStomach);
   }
 
-  if (due === undefined) return <Text style={styles.text}>{message ?? 'Loading…'}</Text>;
+  if (due === undefined) return <Text style={[styles.text, { color: t.ink }]}>{message ?? 'Loading…'}</Text>;
   if (due === null)
-    return <Text style={styles.text}>{message ?? 'Nothing to check in on right now.'}</Text>;
+    return <Text style={[styles.text, { color: t.ink }]}>{message ?? 'Nothing to check in on right now. A check-in appears 90 minutes after a saved meal.'}</Text>;
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.text}>How did this meal sit? {due.dishes.join(', ')}</Text>
-      <Text style={styles.label}>Energy</Text>
+    <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
+      <Text style={[styles.text, { color: t.ink }]}>How did this meal sit? {due.dishes.join(', ')}</Text>
+      <Text style={[styles.label, { color: t.muted }]}>Energy</Text>
       <View style={styles.row}>
         {ENERGY.map((value) => (
           <Choice
@@ -116,7 +119,7 @@ export function CheckinPanel() {
           />
         ))}
       </View>
-      <Text style={styles.label}>Stomach</Text>
+      <Text style={[styles.label, { color: t.muted }]}>Stomach</Text>
       <View style={styles.row}>
         {STOMACH.map((value) => (
           <Choice
@@ -129,7 +132,7 @@ export function CheckinPanel() {
       </View>
       {needsSymptomDetail(stomach) ? (
         <>
-          <Text style={styles.label}>Anything specific? (optional)</Text>
+          <Text style={[styles.label, { color: t.muted }]}>Anything specific? (optional)</Text>
           <View style={styles.row}>
             {SYMPTOMS.map(({ id, label }) => (
               <Choice
@@ -163,13 +166,13 @@ export function CheckinPanel() {
           }}
         />
       </View>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
+      {message ? <Text style={[styles.message, { color: t.muted }]}>{message}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: theme.spacing.sm },
+  card: { gap: theme.spacing.sm, padding: 16, borderWidth: 1, borderRadius: 18 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
   text: { color: theme.colors.text, fontSize: 16 },
   label: { color: theme.colors.muted, fontSize: 14 },

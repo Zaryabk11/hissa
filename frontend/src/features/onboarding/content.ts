@@ -10,7 +10,6 @@ export const onboardingContent = {
     options: [
       { id: 'lighter', title: 'Eat a little lighter', sub: 'Smaller plates, same favourite food' },
       { id: 'steady', title: 'Stay where I am', sub: 'Keep portions steady and calm' },
-      { id: 'strength', title: 'Build strength', sub: 'Enough roti and protein, every day' },
     ],
     cta: 'Continue',
   },

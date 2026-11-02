@@ -48,8 +48,8 @@ export const scanContent = {
     empty: 'Nothing left on the plate. Add a dish to continue.',
   },
   noPlate: {
-    title: "Couldn't see a plate",
-    body: 'It might be dark or too close. Try again with the whole plate in the frame, or pick a photo from your gallery.',
+    title: "Couldn't name the dishes",
+    body: 'Try another photo with the whole plate in the frame, or add your dishes by hand.',
     retry: 'Try again',
     gallery: 'Pick from gallery',
   },

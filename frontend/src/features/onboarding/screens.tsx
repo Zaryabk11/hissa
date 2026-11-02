@@ -1,7 +1,9 @@
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useSession } from '../../shared/auth/session';
+import { putProfile } from '../core/api';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { hissaRadii } from '../../shared/theme/hissaTokens';
 import { Chip, OptionCard } from '../../shared/ui/hissa/Choice';
@@ -10,7 +12,8 @@ import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { onboardingContent as c } from './content';
 import { placeholderDailyKcal } from './placeholderDailyKcal';
-import { setAnswers, useAnswers, type Activity, type Goal, type Sex } from './store';
+import { finishOnboarding, getOnboardingOwner, resetAnswers, setAnswers, useAnswers, useAnswersHydrated, type Activity, type Goal, type Sex } from './store';
+import { profilePayload } from './profilePayload';
 import { StepHeader } from './StepHeader';
 
 function Heading({ title, sub }: { title: string; sub?: string }) {
@@ -30,7 +33,11 @@ function Heading({ title, sub }: { title: string; sub?: string }) {
 
 export function GoalScreen() {
   const router = useRouter();
+  const { session } = useSession();
+  const ownerId = getOnboardingOwner();
   const { goal } = useAnswers();
+  useEffect(() => { if (ownerId && ownerId !== session?.user.id) resetAnswers(); }, [ownerId, session?.user.id]);
+  if (ownerId && ownerId !== session?.user.id) return <HissaScreen><HissaText>Starting a new profile…</HissaText></HissaScreen>;
   return (
     <HissaScreen actionBar={<PrimaryButton label={c.goal.cta} onPress={() => router.push('/onboarding/body')} />}>
       <StepHeader step={1} />
@@ -149,10 +156,42 @@ export function BudgetScreen() {
   const { session } = useSession();
   const t = useHissaTheme();
   const answers = useAnswers();
-  const kcal = placeholderDailyKcal(answers).toLocaleString('en-US');
+  const ownerId = getOnboardingOwner();
+  const hydrated = useAnswersHydrated();
+  const [savedBudget, setSavedBudget] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const foreignDraft = !!ownerId && ownerId !== session?.user.id;
+  useEffect(() => {
+    if (hydrated && foreignDraft) router.replace('/onboarding/goal');
+  }, [hydrated, foreignDraft, router]);
+  const kcal = (savedBudget ?? placeholderDailyKcal(answers)).toLocaleString('en-US');
+  const continueToApp = async () => {
+    if (foreignDraft) return router.replace('/onboarding/goal');
+    if (!session) {
+      finishOnboarding();
+      router.replace('/(auth)/sign-in');
+      return;
+    }
+    if (savedBudget !== null) return router.replace('/(tabs)/today');
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const name = session.user.user_metadata?.full_name as string | undefined;
+      const profile = await putProfile(profilePayload(answers, name));
+      setSavedBudget(profile.dailyCalorieBudget);
+      finishOnboarding(session.user.id);
+    } catch {
+      setError('Could not save your profile. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+  if (!hydrated) return <HissaScreen><HissaText>Loading your details…</HissaText></HissaScreen>;
+  if (foreignDraft) return <HissaScreen><HissaText>Starting a new profile…</HissaText></HissaScreen>;
   return (
-    // "Let's eat" goes to Today when signed in, otherwise to Google sign-in first.
-    <HissaScreen actionBar={<PrimaryButton label={c.budget.cta} onPress={() => router.replace(session ? '/(tabs)/today' : '/(auth)/sign-in')} />}>
+    <HissaScreen actionBar={<View style={{ gap: 8 }}><PrimaryButton label={saving ? 'Saving…' : session && savedBudget === null ? 'Use these details' : c.budget.cta} disabled={saving} onPress={() => void continueToApp()} />{session && savedBudget === null && <PrimaryButton outline label="Start over" onPress={() => { resetAnswers(); router.replace('/onboarding/goal'); }} />}</View>}>
       <StepHeader step={4} />
       <Heading title={c.budget.title} />
       <View style={{ alignItems: 'center', marginTop: 44 }}>
@@ -175,6 +214,8 @@ export function BudgetScreen() {
       <HissaText variant="body" style={{ marginTop: 36, paddingHorizontal: 12, textAlign: 'center' }}>
         {c.budget.body}
       </HissaText>
+      {session && savedBudget === null && <HissaText muted style={{ marginTop: 12, textAlign: 'center' }}>Use your details: {answers.age} years, {feetInches(answers.heightIn)}, {answers.weightKg} kg, {answers.sex}, {answers.activity === 'onFeet' ? 'on your feet' : answers.activity}, goal to eat {answers.goal === 'lighter' ? 'lighter' : 'steadily'}.</HissaText>}
+      {error && <HissaText accessibilityRole="alert" style={{ marginTop: 12, textAlign: 'center' }}>{error}</HissaText>}
     </HissaScreen>
   );
 }

@@ -7,16 +7,16 @@ import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { CloseButton } from './CloseButton';
 import { scanContent as c } from './content';
 import { pickPhoto } from './pickPhoto';
-import { startScan } from './store';
+import { setItems, setManualReason, startScan } from './store';
 
 /** Screen q. Nothing recognised: kind copy, back to the camera, or pick a photo instead. */
 export function NoPlateScreen() {
   const router = useRouter();
   const t = useHissaTheme();
   const gallery = async () => {
-    const uri = await pickPhoto();
-    if (uri) {
-      startScan(uri);
+    const photo = await pickPhoto();
+    if (photo) {
+      startScan(photo.uri, photo.base64, photo.mimeType);
       router.replace('/scanning');
     }
   };
@@ -26,6 +26,7 @@ export function NoPlateScreen() {
         <View style={{ gap: 8 }}>
           <PrimaryButton label={c.noPlate.retry} onPress={() => router.navigate('/(tabs)/scan')} />
           <PrimaryButton outline label={c.noPlate.gallery} onPress={gallery} />
+          <PrimaryButton outline label="Add dishes by hand" onPress={() => { setItems([]); setManualReason('not_recognised'); router.replace('/review'); }} />
         </View>
       }
     >

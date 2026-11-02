@@ -1,10 +1,12 @@
 import { CheckinPanel } from '../../src/features/feel/components/CheckinPanel';
-import { Screen } from '../../src/shared/ui/Screen';
+import { HissaScreen } from '../../src/shared/ui/hissa/HissaScreen';
+import { HissaText } from '../../src/shared/ui/hissa/HissaText';
 
 export default function Feel() {
   return (
-    <Screen title="Feel">
+    <HissaScreen>
+      <HissaText variant="title" accessibilityRole="header" style={{ marginBottom: 20 }}>Food & Feel</HissaText>
       <CheckinPanel />
-    </Screen>
+    </HissaScreen>
   );
 }

@@ -1,45 +1,46 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { useScan } from '../scan/store';
-import { placeholderDailyKcal } from '../onboarding/placeholderDailyKcal';
-import { useAnswers } from '../onboarding/store';
-import { dishById } from '../nutrition/catalog';
-import { kcalForItems, planForRemaining, portionText, remainingBudget } from '../nutrition/engine';
-import { dateKey } from '../nutrition/week';
+import { portionText } from '../nutrition/engine';
+import { saveMeal } from '../core/api';
+import { mealPayload } from '../scan/scanPayload';
 import { fmt } from '../today/format';
-import { addMeal, mealsOn, useMealsByDate } from '../today/mealsStore';
 import { planContent as c } from './content';
 import { PlateIllustration } from './PlateIllustration';
 
 /**
- * Plan sheet (j) and Light plan (k). The plate comes from planForRemaining: what the user confirmed if it fits in
- * what is left today, otherwise a lighter version of the same food. Never red, never scolding.
+ * Plan sheet (j) and Light plan (k), using the server's portion recommendation.
  */
 export function PlanScreen() {
   const router = useRouter();
   const t = useHissaTheme();
   const insets = useSafeAreaInsets();
-  const { photoUri, items: reviewed } = useScan();
-  const answers = useAnswers();
-  const byDate = useMealsByDate();
-
-  const wanted = reviewed.filter((i) => !i.removed).map(({ dishId, qty }) => ({ dishId, qty }));
-  const eaten = kcalForItems(mealsOn(byDate, dateKey(new Date())).flatMap((m) => m.items));
-  const plan = planForRemaining(remainingBudget(placeholderDailyKcal(answers), eaten), wanted);
-  const rows = plan.items.map((i) => ({
-    name: dishById(i.dishId)?.name ?? '',
-    portion: portionText(i),
-  }));
+  const { photoUri, items: reviewed, plan } = useScan();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const rows = (plan?.items ?? []).map((i) => ({ name: i.name, portion: portionText({ dishId: i.slug, qty: i.units }) }));
   const spoken = rows.map((r) => `${r.portion} ${r.name}`).join(', ');
 
-  const ate = () => {
-    addMeal(plan.items);
-    router.navigate('/(tabs)/today');
+  const ate = async () => {
+    if (!plan || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await saveMeal(mealPayload(reviewed, plan.items).items);
+      router.navigate('/(tabs)/today');
+    } catch {
+      setError('Could not confirm the save. Check Today before trying again.');
+    } finally {
+      setBusy(false);
+    }
   };
+
+  if (!plan) return <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: t.bg }}><HissaText>Start with a plate photo to see your plan.</HissaText><PrimaryButton label="Back to scan" onPress={() => router.replace('/(tabs)/scan')} /></View>;
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
@@ -84,17 +85,17 @@ export function PlanScreen() {
           />
           <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}>
             <HissaText variant="title" accessibilityRole="header">
-              {plan.light ? c.lightTitle : c.title}
+              {plan.kind === 'light' || plan.kind === 'minimum' ? c.lightTitle : c.title}
             </HissaText>
-            {plan.light && (
+            {plan.kind !== 'full' && (
               <HissaText muted style={{ marginTop: 8 }}>
                 {c.lightNote}
               </HissaText>
             )}
             <PlateIllustration
-              items={plan.items}
-              light={plan.light}
-              label={plan.light ? c.lightPlateLabel(spoken) : c.plateLabel(spoken)}
+              items={plan.items.map((i) => ({ dishId: i.slug, qty: i.units }))}
+              light={plan.kind !== 'full'}
+              label={plan.kind !== 'full' ? c.lightPlateLabel(spoken) : c.plateLabel(spoken)}
             />
             <View style={{ marginTop: 4 }}>
               {rows.map((r, k) => (
@@ -116,8 +117,10 @@ export function PlanScreen() {
               ))}
             </View>
             <HissaText variant="caption" style={{ marginTop: 8 }}>
-              {rows.length === 0 ? c.empty : c.estimate(fmt(plan.kcal))}
+              {rows.length === 0 ? c.empty : c.estimate(fmt(plan.totalCalories))}
             </HissaText>
+            {plan.suggestions.length > 0 && <HissaText muted style={{ marginTop: 12 }}>You could add {plan.suggestions.map((i) => i.name).join(' or ')}.</HissaText>}
+            {error && <HissaText accessibilityRole="alert" style={{ marginTop: 12 }}>{error}</HissaText>}
           </ScrollView>
           <View
             style={{
@@ -127,7 +130,7 @@ export function PlanScreen() {
               paddingBottom: Math.max(insets.bottom, 34),
             }}
           >
-            <PrimaryButton label={c.ate} disabled={rows.length === 0} onPress={ate} />
+            <PrimaryButton label={busy ? 'Saving…' : c.ate} disabled={rows.length === 0 || busy} onPress={() => void ate()} />
             <PrimaryButton outline label={c.adjust} onPress={() => router.back()} />
           </View>
         </View>

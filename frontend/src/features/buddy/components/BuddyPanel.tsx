@@ -3,6 +3,7 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { clearPendingInvite, getPendingInvite } from '../../../shared/auth/session';
+import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
 import { theme } from '../../../shared/theme';
 import {
   ackNudge,
@@ -30,20 +31,22 @@ function Button({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const t = useHissaTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={[styles.button, disabled && styles.disabled]}
+      style={[styles.button, { backgroundColor: t.pri }, disabled && styles.disabled]}
     >
-      <Text style={styles.buttonText}>{label}</Text>
+      <Text style={[styles.buttonText, { color: t.onPri }]}>{label}</Text>
     </Pressable>
   );
 }
 
 export function BuddyPanel() {
+  const t = useHissaTheme();
   const params = useLocalSearchParams<{ code?: string }>();
   const [status, setStatus] = useState<BuddyStatus | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -161,20 +164,21 @@ export function BuddyPanel() {
   const view = status ? buddyView(status) : null;
   return (
     <View>
+      {!status && !message && <Text style={[styles.text, { color: t.ink }]}>Loading buddy status…</Text>}
       {message ? (
-        <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.message}>
+        <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.message, { color: t.ink }]}>
           {message}
         </Text>
       ) : null}
       {invite ? (
-        <View style={styles.card}>
-          <Text style={styles.text}>You have been invited to be accountability buddies.</Text>
+        <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
+          <Text style={[styles.text, { color: t.ink }]}>You have been invited to be accountability buddies.</Text>
           <Button disabled={pending} label="Accept" onPress={() => void answer('accept')} />
           <Button disabled={pending} label="Decline" onPress={() => void answer('decline')} />
         </View>
       ) : null}
       {view?.kind === 'none' ? (
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
           <Button
             disabled={pending}
             label="Create invite"
@@ -186,15 +190,15 @@ export function BuddyPanel() {
             maxLength={6}
             onChangeText={setTyped}
             placeholder="Enter a code"
-            style={styles.input}
+            style={[styles.input, { color: t.ink, borderColor: t.hair }]}
             value={typed}
           />
           <Button label="Check code" onPress={() => void openInvite(typed)} />
         </View>
       ) : null}
       {view?.kind === 'pending' ? (
-        <View style={styles.card}>
-          <Text style={styles.text}>Your invite code: {view.code}</Text>
+        <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
+          <Text style={[styles.text, { color: t.ink }]}>Your invite code: {view.code}</Text>
           <Button label="Share invite" onPress={() => void share(view.code)} />
           <Button
             disabled={pending}
@@ -204,12 +208,12 @@ export function BuddyPanel() {
         </View>
       ) : null}
       {view?.kind === 'active' ? (
-        <View style={styles.card}>
-          <Text style={styles.text}>Shared streak: {view.streak} days</Text>
-          <Text style={styles.text}>
+        <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
+          <Text style={[styles.text, { color: t.ink }]}>Shared streak: {view.streak} days</Text>
+          <Text style={[styles.text, { color: t.ink }]}>
             You logged today: {view.ownLoggedToday ? 'yes' : 'not yet'}
           </Text>
-          <Text style={styles.text}>
+          <Text style={[styles.text, { color: t.ink }]}>
             Buddy logged today: {view.buddyLoggedToday ? 'yes' : 'not yet'}
           </Text>
           {view.canNudge ? (
@@ -219,7 +223,7 @@ export function BuddyPanel() {
               onPress={() => void act(sendNudge, 'You can nudge once per day.')}
             />
           ) : null}
-          {view.nudgeSent ? <Text style={styles.text}>Nudge sent</Text> : null}
+          {view.nudgeSent ? <Text style={[styles.text, { color: t.ink }]}>Nudge sent</Text> : null}
           <Button
             disabled={pending}
             label="End pairing"
@@ -232,7 +236,7 @@ export function BuddyPanel() {
 }
 
 const styles = StyleSheet.create({
-  card: { gap: theme.spacing.sm, marginBottom: theme.spacing.md },
+  card: { gap: theme.spacing.sm, marginBottom: theme.spacing.md, padding: 16, borderWidth: 1, borderRadius: 18 },
   text: { color: theme.colors.text, fontSize: 16 },
   message: { color: theme.colors.muted, marginBottom: theme.spacing.md },
   input: {

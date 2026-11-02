@@ -20,11 +20,11 @@ Trackers record what you already ate. In most Pakistani homes the household cook
 | 2. Duo Streaks   | Should ship | ~25%   | Two real users paired, shared streak updates from real scans          |
 | 3. Food and Feel | Could ship  | ~15%   | 2-tap feel check-in after a meal, one weekly insight from logged data |
 
-Status: Module 1 is done on the backend and database (v1). Modules 2 and 3 are not started.
+Status: Module 1 is implemented on the backend and connected to the Expo app. Duo streaks and meal check-ins have backend endpoints and app screens; the weekly insight is not implemented.
 
 ### 1. Portion Coach
 
-**Status: done (v1, backend and database).** Verified end to end against a hosted Supabase project with real Gemini. The Expo app is not part of this status.
+**Status: backend and database verified end to end; Expo flow connected.** The Expo flow still needs a signed-in device run against the hosted project.
 
 Photo -> Gemini picks dishes from OUR catalog (structured output with an enum plus "unknown") -> user confirms with correction chips -> nutrition per serving from our Pakistani dish catalog in the database (78 dishes, see `data-sources.md`) -> plan engine fits portions (roti, katori, plate) to the remaining daily budget -> meal saved with predicted AND confirmed values.
 

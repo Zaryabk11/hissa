@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, Pressable, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { hissaRadii } from '../../shared/theme/hissaTokens';
@@ -9,12 +9,12 @@ import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { dishById, CATALOG } from '../nutrition/catalog';
 import { kcalForItems, portionText } from '../nutrition/engine';
-import { addMeal } from '../today/mealsStore';
+import { getPlan, saveMeal } from '../core/api';
 import { CloseButton } from './CloseButton';
 import { scanContent as c } from './content';
-import { newItem, patchItem, removeItem, setItems, useScan, type ReviewItem } from './store';
+import { mealPayload } from './scanPayload';
+import { newItem, patchItem, setItems, setPlan, useScan, type ReviewItem } from './store';
 
-const UNDO_SECONDS = 4;
 const fmt = (n: number) => n.toLocaleString('en-US');
 const nameOf = (id: string) => dishById(id)?.name ?? id;
 
@@ -55,12 +55,15 @@ function TextAction({ label, onPress }: { label: string; onPress: () => void }) 
 /** The indented card under a chip: answer a question, or swap the dish for another. */
 function OptionsCard({ title, options, onPick, action, actionFirst }: { title: string; options: string[]; onPick: (dishId: string) => void; action: { label: string; onPress: () => void }; actionFirst?: boolean }) {
   const t = useHissaTheme();
+  const [query, setQuery] = useState('');
+  const visible = options.filter((id) => nameOf(id).toLowerCase().includes(query.trim().toLowerCase()));
   return (
     <View accessibilityRole="radiogroup" style={{ marginLeft: 14, borderRadius: hissaRadii.control, backgroundColor: t.surf, borderWidth: 1, borderColor: t.hair, padding: 16 }}>
       <HissaText variant="label">{title}</HissaText>
       {actionFirst && <TextAction label={action.label} onPress={action.onPress} />}
+      {options.length > 8 && <TextInput accessibilityLabel="Search dishes" placeholder="Search dishes" placeholderTextColor={t.muted} value={query} onChangeText={setQuery} style={{ color: t.ink, borderWidth: 1, borderColor: t.hair, borderRadius: hissaRadii.control, minHeight: 48, paddingHorizontal: 12, marginTop: 12 }} />}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-        {options.map((o) => (
+        {visible.map((o) => (
           <Pick key={o} label={nameOf(o)} onPress={() => onPick(o)} />
         ))}
       </View>
@@ -119,18 +122,9 @@ function Chip({ item, onToggle, onSwap }: { item: ReviewItem; onToggle: () => vo
   );
 }
 
-/** A removed dish: struck through, with Undo counting down; when it hits zero the dish is gone for good. */
+/** Keep removed predictions so the saved meal records what the scan got wrong. */
 function RemovedRow({ item }: { item: ReviewItem }) {
   const t = useHissaTheme();
-  const [left, setLeft] = useState(UNDO_SECONDS);
-  useEffect(() => {
-    if (left <= 0) {
-      removeItem(item.id);
-      return;
-    }
-    const id = setTimeout(() => setLeft(left - 1), 1000);
-    return () => clearTimeout(id);
-  }, [left, item.id]);
   return (
     <View style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, borderRadius: hissaRadii.control, backgroundColor: t.surf, borderWidth: 1, borderColor: t.hair, opacity: 0.6 }}>
       <HissaText variant="label" style={{ flex: 1, textDecorationLine: 'line-through' }}>
@@ -138,7 +132,7 @@ function RemovedRow({ item }: { item: ReviewItem }) {
       </HissaText>
       <Pressable accessibilityRole="button" accessibilityLabel={c.review.undoLabel(nameOf(item.dishId))} onPress={() => patchItem(item.id, { removed: false })} style={{ minHeight: 48, paddingHorizontal: 14, justifyContent: 'center' }}>
         <HissaText variant="button" style={{ color: t.pri }}>
-          {c.review.undo(left)}
+          Undo
         </HissaText>
       </Pressable>
     </View>
@@ -151,9 +145,13 @@ type Open = { id: string; mode: 'ask' | 'swap' } | 'add' | null;
 export function ReviewScreen() {
   const router = useRouter();
   const t = useHissaTheme();
-  const { photoUri, items } = useScan();
+  const { photoUri, items, manualReason } = useScan();
+  useEffect(() => { if (!photoUri) router.replace('/(tabs)/scan'); }, [photoUri, router]);
   const [open, setOpen] = useState<Open>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const active = items.filter((i) => !i.removed);
+  const canContinue = active.length > 0 && active.every((i) => i.confirmed && !i.ask && !!dishById(i.dishId));
   const total = kcalForItems(active);
 
   const swapTo = (id: string, dishId: string) => {
@@ -162,21 +160,46 @@ export function ReviewScreen() {
     setOpen(null);
   };
   const toggle = (i: ReviewItem) => (i.ask ? setOpen(open && open !== 'add' && open.id === i.id ? null : { id: i.id, mode: 'ask' }) : patchItem(i.id, { confirmed: !i.confirmed }));
-  const save = () => {
-    addMeal(active.map(({ dishId, qty }) => ({ dishId, qty })));
-    router.navigate('/(tabs)/today');
+  const save = async () => {
+    if (busy || !canContinue) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await saveMeal(mealPayload(items).items);
+      router.navigate('/(tabs)/today');
+    } catch {
+      setError('Could not confirm the save. Check Today before trying again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const showPlan = async () => {
+    if (busy || !canContinue) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const plan = await getPlan(active.map((i) => ({ slug: i.dishId, units: i.qty })));
+      setPlan(plan);
+      router.push('/plan');
+    } catch {
+      setError('Could not build your plan. Please try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <HissaScreen actionBar={
         <View style={{ gap: 8 }}>
-          <PrimaryButton label={c.review.cta} disabled={active.length === 0} onPress={() => router.push('/plan')} />
-          <PrimaryButton outline label={c.review.save} disabled={active.length === 0} onPress={save} />
+          <PrimaryButton label={busy ? 'Working…' : c.review.cta} disabled={!canContinue || busy} onPress={() => void showPlan()} />
+          <PrimaryButton outline label={c.review.save} disabled={!canContinue || busy} onPress={() => void save()} />
         </View>
       }>
       <View style={{ alignItems: 'flex-end' }}>
         <CloseButton onPress={() => router.navigate('/(tabs)/today')} />
       </View>
+      {manualReason && <HissaText muted style={{ marginTop: 16 }}>Photo scans are unavailable right now. Add the dishes on your plate by hand.</HissaText>}
+      {error && <HissaText accessibilityRole="alert" style={{ marginTop: 12 }}>{error}</HissaText>}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 4 }}>
         {photoUri && <Image accessibilityLabel={c.review.photo} source={{ uri: photoUri }} style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: t.rim }} />}
         <View style={{ flex: 1 }}>
@@ -197,8 +220,21 @@ export function ReviewScreen() {
               ) : (
                 <Chip item={i} onToggle={() => toggle(i)} onSwap={() => setOpen(here === 'swap' ? null : { id: i.id, mode: 'swap' })} />
               )}
+              {!i.removed && !i.ask && !!dishById(i.dishId) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 14 }}>
+                  <HissaText variant="caption" style={{ flex: 1 }}>Portion estimate: {portionText(i)}</HissaText>
+                  <Pick label="−" onPress={() => {
+                    const step = ['katori', 'bowl', 'plate'].includes(dishById(i.dishId)!.unit) ? 0.5 : 1;
+                    patchItem(i.id, { qty: Math.max(step, i.qty - step), confirmed: true });
+                  }} />
+                  <Pick label="+" onPress={() => {
+                    const step = ['katori', 'bowl', 'plate'].includes(dishById(i.dishId)!.unit) ? 0.5 : 1;
+                    patchItem(i.id, { qty: Math.min(20, i.qty + step), confirmed: true });
+                  }} />
+                </View>
+              )}
               {here === 'ask' && i.ask && (
-                <OptionsCard title={c.review.askTitle(i.ask.map(nameOf))} options={i.ask} onPick={(n) => swapTo(i.id, n)} action={{ label: c.review.somethingElse, onPress: () => setOpen({ id: i.id, mode: 'swap' }) }} />
+                <OptionsCard title={i.dishId === 'unknown' ? 'Choose a dish from the catalog' : c.review.askTitle(i.ask.map(nameOf))} options={i.dishId === 'unknown' ? CATALOG.map((d) => d.id) : i.ask} onPick={(n) => swapTo(i.id, n)} action={{ label: i.dishId === 'unknown' ? c.review.remove : c.review.somethingElse, onPress: () => { if (i.dishId === 'unknown') { patchItem(i.id, { removed: true }); setOpen(null); } else setOpen({ id: i.id, mode: 'swap' }); } }} />
               )}
               {here === 'swap' && (
                 <OptionsCard
@@ -215,7 +251,8 @@ export function ReviewScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={c.review.addDish}
-          accessibilityState={{ expanded: open === 'add' }}
+          accessibilityState={{ expanded: open === 'add', disabled: items.length >= 10 }}
+          disabled={items.length >= 10}
           onPress={() => setOpen(open === 'add' ? null : 'add')}
           style={{ height: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 }}
         >
@@ -239,7 +276,7 @@ export function ReviewScreen() {
       </View>
 
       <HissaText variant="caption" style={{ marginTop: 16 }}>
-        {active.length === 0 ? c.review.empty : c.review.estimate(fmt(total))}
+        {active.length === 0 ? c.review.empty : !canContinue ? 'Confirm each dish to see an estimate.' : c.review.estimate(fmt(total))}
       </HissaText>
     </HissaScreen>
   );

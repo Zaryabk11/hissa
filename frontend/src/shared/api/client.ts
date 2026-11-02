@@ -3,6 +3,12 @@ import { setUsableSession } from '../auth/session-state';
 
 const baseUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
+export class ApiError extends Error {
+  constructor(public status: number, method: string, public path: string) {
+    super(`${method} ${path} failed with ${status}`);
+  }
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${baseUrl}${path}`);
   if (!res.ok) throw new Error(`GET ${path} failed with ${res.status}`);
@@ -38,6 +44,6 @@ export async function apiAuthed<T>(path: string, init: RequestInit = {}): Promis
     await supabase.auth.signOut({ scope: 'local' });
     throw new Error('Sign in again to continue.');
   }
-  if (!res.ok) throw new Error(`${init.method ?? 'GET'} ${path} failed with ${res.status}`);
+  if (!res.ok) throw new ApiError(res.status, init.method ?? 'GET', path);
   return (res.status === 204 ? undefined : await res.json()) as T;
 }

@@ -18,7 +18,7 @@ hissa/
     supabase/          config.toml, migrations/, seed.sql (generated)
 ```
 
-Status: v1 (scan, nutrition, profiles, plan, meals) is built. `streaks` now implements invitations, saved-meal status, shared streaks and in-app daily nudges. `feel` and `auth` remain stubs in this branch.
+Status: v1 (scan, nutrition, profiles, plan, meals) is built and connected to Expo. `streaks` implements invitations, saved-meal status, shared streaks and in-app daily nudges. `feel` implements due meal check-ins; `auth` returns the current authenticated user. The weekly feel insight is not implemented.
 
 ## Backend rules
 

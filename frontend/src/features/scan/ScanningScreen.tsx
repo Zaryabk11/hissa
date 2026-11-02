@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -13,41 +13,56 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { graphite } from '../../shared/theme/hissaTokens';
 import { HissaThemeProvider } from '../../shared/theme/HissaThemeProvider';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
+import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
+import { getCatalog, scanPhoto } from '../core/api';
+import { setCatalog } from '../nutrition/catalog';
 import { CloseButton } from './CloseButton';
 import { scanContent as c } from './content';
-import { mockRecognise } from './mockRecognise';
-import { newItem, setItems, useScan } from './store';
+import { isNoPlateResult, reviewItemsFromScan } from './scanPayload';
+import { setItems, setManualReason, useScan } from './store';
 
 const PHOTO = 300;
 const BAND = 130;
 
-/** Screen h. The captured photo with a lime sweep while the mock recognition runs; reduced motion shows a still band. */
+/** Screen h. The captured photo with a lime sweep while the API recognises the plate. */
 export function ScanningScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const { photoUri, noPlate } = useScan();
+  const { photoUri, image, mimeType, noPlate } = useScan();
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const reduced = useReducedMotion();
   const y = useSharedValue(-BAND);
 
   useEffect(() => {
-    if (!photoUri) {
+    if (!photoUri || !image) {
       router.replace('/(tabs)/scan');
       return;
     }
     let live = true;
-    mockRecognise(photoUri, noPlate).then((found) => {
-      if (!live) return;
-      if (found.length === 0) router.replace('/no-plate');
-      else {
-        setItems(found.map(newItem));
-        router.replace('/review');
-      }
-    });
+    Promise.all([getCatalog(), noPlate ? Promise.resolve({ mode: 'detected' as const, items: [] }) : scanPhoto(image, mimeType)])
+      .then(([catalog, result]) => {
+        if (!live) return;
+        setCatalog(catalog.dishes);
+        if (result.mode === 'manual') {
+          setManualReason(result.reason);
+          setItems([]);
+          router.replace('/review');
+        } else if (isNoPlateResult(result.items)) router.replace('/no-plate');
+        else {
+          setItems(reviewItemsFromScan(result.items));
+          setManualReason(null);
+          router.replace('/review');
+        }
+      })
+      .catch(() => {
+        if (live) setError('Could not scan this photo. Please try again.');
+      });
     return () => {
       live = false;
     };
-  }, [photoUri, noPlate, router]);
+  }, [photoUri, image, mimeType, noPlate, router, attempt]);
 
   useEffect(() => {
     y.set(reduced ? 0 : withRepeat(withTiming(height, { duration: 3200, easing: Easing.out(Easing.quad) }), -1));
@@ -56,7 +71,7 @@ export function ScanningScreen() {
 
   return (
     <HissaThemeProvider theme={graphite}>
-      <View accessible accessibilityRole="progressbar" accessibilityLabel={c.scanning.title} accessibilityState={{ busy: true }} style={{ flex: 1, backgroundColor: graphite.bg }}>
+      <View accessible accessibilityRole="progressbar" accessibilityLabel={c.scanning.title} accessibilityState={{ busy: !error }} style={{ flex: 1, backgroundColor: graphite.bg }}>
         <View style={{ marginTop: Math.max(insets.top, 24) + 150, alignSelf: 'center' }}>
           {photoUri && (
             <Image accessibilityLabel={c.scanning.photo} source={{ uri: photoUri }} style={{ width: PHOTO, height: PHOTO, borderRadius: PHOTO / 2, borderWidth: 1, borderColor: 'rgba(255,255,255,.4)' }} />
@@ -68,10 +83,10 @@ export function ScanningScreen() {
         />
         <View style={{ position: 'absolute', left: 20, right: 20, alignSelf: 'center', maxWidth: 440, bottom: Math.max(insets.bottom, 24) + 40, borderRadius: 24, backgroundColor: graphite.surf, borderWidth: 1, borderColor: graphite.hair, padding: 20, alignItems: 'center' }}>
           <HissaText variant="title" accessibilityRole="header" style={{ fontSize: 22, lineHeight: 28 }}>
-            {c.scanning.title}
+            {error ?? c.scanning.title}
           </HissaText>
           <HissaText variant="caption" style={{ marginTop: 4 }}>
-            {c.scanning.sub}
+            {error ? <PrimaryButton label="Retry scan" onPress={() => { setError(null); setAttempt((n) => n + 1); }} /> : c.scanning.sub}
           </HissaText>
         </View>
         <View style={{ position: 'absolute', top: insets.top + 12, right: 20 }}>
