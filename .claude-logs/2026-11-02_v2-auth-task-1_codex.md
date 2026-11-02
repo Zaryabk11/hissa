@@ -7,3 +7,12 @@ Implement Hissa v2 Task 1 (shared Google session/authenticated API) in isolated 
 ## Final assistant response
 
 Implemented the shared Google session and authenticated API path. Lint, build, all 189 tests, and whitespace checks pass. Live Supabase configuration, Android/iOS OAuth smoke, and the sign-in recording remain blocked by unavailable external access/device services. Deployment remains held. Detailed evidence and the partner API contract are in the Task 1 report.
+
+
+## User prompt — review fix round 1
+
+Fix the blocking stale-session gap: an expired session whose refresh encounters a retryable network failure can remain in React state because no SIGNED_OUT event is guaranteed. Invalidate shared usable-session state when recovery fails; add a focused regression proving protected tabs close and requests remain unsent. Append exact red/green verification evidence to the Task 1 report and commit the fix. Do not spawn agents. Focus on this important finding; the minor SecureStore spinner issue remains for final review.
+
+## Final assistant response — review fix round 1
+
+Fixed retryable recovery failure by clearing the same usable-session snapshot consumed by the protected tab guard. Regressions prove the guard closes without SIGNED_OUT and no protected request is sent; retained expired sessions cannot reopen it. All 192 tests, lint, build, and whitespace checks pass. Shared useSession and apiAuthed interfaces remain unchanged; original external gates remain blocked.
