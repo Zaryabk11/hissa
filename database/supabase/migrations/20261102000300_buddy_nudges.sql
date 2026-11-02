@@ -15,6 +15,17 @@ drop policy if exists streak_days_read on public.streak_days;
 create policy streak_days_read on public.streak_days for select to authenticated
   using(user_id = (select auth.uid()));
 
+-- Streak repair trusts saved meals, so only the validated backend save (service
+-- role) may write them. Owners keep read access; direct-client writes could
+-- otherwise leave partial meals that the repair would count as a logged day.
+drop policy if exists meals_owner on public.meals;
+create policy meals_owner_read on public.meals for select to authenticated
+  using (user_id = (select auth.uid()));
+drop policy if exists meal_items_owner on public.meal_items;
+create policy meal_items_owner_read on public.meal_items for select to authenticated
+  using (exists (select 1 from public.meals m where m.id = meal_id and m.user_id = (select auth.uid())));
+revoke insert, update, delete on public.meals, public.meal_items from authenticated;
+
 create function public.buddy_status_operation(actor_id uuid, operation text, target_day date default null)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
