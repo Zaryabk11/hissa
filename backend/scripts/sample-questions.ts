@@ -22,6 +22,7 @@ const obs = (i: number, slug: string, stomach: Observation['stomach']): Observat
     stomach,
     symptom: null,
     answerId: null,
+    questionType: null,
   };
 };
 const histories: Record<string, Observation[]> = {

@@ -41,7 +41,7 @@ Two users share one streak. A day counts when a person saves at least one meal. 
 
 ### 3. Food and Feel
 
-2-tap check-in 90 minutes after a saved meal (energy: low/okay/good, stomach: heavy/fine/light). A weekly pattern card is built by a simple rule (one answer in 60% or more of a category's check-ins, at least 3 check-ins). The card text is written by fixed templates from the observed counts, not by Gemini. The app can ask one follow-up question (`GET /api/feel/question/:mealId`): the service picks the question type and fixed options, Gemini only words it from an aggregate summary (no dish names, meals or buddy data), and a fixed question is used if the wording is missing, malformed or unsafe. Copy says "pattern", never "cause" or "diagnosis".
+2-tap check-in 90 minutes after a saved meal (energy: low/okay/good, stomach: heavy/fine/light). A weekly pattern card is built by a simple rule (one answer in 60% or more of a category's check-ins, at least 3 check-ins). The card text is written by fixed templates from the observed counts, not by Gemini. The app can ask one follow-up question (`GET /api/feel/question/:mealId`): the service picks the question type and fixed options, Gemini only words it from an aggregate summary (no dish names, meals or buddy data), and a fixed question is used if the wording is missing, malformed or unsafe. After a heavy stomach and the symptom answer, the app may also ask one skippable fixed question, "Did you already feel this way before this meal?" (at most once per 14 days, never worded by Gemini); a "yes" keeps that meal out of the weekly pattern and the per-user model, so a stomach that was already unhappy is not counted against the meal's dishes. Copy says "pattern", never "cause" or "diagnosis".
 
 ## Guardrails
 

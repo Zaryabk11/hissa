@@ -27,6 +27,7 @@ function meal(
     stomach,
     symptom,
     answerId: null,
+    questionType: null,
   };
 }
 // Weights that strongly favour pre_existing whenever they are used.
@@ -152,6 +153,7 @@ describe('owner-scoped observation history', () => {
     stomach: 'heavy',
     symptom: null,
     answer_id: null,
+    question_type: null,
     created_at: createdAt,
   });
   const rows = [
@@ -205,6 +207,7 @@ describe('owner-scoped observation history', () => {
         stomach: 'heavy',
         symptom: null,
         answerId: null,
+        questionType: null,
       },
       {
         userId: 'owner',
@@ -216,6 +219,7 @@ describe('owner-scoped observation history', () => {
         stomach: 'heavy',
         symptom: null,
         answerId: null,
+        questionType: null,
       },
     ]);
   });

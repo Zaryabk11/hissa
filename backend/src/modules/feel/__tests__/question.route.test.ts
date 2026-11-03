@@ -24,7 +24,21 @@ describe('GET /api/feel/question/:mealId', () => {
   it('uses only the token user and the path meal id', async () => {
     const { a, getQuestion } = app('owner');
     await request(a).get(`/api/feel/question/${mealId}?userId=victim`).expect(200);
-    expect(getQuestion).toHaveBeenCalledWith('owner', mealId);
+    expect(getQuestion).toHaveBeenCalledWith('owner', mealId, undefined, false);
+  });
+  it('asks for the follow-up only with both stomach=heavy and after=symptom_detail', async () => {
+    const { a, getQuestion } = app('owner');
+    const url = `/api/feel/question/${mealId}`;
+    await request(a).get(`${url}?stomach=heavy&after=symptom_detail`).expect(200);
+    expect(getQuestion).toHaveBeenLastCalledWith('owner', mealId, undefined, true);
+    for (const q of [
+      '?after=symptom_detail',
+      '?stomach=heavy',
+      '?stomach=fine&after=symptom_detail',
+    ]) {
+      await request(a).get(`${url}${q}`).expect(200);
+      expect(getQuestion).toHaveBeenLastCalledWith('owner', mealId, undefined, false);
+    }
   });
   it('rejects a non-uuid meal id and an unauthenticated caller', async () => {
     await request(app('owner').a).get('/api/feel/question/nope').expect(400);

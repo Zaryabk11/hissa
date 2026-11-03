@@ -8,7 +8,10 @@ import {
   reviewLines,
   type Experiment,
   canSubmit,
+  checkinBody,
   needsSymptomDetail,
+  preExistingStep,
+  shouldAskPreExisting,
   patternView,
   progressFraction,
   shouldAutoSubmit,
@@ -250,5 +253,90 @@ describe('experiment copy', () => {
       ...reviewLines(exp({ status: 'tried' })),
     ];
     for (const line of lines) expect(line).not.toMatch(/cause|because|diagnos|avoid|intoleran/i);
+  });
+});
+
+// The server's canonical pre_existing question (GET /api/feel/question/:id?stomach=heavy&after=symptom_detail).
+const preQuestion: Question = {
+  mealId: 'm1',
+  intent: 'pre_existing',
+  text: 'Did you already feel this way before this meal?',
+  options: [
+    { id: 'yes', label: 'Yes' },
+    { id: 'no', label: 'No' },
+    { id: 'not_sure', label: 'Not sure' },
+  ],
+  source: 'fallback',
+};
+
+describe('pre_existing follow-up step', () => {
+  it('comes after the symptom step, only for a heavy stomach', () => {
+    expect(shouldAskPreExisting('heavy', 'bloated')).toBe(true);
+    expect(shouldAskPreExisting('heavy', undefined)).toBe(false); // symptom step not answered yet
+    expect(shouldAskPreExisting('fine', 'bloated')).toBe(false);
+    expect(shouldAskPreExisting('light', 'bloated')).toBe(false);
+    expect(shouldAskPreExisting(null, 'bloated')).toBe(false);
+  });
+
+  it('shows the server copy with its three canonical options', () => {
+    expect(preExistingStep(preQuestion)).toEqual({
+      text: preQuestion.text,
+      options: preQuestion.options,
+    });
+  });
+
+  it('is absent (today’s flow) for no question, another intent or odd options', () => {
+    expect(preExistingStep(null)).toBeNull();
+    expect(
+      preExistingStep({ ...preQuestion, intent: 'symptom_detail' } as unknown as Question),
+    ).toBeNull();
+    expect(preExistingStep({ ...preQuestion, text: ' ' })).toBeNull();
+    expect(preExistingStep({ ...preQuestion, options: [] })).toBeNull();
+    expect(
+      preExistingStep({ ...preQuestion, options: [{ id: 'bloated', label: 'Bloated' }] }),
+    ).toBeNull();
+    expect(preExistingStep({ ...preQuestion, options: [{ id: 'yes', label: '' }] })).toBeNull();
+  });
+
+  it('never uses causal, medical or advice wording', () => {
+    const copy = [preQuestion.text, ...preQuestion.options.map((o) => o.label)].join(' ');
+    expect(copy).not.toMatch(/cause|because|diagnos|avoid|intoleran|doctor|allerg|disease/i);
+  });
+});
+
+describe('check-in payload', () => {
+  const base = { mealId: 'm1', energy: 'okay' as const };
+  it('is today’s two-answer body for a fine stomach, whatever else was tapped', () => {
+    expect(
+      checkinBody({ ...base, stomach: 'fine', symptom: 'bloated', preExisting: 'yes' }),
+    ).toEqual({ mealId: 'm1', energy: 'okay', stomach: 'fine' });
+  });
+  it('adds the symptom for heavy, and the pair only when the follow-up was answered', () => {
+    expect(checkinBody({ ...base, stomach: 'heavy', symptom: 'upset' })).toEqual({
+      mealId: 'm1',
+      energy: 'okay',
+      stomach: 'heavy',
+      symptom: 'upset',
+    });
+    expect(
+      checkinBody({ ...base, stomach: 'heavy', symptom: 'upset', preExisting: 'not_sure' }),
+    ).toEqual({
+      mealId: 'm1',
+      energy: 'okay',
+      stomach: 'heavy',
+      symptom: 'upset',
+      questionType: 'pre_existing',
+      answerId: 'not_sure',
+    });
+  });
+  it('skipping the follow-up sends no pair, and no pair without a symptom', () => {
+    expect(checkinBody({ ...base, stomach: 'heavy' })).toEqual({
+      mealId: 'm1',
+      energy: 'okay',
+      stomach: 'heavy',
+    });
+    expect(checkinBody({ ...base, stomach: 'heavy', preExisting: 'yes' })).not.toHaveProperty(
+      'questionType',
+    );
   });
 });

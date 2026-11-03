@@ -19,6 +19,7 @@ function row(userId: string, o: Partial<Observation> = {}): Observation {
     stomach: 'heavy',
     symptom: null,
     answerId: null,
+    questionType: null,
     ...o,
   };
 }

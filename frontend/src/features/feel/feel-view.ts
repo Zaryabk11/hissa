@@ -14,13 +14,14 @@ export const canSubmit = (energy: Energy | null, stomach: Stomach | null): boole
 export const shouldAutoSubmit = (energy: Energy | null, stomach: Stomach | null): boolean =>
   canSubmit(energy, stomach) && !needsSymptomDetail(stomach);
 
-// GET /api/feel/question/:mealId. Only symptom_detail is used; `source` is never shown.
+// GET /api/feel/question/:mealId. `source` is never shown.
 export type QuestionOption = { id: Symptom; label: string };
+export type PreExisting = 'yes' | 'no' | 'not_sure';
 export type Question = {
   mealId: string;
-  intent: 'symptom_detail';
+  intent: 'symptom_detail' | 'pre_existing';
   text: string;
-  options: QuestionOption[];
+  options: { id: string; label: string }[];
   source: 'gemini' | 'fallback';
 };
 
@@ -34,7 +35,7 @@ export const FIXED_SYMPTOM_STEP: { text: string; options: QuestionOption[] } = {
   ],
 };
 
-const SYMPTOM_IDS = FIXED_SYMPTOM_STEP.options.map((o) => o.id);
+const SYMPTOM_IDS: string[] = FIXED_SYMPTOM_STEP.options.map((o) => o.id);
 
 // The server wording when it is a usable symptom question, else the fixed copy.
 export function symptomStep(question: Question | null): {
@@ -47,7 +48,53 @@ export function symptomStep(question: Question | null): {
     question.text.trim() !== '' &&
     question.options.length > 0 &&
     question.options.every((o) => SYMPTOM_IDS.includes(o.id) && o.label.trim() !== '');
-  return usable ? { text: question.text, options: question.options } : FIXED_SYMPTOM_STEP;
+  return usable
+    ? { text: question.text, options: question.options as QuestionOption[] }
+    : FIXED_SYMPTOM_STEP;
+}
+
+// The skippable "already felt this way before the meal?" step comes after the symptom step is
+// answered, for a heavy stomach only. The server decides whether to actually offer it.
+export const shouldAskPreExisting = (stomach: Stomach | null, symptom: Symptom | undefined) =>
+  needsSymptomDetail(stomach) && symptom !== undefined;
+
+const PRE_EXISTING_IDS = ['yes', 'no', 'not_sure'];
+
+// The server copy as given, or null (today's flow) unless it is a usable pre_existing question.
+export function preExistingStep(
+  question: Question | null,
+): { text: string; options: { id: PreExisting; label: string }[] } | null {
+  const usable =
+    question &&
+    question.intent === 'pre_existing' &&
+    question.text.trim() !== '' &&
+    question.options.length > 0 &&
+    question.options.every((o) => PRE_EXISTING_IDS.includes(o.id) && o.label.trim() !== '');
+  return usable
+    ? { text: question.text, options: question.options as { id: PreExisting; label: string }[] }
+    : null;
+}
+
+// POST /api/feel/checkins body. The symptom and the follow-up answer only go with a heavy stomach,
+// and the follow-up only after a symptom was chosen (the step it follows).
+export function checkinBody(input: {
+  mealId: string;
+  energy: Energy;
+  stomach: Stomach;
+  symptom?: Symptom;
+  preExisting?: PreExisting;
+}) {
+  const { mealId, energy, stomach, symptom, preExisting } = input;
+  const heavy = needsSymptomDetail(stomach);
+  return {
+    mealId,
+    energy,
+    stomach,
+    ...(heavy && symptom ? { symptom } : {}),
+    ...(heavy && symptom && preExisting
+      ? { questionType: 'pre_existing' as const, answerId: preExisting }
+      : {}),
+  };
 }
 
 // GET /api/feel/pattern. `label` is server-written copy and is shown as given.

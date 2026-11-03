@@ -7,7 +7,11 @@ export function createFeelController(service: FeelService) {
   return {
     async getQuestion(req: Request, res: Response): Promise<void> {
       if (!req.userId) throw new UnauthorizedError();
-      res.json(await service.getQuestion(req.userId, String(req.params.mealId)));
+      // ?stomach=heavy&after=symptom_detail: the app has a heavy stomach and the symptom step done.
+      const followUp = req.query.stomach === 'heavy' && req.query.after === 'symptom_detail';
+      res.json(
+        await service.getQuestion(req.userId, String(req.params.mealId), undefined, followUp),
+      );
     },
     async getWeeklyPattern(req: Request, res: Response): Promise<void> {
       if (!req.userId) throw new UnauthorizedError();

@@ -77,6 +77,7 @@ export function generateUser(seed: number): SyntheticUser {
         // Some heavy check-ins skip the optional symptom detail.
         symptom: heavy && rand() < 0.6 ? pick(SYMPTOMS) : null,
         answerId: null,
+        questionType: null,
       });
     }
   }

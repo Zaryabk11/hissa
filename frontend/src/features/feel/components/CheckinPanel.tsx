@@ -9,10 +9,14 @@ import { getDueCheckin, getQuestion, submitCheckin, type DueCheckin } from '../a
 import { feelContent as c } from '../content';
 import {
   canSubmit,
+  checkinBody,
   needsSymptomDetail,
+  preExistingStep,
+  shouldAskPreExisting,
   shouldAutoSubmit,
   symptomStep,
   type Energy,
+  type PreExisting,
   type Question,
   type Stomach,
   type Symptom,
@@ -43,8 +47,14 @@ export function CheckinPanel() {
   const [skipped, setSkipped] = useState<string[]>([]); // meal ids skipped on this screen
   // null question = the server had nothing usable, so the fixed wording is shown.
   const [asked, setAsked] = useState<{ mealId: string; question: Question | null } | null>(null);
+  // Optional follow-up after the symptom step; null question = nothing offered, today's flow.
+  const [followUp, setFollowUp] = useState<{ mealId: string; question: Question | null } | null>(
+    null,
+  );
+  const [preExisting, setPreExisting] = useState<PreExisting | undefined>(undefined);
   const saving = useRef(false);
   const asking = useRef<string | null>(null);
+  const askingFollowUp = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -73,19 +83,39 @@ export function CheckinPanel() {
       .then(setAsked);
   }, [mealId, heavy]);
 
+  // Once the symptom step is answered, ask the server for the optional follow-up; never blocks saving.
+  const askFollowUp = !!mealId && shouldAskPreExisting(stomach, symptom);
+  useEffect(() => {
+    if (!mealId || !askFollowUp || askingFollowUp.current === mealId) return;
+    askingFollowUp.current = mealId;
+    getQuestion(mealId, true)
+      .then((question) => ({ mealId, question }))
+      .catch(() => ({ mealId, question: null }))
+      .then(setFollowUp);
+  }, [mealId, askFollowUp]);
+
+  const preExistingStepNow = preExistingStep(
+    followUp && followUp.mealId === mealId ? followUp.question : null,
+  );
+  const preExistingShown = askFollowUp && preExistingStepNow !== null;
+
   async function save(nextEnergy: Energy, nextStomach: Stomach) {
     if (!due || saving.current) return;
     saving.current = true;
     try {
-      await submitCheckin({
-        mealId: due.mealId,
-        energy: nextEnergy,
-        stomach: nextStomach,
-        ...(needsSymptomDetail(nextStomach) && symptom ? { symptom } : {}),
-      });
+      await submitCheckin(
+        checkinBody({
+          mealId: due.mealId,
+          energy: nextEnergy,
+          stomach: nextStomach,
+          symptom,
+          preExisting: preExistingShown ? preExisting : undefined,
+        }),
+      );
       setEnergy(null);
       setStomach(null);
       setSymptom(undefined);
+      setPreExisting(undefined);
       setMessage(c.saved);
     } catch {
       setMessage(c.saveError);
@@ -189,6 +219,25 @@ export function CheckinPanel() {
           </View>
         )
       ) : null}
+      {heavy && !questionPending && preExistingShown && preExistingStepNow ? (
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel={preExistingStepNow.text}
+          style={{ gap: 8 }}
+        >
+          <HissaText variant="eyebrow">{preExistingStepNow.text}</HissaText>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {preExistingStepNow.options.map(({ id, label }) => (
+              <Chip
+                key={id}
+                label={label}
+                selected={preExisting === id}
+                onPress={() => setPreExisting(id)}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
       <View style={{ gap: 8 }}>
         {heavy ? (
           <PrimaryButton
@@ -205,6 +254,7 @@ export function CheckinPanel() {
             setEnergy(null);
             setStomach(null);
             setSymptom(undefined);
+            setPreExisting(undefined);
             setSkipped([...skipped, due.mealId]);
           }}
         />
