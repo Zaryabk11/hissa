@@ -1,0 +1,26 @@
+export const feelContent = {
+  title: 'How did this meal sit?',
+  loading: 'Loading your check-in',
+  loadError: 'Could not load your check-in. Check your connection and try again.',
+  retry: 'Try again',
+  saved: 'Thanks. Saved.',
+  saveError: 'Could not save. This meal may not be due for a check-in.',
+  empty: {
+    title: 'Nothing to check in on',
+    body: 'A check-in appears about 90 minutes after you save a meal.',
+  },
+  energy: { label: 'Energy', low: 'Low', okay: 'Okay', good: 'Good' },
+  stomach: { label: 'Stomach', heavy: 'Heavy', fine: 'Fine', light: 'Light' },
+  loadingQuestion: 'Loading a follow-up question',
+  save: 'Save',
+  skip: 'Skip',
+  pattern: {
+    title: 'Your week',
+    sample: 'Sample data',
+    caveat: 'This only describes your own logs.',
+    progressTitle: 'Building your picture',
+    progressHelp: 'A few more check-ins and Hissa can look for something worth noticing.',
+    noneTitle: 'No pattern yet',
+    noneBody: 'Nothing stands out in your logs so far. That is fine. Keep checking in.',
+  },
+} as const;
