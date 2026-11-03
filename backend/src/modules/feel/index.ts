@@ -23,6 +23,7 @@ export function createFeelModule({ db, config }: { db: Db; config: Config }): {
       model: config.GEMINI_MODEL,
       timeoutMs: config.GEMINI_TIMEOUT_MS,
     }),
+    demoUserId: config.DEMO_USER_ID,
   });
   const router = createFeelRouter(createFeelController(service));
   return { router, service };

@@ -81,3 +81,22 @@ describe('getWeeklyPattern', () => {
     });
   });
 });
+
+describe('isSample', () => {
+  const mk = (demoUserId?: string) =>
+    createFeelService({
+      repository: {
+        listObservations: vi.fn(async (u: string) => Array.from({ length: 7 }, () => row(u))),
+      } as unknown as FeelRepository,
+      questionClient: { draft: async () => ({ text: '', optionIds: [] }) },
+      demoUserId,
+    });
+  it('is true only for the configured demo user', async () => {
+    const service = mk('demo');
+    expect((await service.getWeeklyPattern('demo', NOW)).isSample).toBe(true);
+    expect((await service.getWeeklyPattern('someone-else', NOW)).isSample).toBe(false);
+  });
+  it('is always false when no demo user is configured', async () => {
+    expect((await mk().getWeeklyPattern('demo', NOW)).isSample).toBe(false);
+  });
+});

@@ -19,7 +19,7 @@ function setup(ageMinutes = 90, dishes = ['raita'], insertError?: unknown) {
     checkedIn: false,
   };
   const saved: unknown[] = [];
-  const repository: FeelRepository = {
+  const repository: Partial<FeelRepository> = {
     async listCandidates(userId) {
       return userId === 'owner' ? [meal] : [];
     },
@@ -36,7 +36,13 @@ function setup(ageMinutes = 90, dishes = ['raita'], insertError?: unknown) {
       return [];
     },
   };
-  return { service: createFeelService({ repository, questionClient: noDraft }), saved };
+  return {
+    service: createFeelService({
+      repository: repository as FeelRepository,
+      questionClient: noDraft,
+    }),
+    saved,
+  };
 }
 
 describe('timely whole-meal check-ins', () => {

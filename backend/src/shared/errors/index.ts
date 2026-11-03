@@ -27,6 +27,12 @@ export class NotFoundError extends AppError {
   }
 }
 
+export class ConflictError extends AppError {
+  constructor(message: string) {
+    super(409, 'conflict', message);
+  }
+}
+
 export class NotImplementedError extends AppError {
   constructor(what: string) {
     super(501, 'not_implemented', `${what} is not implemented yet`);

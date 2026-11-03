@@ -30,3 +30,29 @@ export interface MealObservation {
 export interface Observation extends MealObservation {
   checkedInAt: string;
 }
+
+export type ExperimentAction = 'smaller_portion' | 'different_side' | 'observe_again';
+// What the repository returns for a user_experiments row (the user id is never carried out).
+export interface ExperimentRow {
+  id: string;
+  patternKey: string;
+  action: ExperimentAction;
+  status: 'active' | 'tried';
+  createdAt: string;
+  triedAt: string | null;
+  triedMealId: string | null;
+}
+// The API shape. `tried` shows how the owner's own check-in for that meal looked, nothing more.
+export interface Experiment {
+  id: string;
+  patternKey: string;
+  action: ExperimentAction;
+  status: 'active' | 'tried';
+  createdAt: string;
+  triedAt: string | null;
+  tried: {
+    mealId: string;
+    energy: CheckinInput['energy'] | null;
+    stomach: CheckinInput['stomach'] | null;
+  } | null;
+}

@@ -10,3 +10,12 @@ export const checkinBodySchema = z
   .strict();
 
 export const questionParamsSchema = z.object({ mealId: z.uuid() });
+
+export const experimentBodySchema = z
+  .object({
+    patternKey: z.string().min(1).max(120),
+    action: z.enum(['smaller_portion', 'different_side', 'observe_again']),
+  })
+  .strict();
+export const experimentParamsSchema = z.object({ id: z.uuid() });
+export const triedBodySchema = z.object({ mealId: z.uuid() }).strict();
