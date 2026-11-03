@@ -24,6 +24,7 @@ function Routes() {
       <Stack.Protected guard={!!session}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(scan)" />
+        <Stack.Screen name="(account)" />
       </Stack.Protected>
     </Stack>
   );
