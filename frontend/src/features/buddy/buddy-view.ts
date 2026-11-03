@@ -40,3 +40,12 @@ export function httpStatus(error: unknown): number | null {
   const match = error instanceof Error ? /failed with (\d{3})$/.exec(error.message) : null;
   return match ? Number(match[1]) : null;
 }
+
+export const daysLabel = (streak: number) => (streak === 1 ? 'day together' : 'days together');
+
+export function togetherLine(own: boolean, buddy: boolean): string {
+  if (own && buddy) return 'You both logged today';
+  if (own) return "You logged, your buddy hasn't yet";
+  if (buddy) return "Your buddy logged, you haven't yet";
+  return 'Neither of you has logged yet today';
+}
