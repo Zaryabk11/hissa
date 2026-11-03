@@ -13,6 +13,18 @@ export const todayContent = {
     title: 'Meals today',
     kcal: (n: string) => `About ${n} kcal, an estimate`,
   },
+  week: {
+    title: 'Your week so far',
+    summary: (logged: number, avg: string) =>
+      `Logged ${logged} of 7 days. Average about ${avg} kcal a day, an estimate.`,
+    empty: 'Nothing logged this week yet. Your first meal starts the pattern.',
+    seeAll: 'See all meals',
+    dayLabel: (name: string, kcal: string | null) =>
+      kcal ? `${name}: about ${kcal} kcal, an estimate` : `${name}: nothing logged`,
+    loadError: 'Could not load your week.',
+    retry: 'Try again',
+    loading: 'Loading your week',
+  },
   streak: {
     days: (n: number) => `Shared streak: ${n} ${n === 1 ? 'day' : 'days'}`,
     pending: (buddy: string) => `You logged, ${buddy} hasn't yet`,
