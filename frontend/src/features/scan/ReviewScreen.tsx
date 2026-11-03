@@ -171,6 +171,7 @@ export function ReviewScreen() {
     if (dish) patchItem(id, { dishId, qty: dish.defaultQty, ask: undefined, confirmed: true });
     setOpen(null);
   };
+  const step = (i: ReviewItem, direction: 1 | -1) => patchItem(i.id, { qty: stepQty(i.qty, dishById(i.dishId)!.unit, direction), confirmed: true });
   const toggle = (i: ReviewItem) => (i.ask ? setOpen(open && open !== 'add' && open.id === i.id ? null : { id: i.id, mode: 'ask' }) : patchItem(i.id, { confirmed: !i.confirmed }));
   const save = async () => {
     if (busy || !canContinue) return;
@@ -238,8 +239,8 @@ export function ReviewScreen() {
               {!i.removed && !i.ask && !!dishById(i.dishId) && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 14 }}>
                   <HissaText variant="caption" style={{ flex: 1 }}>Portion estimate: {portionText(i)}</HissaText>
-                  <Pick label="−" onPress={() => patchItem(i.id, { qty: stepQty(i.qty, dishById(i.dishId)!.unit, -1), confirmed: true })} />
-                  <Pick label="+" onPress={() => patchItem(i.id, { qty: stepQty(i.qty, dishById(i.dishId)!.unit, 1), confirmed: true })} />
+                  <Pick label="−" onPress={() => step(i, -1)} />
+                  <Pick label="+" onPress={() => step(i, 1)} />
                 </View>
               )}
               {here === 'ask' && i.ask && (
