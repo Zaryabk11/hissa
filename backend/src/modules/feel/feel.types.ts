@@ -26,3 +26,7 @@ export interface MealObservation {
   symptom: NonNullable<CheckinInput['symptom']> | null;
   answerId: string | null;
 }
+// What the repository returns; the service decides which rows count as evidence.
+export interface Observation extends MealObservation {
+  checkedInAt: string;
+}

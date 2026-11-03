@@ -16,6 +16,11 @@ const db = createClient('http://127.0.0.1:54325', token, {
   // Standalone PostgREST has no Supabase gateway's /rest/v1 prefix.
   global: { fetch: (url, init) => fetch(String(url).replace('/rest/v1', ''), init) },
 });
+const noDraft = {
+  draft: async (): Promise<never> => {
+    throw new Error('not used');
+  },
+};
 const owner = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
 
@@ -24,7 +29,7 @@ const other = '22222222-2222-4222-8222-222222222222';
 describe.skipIf(!enabled)('feel disposable database integration', () => {
   it('uses confirmed dishes, real clock boundaries, owner isolation, and one response under concurrency', async () => {
     const repository = createFeelRepository(db);
-    const service = createFeelService({ repository });
+    const service = createFeelService({ repository, questionClient: noDraft });
     const mealId = randomUUID();
     const dishId = randomUUID();
     const predictedId = randomUUID();
@@ -121,7 +126,7 @@ describe.skipIf(!enabled)('feel disposable database integration', () => {
         },
       ]);
       expect(await service.getDue(owner, new Date('2026-11-02T12:00:00Z'))).toBeNull();
-      // Evidence history: owner-only, confirmed dishes, and no check-in made over 24 h after the meal.
+      // Evidence history: owner-only, confirmed dishes, with the check-in time (the service applies the 24 h rule).
       const observed = async (user: string) =>
         (await repository.listObservations(user)).filter((o) => o.mealId === mealId);
       const setCheckinTime = async (at: string) =>
@@ -134,6 +139,7 @@ describe.skipIf(!enabled)('feel disposable database integration', () => {
           userId: owner,
           mealId,
           eatenAt: '2026-11-02T10:30:00+00:00',
+          checkedInAt: '2026-11-03T10:30:00+00:00',
           dishes: [{ slug: dishId, category: 'other' }],
           energy: 'okay',
           stomach: 'fine',
@@ -142,8 +148,6 @@ describe.skipIf(!enabled)('feel disposable database integration', () => {
         },
       ]);
       expect(await observed(other)).toEqual([]);
-      await setCheckinTime('2026-11-03T10:30:01Z');
-      expect(await observed(owner)).toEqual([]);
     } finally {
       await db.from('meals').delete().eq('id', mealId).eq('user_id', owner);
       await db.from('dishes').delete().in('id', [dishId, predictedId]);
