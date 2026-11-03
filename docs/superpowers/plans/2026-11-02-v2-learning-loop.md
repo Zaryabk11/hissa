@@ -164,7 +164,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify.** Run targeted tests, `npm run lint`, `npm run build`, and manually inspect a sample of generated questions against their actual input summaries. Document false/unsafe outputs found; do not claim “always meaningful” from schema validation alone.
 - [ ] **Step 5: Commit and evidence.** Commit client/API/docs/tests/logs and show one standard and one personalized question in a short demo, with evidence counts visible only to the owner.
 
-### Task 8: Weekly pattern card from observed meals (not started)
+### Task 8: Weekly pattern card from observed meals (backend done on branch, UI pending)
 
 **Files:** Create `backend/src/modules/feel/weekly-pattern.ts`, `backend/src/modules/feel/__tests__/weekly-pattern.test.ts`, `frontend/src/features/feel/components/PatternCard.tsx`. Modify `backend/src/modules/feel/{feel.service,feel.repository,feel.routes,feel.controller}.ts`, `frontend/src/features/feel/api/feel.ts`, `frontend/app/(tabs)/feel.tsx`.
 
