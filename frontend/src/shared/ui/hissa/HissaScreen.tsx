@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { RefreshControl, ScrollView, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { content } from '../../../features/landing/content';
@@ -20,7 +20,7 @@ export function useColumnLayout() {
  * Screen frame: themed background with the header arc, safe area, a scrolling body and a bottom action bar.
  * The column is 480 on phones, 560 from WIDE, and from SPLIT a brand pane takes the left half.
  */
-export function HissaScreen({ children, actionBar }: { children: ReactNode; actionBar?: ReactNode }) {
+export function HissaScreen({ children, actionBar, onRefresh, refreshing = false }: { children: ReactNode; actionBar?: ReactNode; onRefresh?: () => void; refreshing?: boolean }) {
   const t = useHissaTheme();
   const insets = useSafeAreaInsets();
   const { width, split, columnMax } = useColumnLayout();
@@ -48,6 +48,7 @@ export function HissaScreen({ children, actionBar }: { children: ReactNode; acti
         style={COLUMN}
         contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.pri} /> : undefined}
       >
         {children}
       </ScrollView>

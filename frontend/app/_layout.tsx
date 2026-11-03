@@ -4,6 +4,8 @@ import { ActivityIndicator, Platform } from 'react-native';
 import { CursorRing } from '../src/features/landing/components/CursorRing';
 import { hydrateAnswers } from '../src/features/onboarding/store';
 import { SessionProvider, useSession } from '../src/shared/auth/session';
+import { HissaRoot } from '../src/shared/ui/hissa/HissaRoot';
+import { HissaScreen } from '../src/shared/ui/hissa/HissaScreen';
 
 function Routes() {
   const { session, loading } = useSession();
@@ -11,7 +13,14 @@ function Routes() {
   useEffect(() => {
     hydrateAnswers();
   }, []);
-  if (loading) return <ActivityIndicator accessibilityLabel="Loading session" />;
+  if (loading)
+    return (
+      <HissaRoot>
+        <HissaScreen>
+          <ActivityIndicator accessibilityLabel="Loading session" />
+        </HissaScreen>
+      </HissaRoot>
+    );
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />

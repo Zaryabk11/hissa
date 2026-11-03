@@ -144,7 +144,7 @@ export function TodayScreen() {
   const buddyName = c.streak.buddyFallback;
 
   return (
-    <HissaScreen>
+    <HissaScreen onRefresh={refresh} refreshing={refreshing}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <HissaText variant="caption">{dayLabel(today.day)}</HissaText>
         <Pressable
@@ -288,17 +288,6 @@ export function TodayScreen() {
           )}
         </View>
       )}
-
-      {/* ponytail: HissaScreen has no refreshControl prop (shell-owned), so refresh is a button until it does. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={c.refresh.cta}
-        disabled={refreshing}
-        onPress={refresh}
-        style={{ marginTop: 16, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
-      >
-        <HissaText variant="caption">{refreshing ? c.refresh.busy : c.refresh.cta}</HissaText>
-      </Pressable>
     </HissaScreen>
   );
 }
