@@ -8,3 +8,5 @@ export const checkinBodySchema = z
     symptom: z.enum(['bloated', 'upset', 'other', 'not_sure']).optional(),
   })
   .strict();
+
+export const questionParamsSchema = z.object({ mealId: z.uuid() });

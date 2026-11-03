@@ -5,6 +5,10 @@ import type { CheckinInput } from './feel.types';
 
 export function createFeelController(service: FeelService) {
   return {
+    async getQuestion(req: Request, res: Response): Promise<void> {
+      if (!req.userId) throw new UnauthorizedError();
+      res.json(await service.getQuestion(req.userId, String(req.params.mealId)));
+    },
     async getDue(req: Request, res: Response): Promise<void> {
       if (!req.userId) throw new UnauthorizedError();
       // ?skip=id,id lets the app step past meals the user skipped on this screen.
