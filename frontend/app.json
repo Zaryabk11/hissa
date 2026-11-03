@@ -32,7 +32,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Hissa uses the camera to look at your plate. Photos stay on your phone until you confirm a meal."
+          "cameraPermission": "Hissa uses the camera to look at your plate. Photos stay on your phone until you confirm a meal.",
+          "recordAudioAndroid": false
         }
       ],
       [
