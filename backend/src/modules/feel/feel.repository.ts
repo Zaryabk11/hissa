@@ -1,19 +1,18 @@
 import type { Db } from '../../shared/db';
-import type { CheckinInput, CheckinMeal, MealObservation } from './feel.types';
+import type { CheckinInput, CheckinMeal, Observation } from './feel.types';
 
 interface ObservationRow {
   id: string;
   eaten_at: string;
   meal_items: { confirmed: { slug: string; category: string } | null }[];
   feel_checkins: {
-    energy: MealObservation['energy'];
-    stomach: MealObservation['stomach'];
-    symptom: MealObservation['symptom'];
+    energy: Observation['energy'];
+    stomach: Observation['stomach'];
+    symptom: Observation['symptom'];
     answer_id: string | null;
     created_at: string;
   };
 }
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 interface MealRow {
   id: string;
@@ -73,10 +72,9 @@ export function createFeelRepository(db: Db) {
       if (error) throw error;
       return { id: data.id as string };
     },
-    // Owner's checked-in meals; a check-in made over 24 h after the meal is too late to attribute.
+    // Owner's checked-in meals with confirmed dishes; the service decides which count as evidence.
     // ponytail: reads the whole history per call, add a window/limit if per-user meals grow large.
-    // Task 7: move the 24 h cut-off into the service (repositories hold no business rules).
-    async listObservations(userId: string): Promise<MealObservation[]> {
+    async listObservations(userId: string): Promise<Observation[]> {
       const { data, error } = await db
         .from('meals')
         .select(
@@ -87,7 +85,6 @@ export function createFeelRepository(db: Db) {
         .order('eaten_at', { ascending: true });
       if (error) throw error;
       return (data as unknown as ObservationRow[])
-        .filter((r) => Date.parse(r.feel_checkins.created_at) - Date.parse(r.eaten_at) <= DAY_MS)
         .map((r) => {
           const dishes = new Map(
             r.meal_items.flatMap((i) =>
@@ -98,6 +95,7 @@ export function createFeelRepository(db: Db) {
             userId,
             mealId: r.id,
             eatenAt: r.eaten_at,
+            checkedInAt: r.feel_checkins.created_at,
             dishes: [...dishes.values()],
             energy: r.feel_checkins.energy,
             stomach: r.feel_checkins.stomach,

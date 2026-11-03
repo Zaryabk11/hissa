@@ -20,7 +20,7 @@ Trackers record what you already ate. In most Pakistani homes the household cook
 | 2. Duo Streaks   | Should ship | ~25%   | Two real users paired, shared streak updates from real scans          |
 | 3. Food and Feel | Could ship  | ~15%   | 2-tap feel check-in after a meal, one weekly insight from logged data |
 
-Status (2026-11-03): Module 1 is built and connected to the Expo app. Module 2 (Duo Streaks) is built end to end (API, database, app) and verified by a local two-account smoke test. Module 3 has the 90-minute check-in and a per-user evidence model; the Gemini-drafted follow-up question, the weekly pattern card and the private experiment are not built yet. Live status: `docs/superpowers/plans/2026-11-02-v2-status.md`.
+Status (2026-11-03): Module 1 is built and connected to the Expo app. Module 2 (Duo Streaks) is built end to end (API, database, app) and verified by a local two-account smoke test. Module 3 has the 90-minute check-in and a per-user evidence model; the Gemini-worded follow-up question is built (API only); the weekly pattern card is available from the API (`GET /api/feel/pattern`) but has no app screen yet; the private experiment is not built. Live status: `docs/superpowers/plans/2026-11-02-v2-status.md`.
 
 ### 1. Portion Coach
 
@@ -41,7 +41,7 @@ Two users share one streak. A day counts when a person saves at least one meal. 
 
 ### 3. Food and Feel
 
-2-tap check-in 90 minutes after a saved meal (energy: low/okay/good, stomach: heavy/fine/light). A weekly pattern card is built by a simple rule (one answer in 60% or more of a category's check-ins, at least 3 check-ins). Gemini only rewrites the flagged pattern into one sentence; it never invents the pattern. Copy says "pattern", never "cause" or "diagnosis".
+2-tap check-in 90 minutes after a saved meal (energy: low/okay/good, stomach: heavy/fine/light). A weekly pattern card is built by a simple rule (one answer in 60% or more of a category's check-ins, at least 3 check-ins). The card text is written by fixed templates from the observed counts, not by Gemini. The app can ask one follow-up question (`GET /api/feel/question/:mealId`): the service picks the question type and fixed options, Gemini only words it from an aggregate summary (no dish names, meals or buddy data), and a fixed question is used if the wording is missing, malformed or unsafe. Copy says "pattern", never "cause" or "diagnosis".
 
 ## Guardrails
 
@@ -78,4 +78,4 @@ Training our own vision model, barcode or packaged food, workouts and wearables,
 
 ## Where Food and Feel is going (v2 design)
 
-The approved v2 design (`docs/superpowers/specs/2026-11-02-v2-learning-loop-design.md`) keeps the rules above and adds: a per-user statistical model over whole meals (never a single dish from a mixed meal), a small question-ranker trained only on labelled synthetic data (it picks which question to ask, it does not predict food reactions), and Gemini drafting the wording of one approved question from a bounded summary, with the service validating options and falling back to a fixed question. Gemini still never supplies calories, counts or health claims.
+The approved v2 design (`docs/superpowers/specs/2026-11-02-v2-learning-loop-design.md`) keeps the rules above and adds: a per-user statistical model over whole meals (never a single dish from a mixed meal), a small question-ranker trained only on labelled synthetic data (it picks which question to ask, it does not predict food reactions), and Gemini drafting the wording of one approved question from a bounded summary, with the service validating options and falling back to a fixed question (built in Task 7). Gemini still never supplies calories, counts or health claims.

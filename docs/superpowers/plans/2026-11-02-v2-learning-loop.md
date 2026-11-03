@@ -152,7 +152,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify training honestly.** Run `npm run train:questions -w backend` twice and confirm byte-identical weights/metrics; run model tests. If held-out relevance does not beat the fixed-question baseline or real testers find questions confusing, disable the offline ranker in the release and use the transparent posterior/fixed intents; keep the experiment and result in the repo.
 - [ ] **Step 5: Commit and evidence.** Commit model, generator, metric report, tests, and logs. Demo a synthetic timeline changing the selected question, with “synthetic” visible throughout.
 
-### Task 7: Gemini-drafted question with exact option validation (not started)
+### Task 7: Gemini-drafted question with exact option validation (backend done on branch, pending review and merge)
 
 **Files:** Create `backend/src/modules/feel/question-bank.ts`, `backend/src/modules/feel/gemini-question.client.ts`, `backend/src/modules/feel/__tests__/gemini-question.client.test.ts`, `backend/src/modules/feel/__tests__/question.service.test.ts`. Modify `backend/src/modules/feel/{index,feel.service,feel.controller,feel.routes,feel.schemas}.ts`, `AGENTS.md`, `docs/PRD.md`, `docs/architecture.md`.
 
@@ -164,7 +164,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify.** Run targeted tests, `npm run lint`, `npm run build`, and manually inspect a sample of generated questions against their actual input summaries. Document false/unsafe outputs found; do not claim “always meaningful” from schema validation alone.
 - [ ] **Step 5: Commit and evidence.** Commit client/API/docs/tests/logs and show one standard and one personalized question in a short demo, with evidence counts visible only to the owner.
 
-### Task 8: Weekly pattern card from observed meals (not started)
+### Task 8: Weekly pattern card from observed meals (backend done on branch, UI pending)
 
 **Files:** Create `backend/src/modules/feel/weekly-pattern.ts`, `backend/src/modules/feel/__tests__/weekly-pattern.test.ts`, `frontend/src/features/feel/components/PatternCard.tsx`. Modify `backend/src/modules/feel/{feel.service,feel.repository,feel.routes,feel.controller}.ts`, `frontend/src/features/feel/api/feel.ts`, `frontend/app/(tabs)/feel.tsx`.
 

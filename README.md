@@ -11,7 +11,9 @@ A portion coach for desi households: photograph the meal, get a plan in roti, ka
 Updated 2026-11-03. **Start with [docs/superpowers/plans/2026-11-02-v2-status.md](docs/superpowers/plans/2026-11-02-v2-status.md)**: it is the live status, the task board and the handoff.
 
 - **Built and on `main`:** the v1 portion coach (scan, plan, saved meals, today's log), Google sign-in, Duo Streaks (invites, shared streak, nudges) and the Food and Feel check-in, with a per-user evidence model and a synthetic-data question ranker behind it. The Expo app (landing, onboarding, Today, Scan, plan, Buddy, Food and Feel) is connected to the API.
-- **Next:** v2 Task 7 (Gemini drafts the follow-up check-in question, validated, with a fixed fallback), then Task 8 (weekly pattern card), Task 9 (private "try next time" experiment and demo account), Task 10 (release prep).
+- **Done on branch `feature/v2-questions-claude`, pending review and merge:** v2 Task 7 (backend: Gemini words the follow-up check-in question, validated, with a fixed fallback; `GET /api/feel/question/:mealId`; no app screen uses it yet).
+- **Task 8 backend done on branch `feature/v2-pattern-wiring`, pending review and merge:** `GET /api/feel/pattern` (the weekly pattern card rule and endpoint); the app card is not built.
+- **Next:** Task 9 (private "try next time" experiment and demo account), Task 10 (release prep).
 - **Held by the user:** API deployment (Railway) and the evaluator Android build. Nothing is deployed.
 - **Not verified:** a full Google sign-in plus scan flow on a physical phone, and anything on Android.
 

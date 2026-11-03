@@ -3,6 +3,11 @@ import { createFeelService } from '../feel.service';
 import { checkinBodySchema } from '../feel.schemas';
 import type { FeelRepository } from '../feel.repository';
 
+const noDraft = {
+  draft: async (): Promise<never> => {
+    throw new Error('not used');
+  },
+};
 const now = new Date('2026-11-02T12:00:00Z');
 const mealId = '11111111-1111-4111-8111-111111111111';
 const input = { mealId, energy: 'okay' as const, stomach: 'fine' as const };
@@ -31,7 +36,7 @@ function setup(ageMinutes = 90, dishes = ['raita'], insertError?: unknown) {
       return [];
     },
   };
-  return { service: createFeelService({ repository }), saved };
+  return { service: createFeelService({ repository, questionClient: noDraft }), saved };
 }
 
 describe('timely whole-meal check-ins', () => {
@@ -59,6 +64,7 @@ describe('timely whole-meal check-ins', () => {
     ];
     const service = createFeelService({
       repository: { listCandidates: async () => meals } as unknown as FeelRepository,
+      questionClient: noDraft,
     });
     expect((await service.getDue('owner', now))?.mealId).toBe('older');
     expect((await service.getDue('owner', now, ['older']))?.mealId).toBe('newer');

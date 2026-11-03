@@ -81,6 +81,8 @@ The server refuses to start if a required variable is missing.
 | POST   | `/api/streaks/nudge`                 | Nudge the buddy (once per day): 204               |
 | POST   | `/api/streaks/nudge/ack`             | Mark received nudges as seen: 204                 |
 | GET    | `/api/feel/due`                      | The meal waiting for a check-in, or `null`        |
+| GET    | `/api/feel/question/:mealId`         | The follow-up question for a due meal             |
+| GET    | `/api/feel/pattern`                  | The caller's weekly pattern card                  |
 | POST   | `/api/feel/checkins`                 | Save a check-in: 201 `{ id }`                     |
 
 ### Duo Streaks
@@ -104,6 +106,49 @@ Codes are six characters `A-Z0-9`. The app builds the share link with `Linking.c
 ### Food and Feel
 
 - `GET /api/feel/due` returns `{ "mealId", "eatenAt", "dishes": ["Chicken karahi", ...] }` for the caller's oldest meal that is 90 minutes to 24 hours old, has a confirmed dish and no check-in, else JSON `null`. Optional `?skip=id,id` skips meals the user dismissed on screen.
+- `GET /api/feel/question/:mealId` returns the follow-up question for one of the caller's due meals (same rule as `/due`: 90 minutes to 24 hours old, a confirmed dish, no check-in):
+
+  ```json
+  {
+    "mealId": "<uuid>",
+    "intent": "symptom_detail",
+    "text": "How would you describe your stomach discomfort?",
+    "options": [
+      { "id": "bloated", "label": "Bloated" },
+      { "id": "upset", "label": "Upset" },
+      { "id": "other", "label": "Other" },
+      { "id": "not_sure", "label": "Not sure" }
+    ],
+    "source": "gemini"
+  }
+  ```
+
+  `intent` is always `symptom_detail` for now (options `bloated|upset|other|not_sure`; the `pre_existing` question exists in the code but is not served because its answer cannot be stored yet). Options, labels and their order always come from the server, never from Gemini. `source` is `gemini` when Gemini's wording passed the checks, else `fallback` (timeout, invalid JSON, wrong option ids, a word outside the allowed vocabulary, or the history could not be read) and `text` is the fixed question. The wording guard is an allowlist of words; it checks vocabulary and shape, not meaning. Gemini is sent only the intent, the allowed ids and an aggregate summary of the caller's own check-ins (the check-in count, and whether a dish repeats with its exposed and comparison meal counts; no dish names, meal history or buddy data). The client makes at most 2 attempts inside an 8 s overall deadline, so a request waits at most about 8 s (normally 1 to 3 s). The answer for a user and meal is cached for 10 minutes in the API process (at most 500 entries), so repeating the request does not call Gemini again. 400 for a malformed meal id or a meal that is not due or already answered; 404 for a meal that is not the caller's. The answer is submitted with `POST /api/feel/checkins` (`symptom` accepts the `symptom_detail` ids).
+
+- `GET /api/feel/pattern` returns the caller's private weekly card for the last 7 PKT days (today and the 6 days before). It takes no parameters; the user is always the token's user, and a `userId` in the request is ignored. The week is keyed on when each **meal was eaten** (`eatenAt`), not when it was checked in, and check-ins made over 24 hours after their meal do not count. Response (always 200):
+
+  ```json
+  {
+    "state": "insufficient_data | no_pattern | question | pattern",
+    "isSample": false,
+    "checkins": 7,
+    "needed": 7,
+    "window": { "from": "2026-10-28", "to": "2026-11-03" },
+    "pattern": {
+      "patternKey": "category:rice:heavy",
+      "kind": "category | dish",
+      "subject": "rice",
+      "outcome": "heavy | good_energy",
+      "matching": 5,
+      "relevant": 6,
+      "comparison": null
+    },
+    "label": "In your logs, you reported a heavy stomach after 5 of 6 meals containing rice dishes. This only describes your own logs."
+  }
+  ```
+
+  `pattern` is `null` unless `state` is `pattern` or `question`. `comparison` is `{ "matching", "total" }` (meals without the dish) for `kind: "dish"` and `null` for a category. `state` rules: fewer than 7 check-ins in the window gives `insufficient_data` (progress text in `label`); a category needs at least 3 relevant meals with the outcome in 60% or more; a dish also needs at least 3 meals without it and a gap of 25 points or more, otherwise a consistent-looking dish is a `question`; `no_pattern` means 7 or more check-ins and nothing consistent. `isSample` is always `false` here (the demo account is Task 9). `label` states what the logs show; it never claims a cause.
+
 - `POST /api/feel/checkins` body: `{ "mealId": "<uuid>", "energy": "low|okay|good", "stomach": "heavy|fine|light", "symptom": "bloated|upset|other|not_sure" }` (`symptom` optional; the app offers it after a heavy stomach). The body is strict: unknown fields give 400. 400 also for a meal that is not due, already answered, or not the caller's (404). Skipping a check-in writes nothing.
 
 ### GET /api/health
