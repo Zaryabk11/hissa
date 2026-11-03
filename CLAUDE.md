@@ -4,7 +4,8 @@ Hissa is a portion coach app for desi households. See `docs/PRD.md` and `docs/ar
 
 ## Read first
 
-- If `graphify-out/GRAPH_REPORT.md` exists, read it before answering architecture questions.
+- Current status and next steps: `docs/superpowers/plans/2026-11-02-v2-status.md`. Read it first when you start work.
+- If `graphify-out/GRAPH_REPORT.md` exists, read it before answering architecture questions (the graph is git-ignored; rebuild the code graph with `graphify update .`).
 - Write only what the task needs. No extra features, options or abstractions.
 
 ## Layout
@@ -23,13 +24,16 @@ Hissa is a portion coach app for desi households. See `docs/PRD.md` and `docs/ar
 
 ## Product rules
 
-- Gemini only names dishes from our catalog (enum plus "unknown"). It never produces calorie numbers.
+- Gemini only names dishes from our catalog (enum plus "unknown"). It never produces calorie numbers. (v2 Task 7 will let Gemini draft the wording of one approved Food and Feel question from a bounded summary, with the service validating options and falling back to a fixed question; update this rule in that task. Gemini will still never supply calories, counts or health claims.)
 - Every number shown to a user is labelled an estimate. Never give medical advice.
-- A buddy sees only "logged today" and the streak, never meals, photos or calories.
+- A buddy sees only "logged today", the streak and nudge state, never meals, photos, calories or feelings.
+- Clients never write `meals`, `meal_items`, `feel_checkins` or buddy data to Supabase directly; everything goes through the API.
 
 ## Commands
 
-- `npm run dev` backend, `npm run dev:app` Expo, `npm test`, `npm run lint`, `npm run build`.
+- `npm run dev` backend, `npm run dev:app` Expo (through `frontend/scripts/start.mjs`), `npm test`, `npm run lint`, `npm run build`, `npm run test:data`, `npm run train:questions -w backend`.
+- Optional database tests need a disposable Postgres (`HISSA_TEST_POSTGRES_CONTAINER`); see `backend/README.md`.
+- Do parallel agent work in separate git worktrees; never touch another agent's worktree.
 - Never commit real `.env` files; copy `.env.example`.
 
 ## Session Logs

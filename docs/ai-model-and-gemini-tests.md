@@ -22,12 +22,12 @@ On the same 298 answered Kaggle photos, the classifier scored 83.2% and Gemini 6
 
 - The [client tests](../backend/src/modules/scan/__tests__/gemini.client.test.ts) use mocked HTTP responses. They check image encoding, catalog-only JSON schema (`dish`, `portion_units`, `confidence`), valid and malformed answers, off-catalog `unknown`, 429/503 and retry behavior, timeout/network failures, and safe error logging. Test-run pass/fail output is printed by Vitest, not kept as a separate report.
 - The [scan service tests](../backend/src/modules/scan/__tests__/scan.service.test.ts) cover resized photos, low-confidence confirmation, no recognition, scan cap and manual fallback. A hosted Supabase plus real Gemini [end-to-end API run](superpowers/plans/2026-11-01-v1-portion-coach.md#task-10-end-to-end-check-and-api-contract) checked profile → catalog → scan → plan → saved meal → today's log; no committed raw HTTP transcript was found.
-- The production [Gemini client](../backend/src/modules/scan/gemini.client.ts) asks only for catalog dish names, portion units and confidence. Nutrition values come from the database catalog, never Gemini. Its model is configurable with `GEMINI_MODEL`; the test used `gemini-3.1-flash-lite`.
+- The production [Gemini client](../backend/src/modules/scan/gemini.client.ts) asks only for catalog dish names, portion units and confidence. Nutrition values come from the database catalog, never Gemini. Its model is configurable with `GEMINI_MODEL`; the vision comparison above used `gemini-3.1-flash-lite`, and the default is now `gemini-flash-lite-latest` (see the latency findings below and [decision 0005](decisions/0005-gemini-timeouts-retries-and-model.md)).
 - The root `Gemini-API - Sheet1.csv` was a historical API-quota sheet used during model selection, **not** an accuracy result. Quotas may change.
 
 ## Saved experiment files
 
-The following files still exist under this **temporary, untracked** root and may disappear when temporary files are cleaned:
+These files were kept in a **temporary, untracked** scratch directory outside the repository. They may already be gone; nothing in the repo depends on them. If they still exist, this is where they were:
 
 `/private/tmp/claude-501/-Users-sobanahmad-Work-8x-hackathon-hissa/1552c292-3466-48ec-bbc1-536015265170/scratchpad/`
 
@@ -43,3 +43,16 @@ The committed [design comparison](superpowers/specs/2026-11-01-ai-backend-design
 ## Separate synthetic question-ranker training
 
 This is unrelated to the vision comparison: [train-question-ranker.ts](../backend/scripts/train-question-ranker.ts) trained on 2,000 synthetic users and held out 500. The generated [question-weights.ts](../backend/src/modules/feel/question-weights.ts) stores weights and a `trainingReport`: top-question accuracy 0.782 versus a fixed baseline of 0.664. It tests question selection on synthetic data, not food recognition, symptom prediction or clinical validity.
+
+## Gemini latency and model findings (2026-11-02)
+
+Measured against the real API with the production client and dataset photos, after the app showed "Photo scans are unavailable right now" although Gemini was working:
+
+| Model                      | What was measured                                                                   | Result                                                                                                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gemini-3.1-flash-lite`    | 12 scans with a 90 s timeout; then 20 calls side by side with other models          | 1 to 3 s typical, but 5 of 20 calls took 15 to 72 s (worst 72 s), in bursts; 2 of 20 failed with 503                                                          |
+| `gemini-flash-lite-latest` | the same 20 side-by-side calls, then 20 varied scans end to end, then 8 paced scans | never over 3.5 s in the side-by-side run; 18 of 20 back-to-back scans succeeded (the 2 failures were quota 429s); 8 of 8 paced scans succeeded, slowest 2.5 s |
+| `gemini-3.5-flash-lite`    | the same 20 side-by-side calls                                                      | never over 2.0 s; 3 fast failures (503)                                                                                                                       |
+| `gemini-2.5-flash-lite`    | 8 calls                                                                             | HTTP 404 for this key                                                                                                                                         |
+
+The free tier also enforces a per-minute request quota per model (`GenerateRequestsPerMinutePerProjectPerModel-FreeTier`; the API asked to retry after 3 s and calls worked 30 s later). Repeated bursts of 20 scans reach it. Dish-naming accuracy was **not** compared between models in this run (accuracy is not a gate for the hackathon); the partner's real aloo qeema photo came back as the nearest catalog dish, `kachalo-qeema`, with 0.95 confidence. The fix (10 s per-attempt timeout, up to 3 attempts, the lite alias as default) is recorded in decision 0005. One sample window per measurement, so treat the numbers as indicative.

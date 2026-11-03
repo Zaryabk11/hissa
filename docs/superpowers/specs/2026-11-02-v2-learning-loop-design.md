@@ -1,6 +1,6 @@
 # Hissa v2: a personal learning loop with a buddy
 
-**Status:** Draft for builder review and user approval. **Date:** 2026-11-02.
+**Status:** Approved 2026-11-02 and being implemented: Tasks 1 to 6 of the plan are done, 7 to 10 remain. **Date:** 2026-11-02. The live task board and the deviations from this text are in `docs/superpowers/plans/2026-11-02-v2-status.md`.
 
 ## Intent
 
@@ -9,6 +9,8 @@ Hissa already has a working v1 backend for estimating portions of desi meals. Th
 The user's highest priority is speed to a real, demonstrable experience. Their partner owns the v1 screens and landing page. This work owns the shared Google sign-in path and basic, replaceable v2 Expo screens, the necessary backend and database behavior, and a release path. The v2 design supersedes the older backend-only v2 scope in `docs/superpowers/plans/2026-11-01-roadmap-v1-v2-v3.md` and pulls a narrow Food & Feel slice forward from v3.
 
 ## Existing state and constraints
+
+_(Written before implementation. The current state is in the status doc; for example the `auth`, `streaks` and `feel` modules and the Expo screens named as placeholders below now exist.)_
 
 - The v1 Express API, Supabase schema, 78-dish catalog, Gemini scan, plan, and meal save exist. The Expo routes are placeholders; `auth`, `streaks`, and `feel` backend modules return 501. Meal save does not yet write `streak_days`.
 - `buddy_pairs`, `streak_days`, and `feel_checkins` exist. The current `streak_days_read` RLS policy exposes historical streak days to an active buddy through direct Supabase access. It must be narrowed to owner-only reads; buddy data must go through a minimal API response.

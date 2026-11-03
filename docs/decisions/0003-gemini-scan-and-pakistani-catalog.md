@@ -1,6 +1,6 @@
 # 0003: Gemini scans, a Pakistani catalog in the database supplies the numbers
 
-**Status:** accepted. Supersedes [0002](0002-gemini-names-tables-count.md).
+**Status:** accepted. Supersedes [0002](0002-gemini-names-tables-count.md). The Gemini model and timeout settings were changed later, see [0005](0005-gemini-timeouts-retries-and-model.md).
 
 **Context:** 0002 sent calories to FatSecret with a local table as fallback. Western databases cover desi home-cooked dishes poorly, and FatSecret Basic forbids long-term caching. We also compared training our own classifier with using Gemini (fine-tuned EfficientNet-B0 on the Kaggle photos against Gemini 3.1 Flash-Lite zero-shot with a closed class list plus "unknown"). Full table and limits: `docs/superpowers/specs/2026-11-01-ai-backend-design.md` section 4.1.
 

@@ -1,0 +1,14 @@
+# 0006: Per-user learning with a synthetic-trained question ranker, and backend-only writes to meal and check-in data
+
+**Status:** accepted (2026-11-02). Full design: `docs/superpowers/specs/2026-11-02-v2-learning-loop-design.md`.
+
+**Context:** v2 adds buddy streaks and a Food and Feel loop. Real users produce sparse, confounded data, and a person cannot see what a meal "caused". Streak days and check-in evidence must also come from real saved meals, not from rows a client wrote directly.
+
+**Decision:**
+
+- **Learning is per user and transparent.** `backend/src/modules/feel/question-model.ts` builds evidence from the user's own check-ins, one observation per whole confirmed meal (never one dish out of a mixed meal), with Beta(1,1) smoothing and a dish candidate only when it has at least 2 exposed meals and 1 comparison meal. No disease probability is computed or shown.
+- **A small ranker chooses which approved question type to ask** (`symptom_detail` or `pre_existing`). It is trained offline by `npm run train:questions -w backend` on labelled **synthetic** histories only (2,000 train users, 500 held out, deterministic). Held-out top-question accuracy 0.782 against a fixed-question baseline of 0.664. This shows the ranker recovers patterns the simulator planted; it says nothing about real people, food, symptoms or clinical validity. The flag `useTrainedRanker` is derived from the training report; if the ranker did not beat the baseline the app would use the fixed order. Real-tester review is still needed.
+- **Gemini drafts wording only** (Task 7, not built yet): from the top candidate, a compact aggregate summary and the allowed option IDs. The service validates schema and options, rejects diagnostic or causal wording, and falls back to a fixed question. Gemini never supplies calories, counts, diagnoses or options.
+- **Writes to `meals`, `meal_items` and `feel_checkins` are backend-only.** Owners keep read access through select-only policies and the `authenticated` role has no insert, update or delete grant on them. Streak repair counts only meals saved through the validated backend save, so a half-written direct client row cannot create a streak day. `buddy_pairs` and `buddy_nudges` allow no direct client access; buddy data reaches the app only through the authenticated API, which returns `loggedToday`, the shared streak and nudge state.
+
+**Consequences:** The app must write meals and check-ins through the API, never straight to Supabase. Database tests for these rules are opt-in (they need a disposable Postgres) and can flake when run in parallel. Migrations `20261102000200`, `300` and `400` implement the data side; `400` was edited in place before it was ever applied remotely.

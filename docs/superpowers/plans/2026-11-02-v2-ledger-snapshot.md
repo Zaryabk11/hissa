@@ -1,3 +1,5 @@
+> **Archive.** A copy of Codex's execution ledger for Tasks 1 to 6 (written by Codex, then continued by Claude). It is history, not status: the live status is `2026-11-02-v2-status.md`. Task 7 started afterwards in a separate worktree and is not in this file.
+
 # SDD ledger — plan: docs/superpowers/plans/2026-11-02-v2-learning-loop.md
 
 Workspace: /Users/sobanahmad/.codex/worktrees/652f/hissa, branch feature/v2-learning-loop. Baseline 2026-11-02: npm test passed, 24 files/179 tests. Main has a modified session log that stays untouched.

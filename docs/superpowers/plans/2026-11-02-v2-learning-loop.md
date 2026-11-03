@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status (2026-11-03):** Tasks 1 to 6 are complete, independently reviewed and on `main`; Tasks 7 to 10 are not started. The checkboxes below were not ticked as work happened; the task board and caveats in `2026-11-02-v2-status.md` are the source of truth. Where the implementation differs from this text (for example the iOS sign-in return address, `nudgedToday`, backend-only writes to meal and check-in tables, the 24 hour cutoff still in the feel repository) the status doc and `docs/decisions/` record why.
+
 **Goal:** Ship a real two-person Android/iOS Hissa learning loop: Google sign-in, saved-meal buddy accountability, private adaptive Food & Feel questions, and an evidence-backed weekly pattern.
 
 **Architecture:** Extend the existing Expo app and Express modular monolith in vertical slices. Supabase Auth supplies Google sessions; the API verifies bearer tokens and owns all buddy, feeling, and pattern queries. A per-user statistical model and a small synthetic-trained question ranker select a bounded question intent; Gemini drafts wording and the service validates it before display.
@@ -77,7 +79,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 
 ---
 
-### Task 1: Shared Google session and authenticated API path
+### Task 1: Shared Google session and authenticated API path (done)
 
 **Files:** Modify `frontend/package.json`, `frontend/app.json`, `frontend/.env.example`, `frontend/src/shared/api/client.ts`, `frontend/app/_layout.tsx`, `frontend/app/index.tsx`, `frontend/app/(auth)/sign-in.tsx`, `backend/src/modules/auth/{index,auth.controller,auth.service}.ts`, `backend/src/__tests__/app.test.ts`, `backend/src/modules/auth/__tests__/auth.service.test.ts`. Create `frontend/src/shared/auth/{supabase,session,google}.ts(x)`.
 
@@ -90,7 +92,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 5: Verify.** Targeted tests pass; `npm run build -w frontend` and `npm run lint -w frontend` pass. On Android emulator and iOS Simulator, test Google success, cancellation, app restart/session restore, sign-out, expired-session recovery, and `GET /api/auth`. Record OAuth redirect URL actually used. If remote Google configuration is unavailable, mark the smoke as blocked rather than simulated.
 - [ ] **Step 6: Commit and evidence.** Commit code plus `.claude-logs/`; capture a sub-minute sign-in demo and give the partner the `useSession`/`apiAuthed` contract.
 
-### Task 2: Invite lifecycle and one-buddy invariant
+### Task 2: Invite lifecycle and one-buddy invariant (done)
 
 **Files:** Create `database/supabase/migrations/20261102000200_buddy_invites_and_privacy.sql`. Modify `backend/src/modules/streaks/{streaks.routes,streaks.controller,streaks.service,streaks.repository,streaks.schemas,streaks.types}.ts`. Create/update `backend/src/modules/streaks/__tests__/{invites.service,invites.controller}.test.ts`.
 
@@ -102,7 +104,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify database and API.** Run targeted tests, then reset a local Supabase database with the migration and use two authenticated test users to exercise accept, decline, simultaneous accept, and end. A new pair's streak starts at acceptance, never inherits days from an old pair.
 - [ ] **Step 5: Commit and evidence.** Commit migration/API/tests/logs; save a brief API contract example for the partner and a short two-account invite demo.
 
-### Task 3: Real saved-meal streak, private status, and daily nudge
+### Task 3: Real saved-meal streak, private status, and daily nudge (done)
 
 **Files:** Create `database/supabase/migrations/20261102000300_buddy_nudges.sql`. Modify `backend/src/modules/streaks/{index,streaks.service,streaks.repository,streaks.routes,streaks.controller}.ts`, `backend/src/modules/meals/{index,meals.service}.ts`, `backend/src/modules/index.ts`, `backend/src/modules/meals/__tests__/meals.service.test.ts`, `backend/src/modules/streaks/__tests__/streaks.service.test.ts`, `backend/src/__tests__/app.test.ts`, `docs/architecture.md`.
 
@@ -114,7 +116,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify.** Run targeted tests, `npm run lint -w backend`, `supabase --workdir database db reset`, local RLS checks using authenticated users, and a two-account save/status/nudge smoke against the local stack. Status must reflect a save within seconds; a stale open Buddy screen will refresh at most every five seconds in Task 4.
 - [ ] **Step 5: Commit and evidence.** Commit code/migration/tests/logs and record a short saved-meal-to-both-status demo.
 
-### Task 4: Basic Buddy screen and invite deep link
+### Task 4: Basic Buddy screen and invite deep link (done)
 
 **Files:** Create `frontend/src/features/buddy/api/buddy.ts`, `frontend/src/features/buddy/components/BuddyPanel.tsx`, `frontend/app/invite/[code].tsx`. Modify `frontend/app/(tabs)/buddy.tsx`, `frontend/app/_layout.tsx` only for link routing, and `frontend/app/(tabs)/today.tsx` only through a small status component agreed with the partner.
 
@@ -126,7 +128,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify.** `npm run build -w frontend` and `npm run lint -w frontend` pass; exercise create, preview, accept, decline, unpair, and nudge on Android/iOS against local fixtures. Check an invite link both signed-in and signed-out. The two real Google-account smoke against hosted Supabase remains a release gate until remote migrations are authorized.
 - [ ] **Step 5: Commit and evidence.** Commit files/logs and record a sub-minute pairing and nudge demo.
 
-### Task 5: Real, timely Food & Feel check-in
+### Task 5: Real, timely Food & Feel check-in (done)
 
 **Files:** Create `database/supabase/migrations/20261102000400_feel_learning.sql`. Modify `backend/src/modules/feel/{feel.routes,feel.controller,feel.service,feel.repository,feel.schemas,feel.types}.ts`, `backend/src/modules/feel/__tests__/feel.service.test.ts`. Create `frontend/src/features/feel/api/feel.ts`, `frontend/src/features/feel/components/CheckinPanel.tsx`, `frontend/app/(tabs)/feel.tsx`; modify `frontend/app/(tabs)/_layout.tsx`.
 
@@ -138,7 +140,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify.** Run targeted test, backend/frontend lint and builds, then save a real meal and check that it is unavailable before 90 minutes and available afterward using a controlled clock/test fixture. On a phone, complete a check-in and see it disappear from due.
 - [ ] **Step 5: Commit and evidence.** Commit migration/API/UI/tests/logs and record a short meal-to-feeling demo using a test clock, clearly explaining that the live wait is 90 minutes.
 
-### Task 6: Per-user evidence model and synthetic question-ranker experiment
+### Task 6: Per-user evidence model and synthetic question-ranker experiment (done)
 
 **Files:** Create `backend/src/modules/feel/question-model.ts`, `backend/src/modules/feel/question-weights.ts`, `backend/src/modules/feel/__tests__/question-model.test.ts`, `backend/scripts/synthetic-question-data.ts`, `backend/scripts/train-question-ranker.ts`. Modify `backend/package.json` for `train:questions` and `backend/src/modules/feel/feel.repository.ts` for owner-scoped history.
 
@@ -150,7 +152,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify training honestly.** Run `npm run train:questions -w backend` twice and confirm byte-identical weights/metrics; run model tests. If held-out relevance does not beat the fixed-question baseline or real testers find questions confusing, disable the offline ranker in the release and use the transparent posterior/fixed intents; keep the experiment and result in the repo.
 - [ ] **Step 5: Commit and evidence.** Commit model, generator, metric report, tests, and logs. Demo a synthetic timeline changing the selected question, with “synthetic” visible throughout.
 
-### Task 7: Gemini-drafted question with exact option validation
+### Task 7: Gemini-drafted question with exact option validation (not started)
 
 **Files:** Create `backend/src/modules/feel/question-bank.ts`, `backend/src/modules/feel/gemini-question.client.ts`, `backend/src/modules/feel/__tests__/gemini-question.client.test.ts`, `backend/src/modules/feel/__tests__/question.service.test.ts`. Modify `backend/src/modules/feel/{index,feel.service,feel.controller,feel.routes,feel.schemas}.ts`, `AGENTS.md`, `docs/PRD.md`, `docs/architecture.md`.
 
@@ -162,7 +164,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify.** Run targeted tests, `npm run lint`, `npm run build`, and manually inspect a sample of generated questions against their actual input summaries. Document false/unsafe outputs found; do not claim “always meaningful” from schema validation alone.
 - [ ] **Step 5: Commit and evidence.** Commit client/API/docs/tests/logs and show one standard and one personalized question in a short demo, with evidence counts visible only to the owner.
 
-### Task 8: Weekly pattern card from observed meals
+### Task 8: Weekly pattern card from observed meals (not started)
 
 **Files:** Create `backend/src/modules/feel/weekly-pattern.ts`, `backend/src/modules/feel/__tests__/weekly-pattern.test.ts`, `frontend/src/features/feel/components/PatternCard.tsx`. Modify `backend/src/modules/feel/{feel.service,feel.repository,feel.routes,feel.controller}.ts`, `frontend/src/features/feel/api/feel.ts`, `frontend/app/(tabs)/feel.tsx`.
 
@@ -174,7 +176,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify.** Run targeted tests, lint/build, and compare card text to raw rows for a local tester and a labelled sample account. Verify no card appears from synthetic training fixtures in an ordinary account. Repeat with a real Google account after the held remote migration/deployment gates resume.
 - [ ] **Step 5: Commit and evidence.** Commit pattern/API/UI/tests/logs and record a short day-seven demo with the exact underlying check-ins visible only on the demo account.
 
-### Task 9: Private “try next time” action and labelled demo history
+### Task 9: Private “try next time” action and labelled demo history (not started)
 
 **Files:** Create `database/supabase/migrations/20261102000500_user_experiments.sql`, `backend/src/modules/feel/__tests__/experiments.service.test.ts`, `database/scripts/seed-demo-history.mjs`, `database/scripts/seed-demo-history.test.mjs`; modify `backend/src/shared/config/index.ts`, `backend/src/modules/feel/{index,feel.repository,feel.service,feel.routes,feel.controller,feel.schemas}.ts`, `frontend/src/features/feel/{api/feel.ts,components/PatternCard.tsx}`, and `frontend/app/(tabs)/feel.tsx`.
 
@@ -186,7 +188,7 @@ Endpoints: `GET /api/auth` → `{id}`; `POST /api/streaks/invites` → `{code, l
 - [ ] **Step 4: Verify.** Run targeted tests, lint/build, idempotent seed dry run against local Supabase, then two real-account privacy checks. The designated team Google account is supplied at implementation; if it is unavailable, leave the seed script ready and mark the demo-history gate blocked, not populated.
 - [ ] **Step 5: Commit and evidence.** Commit code/migration/script/tests/logs and record a demo of choosing and reviewing one action.
 
-### Task 10: Release preparation, device checks, and owner deployment handoff
+### Task 10: Release preparation, device checks, and owner deployment handoff (not started)
 
 **Files:** Create `frontend/eas.json`, `docs/release-v2.md`. Modify `frontend/app.json`, `frontend/.env.example`, `backend/.env.example`, `backend/README.md`, `docs/architecture.md`, `docs/superpowers/plans/2026-11-01-roadmap-v1-v2-v3.md`, and partner-facing API contract note if needed. Do **not** add deprecated `railway.json` for a new Railway service; current Railway docs prefer Infrastructure as Code or service settings.
 

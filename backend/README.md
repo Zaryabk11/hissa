@@ -10,7 +10,7 @@ From the repo root:
 2. `cp backend/.env.example backend/.env` and fill in the values. Never commit `.env`.
 3. Set up Supabase (once), from `database/`:
    - Hosted: `supabase link --project-ref <ref>`, then `supabase db push --linked --include-seed`.
-   - Local: `supabase start`, then `supabase db reset`. Needs a current Supabase CLI. The committed `config.toml` was verified with CLI 2.122 only for the hosted `supabase db push`; a local `supabase start` / `db reset` has not been run here.
+   - Local: `supabase --workdir database start`, then `supabase --workdir database db reset`. Verified with CLI 2.122 (all migrations and the seed apply; the v2 two-account smoke test passes against it). On a Mac where Docker's credential helper breaks image pulls, use a temporary `DOCKER_CONFIG` directory containing `{}`, and start with `-x logflare,vector,studio,edge-runtime,imgproxy,postgres-meta` if analytics containers fail their health checks.
 4. `npm run dev` starts the API on `PORT` (default 3000).
 
 | Command             | What it does                                   |
@@ -56,23 +56,55 @@ The server refuses to start if a required variable is missing.
 | 503    | `auth_unavailable`  | Supabase Auth unreachable, rate limiting or returned 5xx          |
 | 404    | `not_found`         | Unknown route, unknown dish slug, `GET /profiles/me` before setup |
 | 413    | `payload_too_large` | Body over its limit                                               |
-| 501    | `not_implemented`   | Stub routes (below)                                               |
+| 501    | `not_implemented`   | Unbuilt routes (none at the moment)                               |
 | 500    | `internal_error`    | Anything unexpected                                               |
 
 ## Endpoints
 
-| Method | Path                     | Purpose                                         |
-| ------ | ------------------------ | ----------------------------------------------- |
-| GET    | `/api/health`            | Liveness. No auth.                              |
-| GET    | `/api/profiles/me`       | Read profile and daily calorie budget           |
-| PUT    | `/api/profiles/me`       | Create or update profile (budget is recomputed) |
-| GET    | `/api/nutrition/catalog` | All dishes the app can name                     |
-| POST   | `/api/scan`              | Photo in, detected dishes out                   |
-| POST   | `/api/plan`              | Fit confirmed dishes to the remaining budget    |
-| POST   | `/api/meals`             | Save a confirmed meal                           |
-| GET    | `/api/meals/today`       | Today's meals and total (PKT day)               |
+| Method | Path                                 | Purpose                                           |
+| ------ | ------------------------------------ | ------------------------------------------------- |
+| GET    | `/api/health`                        | Liveness. No auth.                                |
+| GET    | `/api/profiles/me`                   | Read profile and daily calorie budget             |
+| PUT    | `/api/profiles/me`                   | Create or update profile (budget is recomputed)   |
+| GET    | `/api/nutrition/catalog`             | All dishes the app can name                       |
+| POST   | `/api/scan`                          | Photo in, detected dishes out                     |
+| POST   | `/api/plan`                          | Fit confirmed dishes to the remaining budget      |
+| POST   | `/api/meals`                         | Save a confirmed meal                             |
+| GET    | `/api/meals/today`                   | Today's meals and total (PKT day)                 |
+| GET    | `/api/auth`                          | The authenticated user: `{ "id": "<user id>" }`   |
+| GET    | `/api/streaks`                       | Buddy status (see below)                          |
+| POST   | `/api/streaks/invites`               | Create an invite: 201 `{ code, linkPath }`        |
+| GET    | `/api/streaks/invites/:code`         | Preview an invite: `{ code, status: "pending" }`  |
+| POST   | `/api/streaks/invites/:code/accept`  | Accept it: 204                                    |
+| POST   | `/api/streaks/invites/:code/decline` | Decline it: 204                                   |
+| POST   | `/api/streaks/end`                   | End the caller's pair or cancel their invite: 204 |
+| POST   | `/api/streaks/nudge`                 | Nudge the buddy (once per day): 204               |
+| POST   | `/api/streaks/nudge/ack`             | Mark received nudges as seen: 204                 |
+| GET    | `/api/feel/due`                      | The meal waiting for a check-in, or `null`        |
+| POST   | `/api/feel/checkins`                 | Save a check-in: 201 `{ id }`                     |
 
-Stubs that return `501 not_implemented`: `GET /api/streaks`, `GET /api/feel`, `GET /api/auth`. Do not build against them yet.
+### Duo Streaks
+
+`GET /api/streaks` returns exactly these keys and nothing about the buddy's meals, photos, calories or feelings:
+
+```json
+{
+  "pairStatus": "none | pending | active",
+  "pendingInviteCode": "ABC123 or null (the caller's own pending code)",
+  "streak": 0,
+  "ownLoggedToday": false,
+  "buddyLoggedToday": "true | false | null (null unless active)",
+  "unreadNudge": false,
+  "nudgedToday": false
+}
+```
+
+Codes are six characters `A-Z0-9`. The app builds the share link with `Linking.createURL('/invite/<code>')` from `linkPath`. Self-invites, unknown or already-used codes, a second pair, a repeated accept, and nudging a buddy who already logged (or nudging twice in a day) return 400. A day counts when a person saved a meal (the meal save marks it); the shared streak counts consecutive PKT days on which both did, starting from the pair's acceptance day.
+
+### Food and Feel
+
+- `GET /api/feel/due` returns `{ "mealId", "eatenAt", "dishes": ["Chicken karahi", ...] }` for the caller's oldest meal that is 90 minutes to 24 hours old, has a confirmed dish and no check-in, else JSON `null`. Optional `?skip=id,id` skips meals the user dismissed on screen.
+- `POST /api/feel/checkins` body: `{ "mealId": "<uuid>", "energy": "low|okay|good", "stomach": "heavy|fine|light", "symptom": "bloated|upset|other|not_sure" }` (`symptom` optional; the app offers it after a heavy stomach). The body is strict: unknown fields give 400. 400 also for a meal that is not due, already answered, or not the caller's (404). Skipping a check-in writes nothing.
 
 ### GET /api/health
 
@@ -299,7 +331,7 @@ Meals eaten today, where "today" is the Pakistan (PKT, UTC+5) calendar day. Olde
 
 - **Manual fallback is never a dead end.** `mode: "manual"` means no detection was done. Show manual dish entry from the catalog (`GET /api/nutrition/catalog`) and continue the normal flow.
   - `reason: "daily_cap"`: the user used all `SCAN_DAILY_CAP` scans (default 10) for the PKT day. Normally the scan is not run and not counted; if two scans race for the last slot, the loser may leave a recorded row and both can be refused.
-  - `reason: "gemini_unavailable"`: Gemini failed or timed out. The attempt still counts toward the cap.
+  - `reason: "gemini_unavailable"`: Gemini failed or timed out on all 3 attempts (10 s each; timeouts, 503 and 429 are retried). The attempt still counts toward the cap. Allow up to about 45 s for a scan response; the API's worst case is about 32 s.
 - **`needsConfirmation: true`** means show correction chips for that item instead of treating it as settled. It is true when confidence is below 0.6, when the dish is `unknown`, or when the model's portion was out of range (0 or above 20) and was replaced by `1`. When false, still let the user edit.
 - **Nothing recognised:** `items` is a single entry `{ "dish": "unknown", "name": null, "unit": null, "portion": 0, "confidence": 0, "needsConfirmation": true }`. Treat it as "we could not tell", and send the user to manual entry. Whenever at least one catalog dish is recognised, `unknown` items are dropped, so a mixed result never contains `unknown` rows and the single `unknown` item above appears only when nothing was recognised.
 - Gemini only picks from catalog slugs (or `unknown`). It never supplies calories.
@@ -336,7 +368,7 @@ Every number is an estimate. Plan responses and nutrition carry `isEstimate: tru
 
 ### Privacy note
 
-Buddies see only "logged today" and the streak, never meals, photos or calories. Those endpoints do not exist yet.
+Buddies see only "logged today", the streak and nudge state, never meals, photos, calories or feelings. The shape above is the whole contract; direct database access to buddy tables is closed, and clients must not write meals or check-ins to Supabase themselves.
 
 ## How a scan becomes a saved meal
 
@@ -347,3 +379,11 @@ Buddies see only "logged today" and the streak, never meals, photos or calories.
 5. `POST /api/plan` with the confirmed `{ slug, units }` list. Show `kind`, the recommended `units`, `remainingAfter`, and the "estimate" label. The user may accept the plan's portions or keep their own.
 6. `POST /api/meals` with predicted and confirmed values per item (the portions the user will actually eat as `confirmedPortion`).
 7. `GET /api/meals/today` to refresh the daily log and total.
+
+## Optional database tests
+
+Some tests run real SQL and are skipped unless a disposable Postgres is provided: `HISSA_TEST_POSTGRES_CONTAINER=<container> npm test -w backend` (the container needs Supabase-style roles `anon`/`authenticated`/`service_role` with default table grants, an `auth.users` stub, `auth.uid()` reading `request.jwt.claim.sub`, and every migration applied), and `FEEL_LOCAL_DB_TEST=1` for the PostgREST integration test. They share tables and truncate with `cascade`, so run them with `--no-file-parallelism` to avoid flaky failures. The two-account smoke test is `node --env-file=<local env> database/scripts/smoke-v2-local.mjs` against a **local** Supabase stack and a running backend; it refuses non-local hosts.
+
+## Question ranker
+
+`npm run train:questions -w backend` regenerates `src/modules/feel/question-weights.ts` from seeded synthetic data (deterministic: run it twice and the file is byte-identical). It is an offline experiment about which question type to ask; see [decision 0006](../docs/decisions/0006-v2-learning-loop-and-backend-only-writes.md).
