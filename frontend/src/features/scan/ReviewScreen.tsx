@@ -4,6 +4,7 @@ import { Image, Pressable, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { hissaRadii } from '../../shared/theme/hissaTokens';
+import { Bone } from '../../shared/ui/hissa/Bone';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
@@ -12,7 +13,7 @@ import { kcalForItems, portionText } from '../nutrition/engine';
 import { getPlan, saveMeal } from '../core/api';
 import { CloseButton } from './CloseButton';
 import { scanContent as c } from './content';
-import { mealPayload } from './scanPayload';
+import { mealPayload, stepQty } from './scanPayload';
 import { newItem, patchItem, setItems, setPlan, useScan, type ReviewItem } from './store';
 
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -139,6 +140,17 @@ function RemovedRow({ item }: { item: ReviewItem }) {
   );
 }
 
+/** Stands in for the dish list while the server builds the plan. */
+function PlanSkeleton({ rows }: { rows: number }) {
+  return (
+    <View accessible accessibilityRole="progressbar" accessibilityLabel={c.review.planning} accessibilityState={{ busy: true }} style={{ marginTop: 24, gap: 8 }}>
+      {Array.from({ length: Math.min(Math.max(rows, 1), 4) }, (_, k) => (
+        <Bone key={k} width="100%" height={48} radius={hissaRadii.control} border />
+      ))}
+    </View>
+  );
+}
+
 type Open = { id: string; mode: 'ask' | 'swap' } | 'add' | null;
 
 /** Screen i. Detected dishes as chips: confirm, swap, answer the question, remove with undo, add a dish. */
@@ -148,7 +160,7 @@ export function ReviewScreen() {
   const { photoUri, items, manualReason } = useScan();
   useEffect(() => { if (!photoUri) router.replace('/(tabs)/scan'); }, [photoUri, router]);
   const [open, setOpen] = useState<Open>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<'save' | 'plan' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const active = items.filter((i) => !i.removed);
   const canContinue = active.length > 0 && active.every((i) => i.confirmed && !i.ask && !!dishById(i.dishId));
@@ -162,7 +174,7 @@ export function ReviewScreen() {
   const toggle = (i: ReviewItem) => (i.ask ? setOpen(open && open !== 'add' && open.id === i.id ? null : { id: i.id, mode: 'ask' }) : patchItem(i.id, { confirmed: !i.confirmed }));
   const save = async () => {
     if (busy || !canContinue) return;
-    setBusy(true);
+    setBusy('save');
     setError(null);
     try {
       await saveMeal(mealPayload(items).items);
@@ -170,12 +182,12 @@ export function ReviewScreen() {
     } catch {
       setError('Could not confirm the save. Check Today before trying again.');
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
   const showPlan = async () => {
     if (busy || !canContinue) return;
-    setBusy(true);
+    setBusy('plan');
     setError(null);
     try {
       const plan = await getPlan(active.map((i) => ({ slug: i.dishId, units: i.qty })));
@@ -184,15 +196,15 @@ export function ReviewScreen() {
     } catch {
       setError('Could not build your plan. Please try again.');
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
   return (
     <HissaScreen actionBar={
         <View style={{ gap: 8 }}>
-          <PrimaryButton label={busy ? 'Working…' : c.review.cta} disabled={!canContinue || busy} onPress={() => void showPlan()} />
-          <PrimaryButton outline label={c.review.save} disabled={!canContinue || busy} onPress={() => void save()} />
+          <PrimaryButton label={busy === 'plan' ? 'Working…' : c.review.cta} disabled={!canContinue || !!busy} onPress={() => void showPlan()} />
+          <PrimaryButton outline label={busy === 'save' ? 'Saving…' : c.review.save} disabled={!canContinue || !!busy} onPress={() => void save()} />
         </View>
       }>
       <View style={{ alignItems: 'flex-end' }}>
@@ -210,6 +222,9 @@ export function ReviewScreen() {
         </View>
       </View>
 
+      {busy === 'plan' ? (
+        <PlanSkeleton rows={active.length} />
+      ) : (
       <View style={{ marginTop: 24, gap: 8 }}>
         {items.map((i) => {
           const here = open && open !== 'add' && open.id === i.id ? open.mode : null;
@@ -223,14 +238,8 @@ export function ReviewScreen() {
               {!i.removed && !i.ask && !!dishById(i.dishId) && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 14 }}>
                   <HissaText variant="caption" style={{ flex: 1 }}>Portion estimate: {portionText(i)}</HissaText>
-                  <Pick label="−" onPress={() => {
-                    const step = ['katori', 'bowl', 'plate'].includes(dishById(i.dishId)!.unit) ? 0.5 : 1;
-                    patchItem(i.id, { qty: Math.max(step, i.qty - step), confirmed: true });
-                  }} />
-                  <Pick label="+" onPress={() => {
-                    const step = ['katori', 'bowl', 'plate'].includes(dishById(i.dishId)!.unit) ? 0.5 : 1;
-                    patchItem(i.id, { qty: Math.min(20, i.qty + step), confirmed: true });
-                  }} />
+                  <Pick label="−" onPress={() => patchItem(i.id, { qty: stepQty(i.qty, dishById(i.dishId)!.unit, -1), confirmed: true })} />
+                  <Pick label="+" onPress={() => patchItem(i.id, { qty: stepQty(i.qty, dishById(i.dishId)!.unit, 1), confirmed: true })} />
                 </View>
               )}
               {here === 'ask' && i.ask && (
@@ -274,6 +283,7 @@ export function ReviewScreen() {
           />
         )}
       </View>
+      )}
 
       <HissaText variant="caption" style={{ marginTop: 16 }}>
         {active.length === 0 ? c.review.empty : !canContinue ? 'Confirm each dish to see an estimate.' : c.review.estimate(fmt(total))}

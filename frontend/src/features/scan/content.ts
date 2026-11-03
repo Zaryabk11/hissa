@@ -31,6 +31,7 @@ export const scanContent = {
     title: 'Is this right?',
     sub: 'Tap to confirm, fix anything off',
     photo: 'Your plate',
+    planning: 'Building your plan',
     confirmed: 'Confirmed',
     swap: (name: string) => `Swap ${name}`,
     question: (name: string) => `${name}, tap to answer`,

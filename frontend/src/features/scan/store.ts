@@ -1,12 +1,18 @@
 import { useSyncExternalStore } from 'react';
-import type { Detected } from './mockRecognise';
 import type { Plan } from '../core/api';
+
+export type Detected = {
+  dishId: string;
+  qty: number;
+  /** Set when the recogniser is unsure: the dish ids to choose between. */
+  ask?: string[];
+};
 
 export type ReviewItem = Detected & { id: string; confirmed: boolean; removed: boolean; predictedDish: string | null; predictedPortion: number | null; confidence: number | null };
 
-type ScanState = { photoUri: string | null; image: string | null; mimeType: string; items: ReviewItem[]; plan: Plan | null; manualReason: string | null; noPlate: boolean };
+type ScanState = { photoUri: string | null; image: string | null; mimeType: string; items: ReviewItem[]; plan: Plan | null; manualReason: string | null };
 
-let state: ScanState = { photoUri: null, image: null, mimeType: 'image/jpeg', items: [], plan: null, manualReason: null, noPlate: false };
+let state: ScanState = { photoUri: null, image: null, mimeType: 'image/jpeg', items: [], plan: null, manualReason: null };
 let nextId = 1;
 const listeners = new Set<() => void>();
 
@@ -18,8 +24,6 @@ const set = (patch: Partial<ScanState>) => {
 export const newItem = (d: Detected): ReviewItem => ({ ...d, id: `i${nextId++}`, confirmed: false, removed: false, predictedDish: null, predictedPortion: null, confidence: null });
 
 export const startScan = (photoUri: string, image: string | null = null, mimeType = 'image/jpeg') => set({ photoUri, image, mimeType, items: [], plan: null, manualReason: null });
-/** Dev switch: the next recognitions find no plate (`/scan?mock=noplate`). */
-export const setMockNoPlate = (noPlate: boolean) => set({ noPlate });
 export const setItems = (items: ReviewItem[]) => set({ items });
 export const setPlan = (plan: Plan | null) => set({ plan });
 export const setManualReason = (manualReason: string | null) => set({ manualReason });

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
+import { useColumnLayout } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { useScan } from '../scan/store';
@@ -20,6 +21,7 @@ export function PlanScreen() {
   const router = useRouter();
   const t = useHissaTheme();
   const insets = useSafeAreaInsets();
+  const { split, columnMax } = useColumnLayout();
   const { photoUri, items: reviewed, plan } = useScan();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export function PlanScreen() {
           position: 'absolute',
           top: insets.top + 56,
           bottom: 0,
-          left: 0,
+          left: split ? '50%' : 0,
           right: 0,
           alignItems: 'center',
         }}
@@ -66,7 +68,7 @@ export function PlanScreen() {
           style={{
             flex: 1,
             width: '100%',
-            maxWidth: 480,
+            maxWidth: columnMax,
             backgroundColor: t.surf,
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,

@@ -10,6 +10,12 @@ import { HissaText } from './HissaText';
 const WIDE = 900; // from here the column is wider than a phone
 const SPLIT = 1100; // from here a brand pane fills the left half
 
+/** Content column width and brand-pane flag for the current window; shared so the tab bar and sheets line up with HissaScreen. */
+export function useColumnLayout() {
+  const { width } = useWindowDimensions();
+  return { width, split: width >= SPLIT, columnMax: width >= WIDE ? 560 : 480 };
+}
+
 /**
  * Screen frame: themed background with the header arc, safe area, a scrolling body and a bottom action bar.
  * The column is 480 on phones, 560 from WIDE, and from SPLIT a brand pane takes the left half.
@@ -17,11 +23,11 @@ const SPLIT = 1100; // from here a brand pane fills the left half
 export function HissaScreen({ children, actionBar }: { children: ReactNode; actionBar?: ReactNode }) {
   const t = useHissaTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const COLUMN: ViewStyle = { width: '100%', maxWidth: width >= WIDE ? 560 : 480, alignSelf: 'center' };
+  const { width, split, columnMax } = useColumnLayout();
+  const COLUMN: ViewStyle = { width: '100%', maxWidth: columnMax, alignSelf: 'center' };
   return (
     <View style={{ flex: 1, flexDirection: 'row', backgroundColor: t.bg }}>
-      {width >= SPLIT && (
+      {split && (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 48, borderRightWidth: 1, borderRightColor: t.hair }}>
           <HissaText accessibilityElementsHidden style={{ fontFamily: hissaFonts.display700, fontSize: Math.min(200, width * 0.14), lineHeight: Math.min(200, width * 0.14), letterSpacing: -6, color: t.pri }}>
             {content.footer.wordmark}

@@ -1,11 +1,40 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { getProfile } from '../src/features/core/api';
 import { getOnboardingFinished, getOnboardingOwner, hydrateAnswers } from '../src/features/onboarding/store';
 import { canUseDraft } from '../src/features/onboarding/draftOwner';
 import { ApiError } from '../src/shared/api/client';
 import { getPendingInvite, useSession } from '../src/shared/auth/session';
+import { useHissaTheme } from '../src/shared/theme/HissaThemeProvider';
+import { HissaRoot } from '../src/shared/ui/hissa/HissaRoot';
+import { HissaText } from '../src/shared/ui/hissa/HissaText';
+import { PrimaryButton } from '../src/shared/ui/hissa/PrimaryButton';
+
+function StatusBody({ label, onRetry }: { label: string; onRetry?: () => void }) {
+  const t = useHissaTheme();
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, backgroundColor: t.bg }}>
+      {onRetry ? (
+        <>
+          <HissaText accessibilityRole="alert">Could not connect to Hissa.</HissaText>
+          <View style={{ width: '100%', maxWidth: 320 }}>
+            <PrimaryButton label="Try again" onPress={onRetry} />
+          </View>
+        </>
+      ) : (
+        <ActivityIndicator accessibilityLabel={label} color={t.pri} />
+      )}
+    </View>
+  );
+}
+
+/** Themed full-screen status while the session or profile loads, or when the profile cannot be reached. */
+const Status = (props: { label: string; onRetry?: () => void }) => (
+  <HissaRoot>
+    <StatusBody {...props} />
+  </HissaRoot>
+);
 
 // Signed-out visitors see the landing page (or sign in when they arrived through an invite link).
 export default function Index() {
@@ -30,11 +59,11 @@ export default function Index() {
     return () => { live = false; };
   }, [session, code, retry]);
   if (loading || code === undefined)
-    return <ActivityIndicator accessibilityLabel="Loading session" />;
+    return <Status label="Loading session" />;
   if (!session) return <Redirect href={code ? '/(auth)/sign-in' : '/landing'} />;
   const target = destination?.userId === session.user.id ? destination.target : null;
-  if (!code && target === 'error') return <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}><Text>Could not connect to Hissa.</Text><Pressable accessibilityRole="button" onPress={() => { setDestination(null); setRetry((n) => n + 1); }}><Text>Try again</Text></Pressable></View>;
-  if (!code && !target) return <ActivityIndicator accessibilityLabel="Loading profile" />;
+  if (!code && target === 'error') return <Status label="Could not connect" onRetry={() => { setDestination(null); setRetry((n) => n + 1); }} />;
+  if (!code && !target) return <Status label="Loading profile" />;
   if (!code && target === 'goal') return <Redirect href="/onboarding/goal" />;
   if (!code && target === 'budget') return <Redirect href="/onboarding/budget" />;
   return (

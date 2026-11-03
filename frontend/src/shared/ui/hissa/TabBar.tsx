@@ -4,6 +4,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import type { Tabs } from 'expo-router';
 import { useHissaTheme } from '../../theme/HissaThemeProvider';
 import { MIN_TAP } from '../../theme/hissaTokens';
+import { useColumnLayout } from './HissaScreen';
 import { HissaText } from './HissaText';
 
 type BarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
@@ -61,9 +62,12 @@ function Icon({ name, color }: { name: TabName; color: string }) {
 /** Today | raised Scan | Food & Feel | Buddy. Plugs into expo-router `Tabs` as `tabBar`, so the screens stay real routes. */
 export function TabBar({ state, navigateToTab, insets }: BarProps) {
   const t = useHissaTheme();
+  const { split, columnMax } = useColumnLayout();
   if (state.routes[state.index].name === 'scan') return null; // the camera is full screen
   return (
-    <View style={{ backgroundColor: t.bg }}>
+    <View style={{ backgroundColor: t.bg, flexDirection: 'row' }}>
+      {split && <View style={{ flex: 1 }} />}
+      <View style={{ flex: 1 }}>
       <View
         accessibilityRole="tablist"
         style={{
@@ -71,7 +75,7 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
           paddingBottom: insets.bottom,
           flexDirection: 'row',
           width: '100%',
-          maxWidth: 480,
+          maxWidth: columnMax,
           alignSelf: 'center',
         }}
       >
@@ -143,6 +147,7 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
             </Pressable>
           );
         })}
+      </View>
       </View>
     </View>
   );

@@ -29,7 +29,7 @@ export function ScanningScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const { photoUri, image, mimeType, noPlate } = useScan();
+  const { photoUri, image, mimeType } = useScan();
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const reduced = useReducedMotion();
@@ -41,7 +41,7 @@ export function ScanningScreen() {
       return;
     }
     let live = true;
-    Promise.all([getCatalog(), noPlate ? Promise.resolve({ mode: 'detected' as const, items: [] }) : scanPhoto(image, mimeType)])
+    Promise.all([getCatalog(), scanPhoto(image, mimeType)])
       .then(([catalog, result]) => {
         if (!live) return;
         setCatalog(catalog.dishes);
@@ -62,7 +62,7 @@ export function ScanningScreen() {
     return () => {
       live = false;
     };
-  }, [photoUri, image, mimeType, noPlate, router, attempt]);
+  }, [photoUri, image, mimeType, router, attempt]);
 
   useEffect(() => {
     y.set(reduced ? 0 : withRepeat(withTiming(height, { duration: 3200, easing: Easing.out(Easing.quad) }), -1));
