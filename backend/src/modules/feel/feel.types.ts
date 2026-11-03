@@ -3,6 +3,9 @@ export interface CheckinInput {
   energy: 'low' | 'okay' | 'good';
   stomach: 'heavy' | 'fine' | 'light';
   symptom?: 'bloated' | 'upset' | 'other' | 'not_sure';
+  // Optional answer to the pre_existing follow-up; both or neither.
+  questionType?: 'pre_existing';
+  answerId?: 'yes' | 'no' | 'not_sure';
 }
 export interface CheckinMeal {
   id: string;
@@ -25,6 +28,7 @@ export interface MealObservation {
   stomach: CheckinInput['stomach'];
   symptom: NonNullable<CheckinInput['symptom']> | null;
   answerId: string | null;
+  questionType: string | null;
 }
 // What the repository returns; the service decides which rows count as evidence.
 export interface Observation extends MealObservation {

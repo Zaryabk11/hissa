@@ -44,6 +44,7 @@ async function observations(): Promise<Observation[]> {
       stomach: c.stomach,
       symptom: null,
       answerId: null,
+      questionType: null,
     };
   });
 }

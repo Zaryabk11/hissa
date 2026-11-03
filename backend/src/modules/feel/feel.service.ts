@@ -18,6 +18,8 @@ import { weeklyPattern, type PatternCard } from './weekly-pattern';
 
 const MIN_AGE = 90 * 60_000;
 const MAX_AGE = 24 * 60 * 60_000;
+// The pre_existing follow-up is asked at most once per user per 14 days.
+const PRE_EXISTING_GAP = 14 * MAX_AGE;
 
 // ponytail: per-process memory, so each API instance calls Gemini at most once per user and meal
 // per 10 minutes. Move to a shared store (or a column on the meal) if the API is scaled out.
@@ -25,9 +27,14 @@ const CACHE_TTL = 10 * 60_000;
 const CACHE_MAX = 500;
 
 // The caller's own check-ins only; one made over 24 h after its meal is too late to attribute.
+// A meal the user said they already felt unwell before (pre_existing=yes) is not evidence for its
+// dishes, in both the weekly card and the per-user model. no and not_sure change nothing.
 function attributable(rows: Observation[], userId: string): Observation[] {
   return rows.filter(
-    (o) => o.userId === userId && Date.parse(o.checkedInAt) - Date.parse(o.eatenAt) <= MAX_AGE,
+    (o) =>
+      o.userId === userId &&
+      Date.parse(o.checkedInAt) - Date.parse(o.eatenAt) <= MAX_AGE &&
+      !(o.questionType === 'pre_existing' && o.answerId === 'yes'),
   );
 }
 
@@ -70,13 +77,34 @@ export function createFeelService({
   const cache = new Map<string, { question: Question; expires: number }>();
   return {
     // The service owns the intent, options, order and fallback; Gemini only words the question.
-    // Only symptom_detail is served for now: a pre_existing answer has nowhere to be stored yet, so
-    // the ranker (rankQuestions) is deliberately not consulted.
-    async getQuestion(userId: string, mealId: string, now = new Date()): Promise<Question> {
+    // symptom_detail is the default. pre_existing is served only as the step after it (`followUp`:
+    // the caller has a heavy stomach and has answered the symptom step), at most once per 14 days,
+    // with the fixed bank wording. The ranker (rankQuestions) is deliberately not consulted.
+    async getQuestion(
+      userId: string,
+      mealId: string,
+      now = new Date(),
+      followUp = false,
+    ): Promise<Question> {
       const meal = await repository.findMeal(userId, mealId);
       if (!meal) throw new NotFoundError('Meal not found');
       if (!eligible(meal, now) || meal.dishes.length === 0)
         throw new ValidationError('This meal is not due for a check-in.');
+      if (followUp) {
+        try {
+          const last = await repository.findLastPreExistingAt(userId);
+          if (last === null || now.getTime() - Date.parse(last) >= PRE_EXISTING_GAP)
+            return {
+              mealId,
+              intent: 'pre_existing',
+              text: questionBank.pre_existing.text,
+              options: questionBank.pre_existing.options.map((o) => ({ ...o })),
+              source: 'fallback',
+            };
+        } catch {
+          // Never block the check-in: carry on with the usual question.
+        }
+      }
       const key = `${userId}:${mealId}`;
       const hit = cache.get(key);
       if (hit && hit.expires > now.getTime()) return hit.question;
@@ -210,6 +238,8 @@ export function createFeelService({
         return await repository.insertCheckin(userId, {
           ...parsed.data,
           symptom: parsed.data.symptom ?? null,
+          // The pre_existing wording is always the fixed bank text, never Gemini's.
+          ...(parsed.data.questionType ? { questionSource: 'fallback' as const } : {}),
         });
       } catch (error) {
         // unique(meal_id): another request already answered this meal.

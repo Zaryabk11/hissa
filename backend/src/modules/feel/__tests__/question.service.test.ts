@@ -56,6 +56,7 @@ function obs(i: number, delayHours: number, slug = 'raita'): Observation {
     stomach: slug === 'raita' ? 'heavy' : 'fine',
     symptom: null,
     answerId: null,
+    questionType: null,
   };
 }
 

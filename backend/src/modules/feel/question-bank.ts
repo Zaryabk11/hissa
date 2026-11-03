@@ -33,8 +33,7 @@ export const questionBank: Record<QuestionIntent, { text: string; options: Quest
   },
 };
 
-// Only symptom_detail is served for now (pre_existing has no place to store its answer yet).
-// Gemini may only reword that question, and the wording guard is an ALLOWLIST: every word must be
+// Gemini may only reword symptom_detail (pre_existing is always the fixed text above), and the wording guard is an ALLOWLIST: every word must be
 // in this small vocabulary, so a draft cannot name a food, a number, a cause, a diagnosis or advice.
 // It checks vocabulary and shape, not meaning: "How does your stomach feel right now?" and the
 // fixed question both pass, and a vocabulary-only reshuffle could still be an odd sentence.

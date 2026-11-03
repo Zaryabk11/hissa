@@ -132,3 +132,46 @@ describe('timely whole-meal check-ins', () => {
     },
   );
 });
+
+describe('pre_existing answer on a check-in', () => {
+  const pair = { questionType: 'pre_existing', answerId: 'yes' };
+  it.each(['yes', 'no', 'not_sure'])(
+    'stores the pre_existing answer %s with its source',
+    async (answerId) => {
+      const body = { ...input, stomach: 'heavy' as const, questionType: 'pre_existing', answerId };
+      expect(checkinBodySchema.safeParse(body).success).toBe(true);
+      const { service, saved } = setup();
+      await service.submitCheckin(
+        'owner',
+        body as Parameters<typeof service.submitCheckin>[1],
+        now,
+      );
+      expect(saved).toEqual([
+        { userId: 'owner', ...body, symptom: null, questionSource: 'fallback' },
+      ]);
+    },
+  );
+  it('still stores the symptom beside the pre_existing answer', async () => {
+    const body = { ...input, stomach: 'heavy' as const, symptom: 'bloated', ...pair };
+    const { service, saved } = setup();
+    await service.submitCheckin('owner', body as Parameters<typeof service.submitCheckin>[1], now);
+    expect(saved).toMatchObject([{ symptom: 'bloated', questionType: 'pre_existing' }]);
+  });
+  it.each([
+    ['half pair: type only', { questionType: 'pre_existing' }],
+    ['half pair: answer only', { answerId: 'yes' }],
+    ['wrong question type', { questionType: 'symptom_detail', answerId: 'yes' }],
+    ['wrong answer', { questionType: 'pre_existing', answerId: 'maybe' }],
+    ['symptom id as answer', { questionType: 'pre_existing', answerId: 'bloated' }],
+    ['unknown key', { ...pair, questionSource: 'gemini' }],
+    ['unknown key alone', { extra: 1 }],
+  ])('rejects %s at schema and service boundaries', async (_name, extra) => {
+    const body = { ...input, ...extra };
+    expect(checkinBodySchema.safeParse(body).success).toBe(false);
+    const { service, saved } = setup();
+    await expect(service.submitCheckin('owner', body as typeof input, now)).rejects.toMatchObject({
+      status: 400,
+    });
+    expect(saved).toEqual([]);
+  });
+});

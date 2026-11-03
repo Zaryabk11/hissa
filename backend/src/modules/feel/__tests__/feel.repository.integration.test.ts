@@ -145,6 +145,7 @@ describe.skipIf(!enabled)('feel disposable database integration', () => {
           stomach: 'fine',
           symptom: null,
           answerId: null,
+          questionType: null,
         },
       ]);
       expect(await observed(other)).toEqual([]);

@@ -6,8 +6,14 @@ export const checkinBodySchema = z
     energy: z.enum(['low', 'okay', 'good']),
     stomach: z.enum(['heavy', 'fine', 'light']),
     symptom: z.enum(['bloated', 'upset', 'other', 'not_sure']).optional(),
+    // The optional follow-up answer: both fields or neither. Only pre_existing is storable.
+    questionType: z.literal('pre_existing').optional(),
+    answerId: z.enum(['yes', 'no', 'not_sure']).optional(),
   })
-  .strict();
+  .strict()
+  .refine((b) => (b.questionType === undefined) === (b.answerId === undefined), {
+    message: 'Send questionType and answerId together.',
+  });
 
 export const questionParamsSchema = z.object({ mealId: z.uuid() });
 

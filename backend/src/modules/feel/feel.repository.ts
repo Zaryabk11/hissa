@@ -16,6 +16,7 @@ interface ObservationRow {
     stomach: Observation['stomach'];
     symptom: Observation['symptom'];
     answer_id: string | null;
+    question_type: string | null;
     created_at: string;
   };
 }
@@ -81,7 +82,10 @@ export function createFeelRepository(db: Db) {
     },
     async insertCheckin(
       userId: string,
-      input: Omit<CheckinInput, 'symptom'> & { symptom: CheckinInput['symptom'] | null },
+      input: Omit<CheckinInput, 'symptom'> & {
+        symptom: CheckinInput['symptom'] | null;
+        questionSource?: 'fallback';
+      },
     ): Promise<{ id: string }> {
       const { data, error } = await db
         .from('feel_checkins')
@@ -91,11 +95,27 @@ export function createFeelRepository(db: Db) {
           energy: input.energy,
           stomach: input.stomach,
           symptom: input.symptom,
+          question_type: input.questionType ?? null,
+          answer_id: input.answerId ?? null,
+          question_source: input.questionSource ?? null,
         })
         .select('id')
         .single();
       if (error) throw error;
       return { id: data.id as string };
+    },
+    // When this user last stored a pre_existing answer; null if never.
+    async findLastPreExistingAt(userId: string): Promise<string | null> {
+      const { data, error } = await db
+        .from('feel_checkins')
+        .select('created_at')
+        .eq('user_id', userId)
+        .eq('question_type', 'pre_existing')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? (data.created_at as string) : null;
     },
     // Every experiment query is scoped to user_id: the service role bypasses RLS.
     async insertExperiment(
@@ -180,7 +200,7 @@ export function createFeelRepository(db: Db) {
         .from('meals')
         .select(
           `id, eaten_at, meal_items(confirmed:dishes!confirmed_dish_id(slug, category)),
-          feel_checkins!feel_checkins_meal_id_fkey!inner(energy, stomach, symptom, answer_id, created_at)`,
+          feel_checkins!feel_checkins_meal_id_fkey!inner(energy, stomach, symptom, answer_id, question_type, created_at)`,
         )
         .eq('user_id', userId)
         .order('eaten_at', { ascending: true });
@@ -202,6 +222,7 @@ export function createFeelRepository(db: Db) {
             stomach: r.feel_checkins.stomach,
             symptom: r.feel_checkins.symptom,
             answerId: r.feel_checkins.answer_id,
+            questionType: r.feel_checkins.question_type ?? null,
           };
         })
         .filter((o) => o.dishes.length > 0);

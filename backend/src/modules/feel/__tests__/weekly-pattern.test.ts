@@ -22,6 +22,7 @@ function obs(
     stomach: o.stomach ?? 'fine',
     symptom: null,
     answerId: null,
+    questionType: null,
   };
 }
 const heavy = { stomach: 'heavy' } as const;
