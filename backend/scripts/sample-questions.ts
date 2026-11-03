@@ -38,14 +38,14 @@ const histories: Record<string, Observation[]> = {
 const canned = [
   'How is your stomach feeling right now?',
   'Which word best describes your stomach discomfort?',
-  'Did you already feel this way before this meal?',
   'Is your tummy upset?',
   'You are lactose intolerant, which kind of discomfort is it?',
   'After 3 raita meals, how is your stomach feeling?',
-  'Did the raita cause this stomach discomfort?',
-  'How is your stomach feeling, and should you avoid dairy?',
-  'Was this discomfort present before this meal?',
-  'What did you eat before this meal?',
+  'What upset your stomach?',
+  'Which food upset your stomach?',
+  'Is your stomach discomfort a sign of something serious?',
+  'Did you already feel this way before this meal?',
+  'How does your stomach feel after this meal?',
 ];
 
 const key = process.env.GEMINI_API_KEY;

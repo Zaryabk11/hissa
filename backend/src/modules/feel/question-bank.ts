@@ -13,13 +13,9 @@ export interface Question {
 }
 
 // The only options a question may carry. Gemini never supplies or reorders them.
-export const questionBank: Record<
-  QuestionIntent,
-  { text: string; options: QuestionOption[]; shape: RegExp }
-> = {
+export const questionBank: Record<QuestionIntent, { text: string; options: QuestionOption[] }> = {
   symptom_detail: {
     text: 'How would you describe your stomach discomfort?',
-    shape: /^(how|which|what)\b(?=.*\b(stomach|discomfort)\b)/i,
     options: [
       { id: 'bloated', label: 'Bloated' },
       { id: 'upset', label: 'Upset' },
@@ -29,7 +25,6 @@ export const questionBank: Record<
   },
   pre_existing: {
     text: 'Did you already feel this way before this meal?',
-    shape: /^(did|was|were|had)\b(?=.*\bbefore\b)(?=.*\b(feel|felt|feeling|stomach|discomfort)\b)/i,
     options: [
       { id: 'yes', label: 'Yes' },
       { id: 'no', label: 'No' },
@@ -38,26 +33,22 @@ export const questionBank: Record<
   },
 };
 
-// Gemini may only reword the question. A draft must be one short plain-letter question in the
-// intent's shape (how/which/what about the stomach, or did/was about "before") with no numbers,
-// diagnoses, restrictions, advice or causal claims.
-const UNSAFE = new RegExp(
-  [
-    String.raw`\d`,
-    String.raw`\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|twice|thrice|times|often|always|never|usually|every|most|many|several|both)\b`,
-    String.raw`intoleran|allerg|celiac|coeliac|\bibs\b|gastritis|ulcer|reflux|diabet|disease|disorder|syndrome|infection|poison|condition|diagnos`,
-    String.raw`avoid|eliminat|cut out|give up|stop eating|\bdiet\b|should|must|recommend|doctor|medic|treat|cure|\btry\b`,
-    String.raw`caus|because|due to|\bled?\b|lead|trigger|result|blame|culprit|\blinked?\b|\breason|make you|made you|makes you`,
-    String.raw`\byou (are|have|seem)\b`,
-  ].join('|'),
-  'i',
+// Only symptom_detail is served for now (pre_existing has no place to store its answer yet).
+// Gemini may only reword that question, and the wording guard is an ALLOWLIST: every word must be
+// in this small vocabulary, so a draft cannot name a food, a number, a cause, a diagnosis or advice.
+// It checks vocabulary and shape, not meaning: "How does your stomach feel right now?" and the
+// fixed question both pass, and a vocabulary-only reshuffle could still be an odd sentence.
+const WORDS = new Set(
+  `how what which would does do did is are you your this the after right now best word describe
+   describes stomach feel feels feeling felt discomfort fits matches meal`.split(/\s+/),
 );
 
-export function isSafeWording(text: string, intent: QuestionIntent): boolean {
+export function isSafeWording(text: string): boolean {
+  if (text.length > 120 || !/^[A-Za-z]+( [A-Za-z]+)*\?$/.test(text)) return false;
+  const words = text.slice(0, -1).toLowerCase().split(' ');
   return (
-    text.length <= 120 &&
-    /^[A-Za-z][A-Za-z ,'’-]*\?$/.test(text) &&
-    questionBank[intent].shape.test(text) &&
-    !UNSAFE.test(text)
+    /^(how|what|which)$/.test(words[0] ?? '') &&
+    words.some((w) => w === 'stomach' || w === 'discomfort') &&
+    words.every((w) => WORDS.has(w))
   );
 }

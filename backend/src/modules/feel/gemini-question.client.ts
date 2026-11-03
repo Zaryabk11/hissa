@@ -18,8 +18,11 @@ const INTENTS: Record<QuestionIntent, string> = {
 };
 const draftSchema = z.object({ text: z.string(), optionIds: z.array(z.string()) });
 
-// A check-in must not wait long for wording, so two attempts here instead of the scan's three.
+// A check-in must not wait long for wording, so at most two attempts and an overall deadline here
+// (the scan allows three attempts of 10 s each).
 const MAX_ATTEMPTS = 2;
+const DEADLINE_MS = 8000;
+const MIN_RETRY_MS = 50; // not worth another request with less time than this left
 
 export function createGeminiQuestionClient(opts: {
   apiKey: string;
@@ -27,6 +30,8 @@ export function createGeminiQuestionClient(opts: {
   fetchFn?: typeof fetch;
   timeoutMs?: number;
   retryDelayMs?: number;
+  /** Total time for all attempts and pauses. */
+  deadlineMs?: number;
 }): GeminiQuestionClient {
   const fetchFn = opts.fetchFn ?? fetch;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${opts.model}:generateContent`;
@@ -54,6 +59,7 @@ export function createGeminiQuestionClient(opts: {
         },
       };
 
+      const deadline = Date.now() + (opts.deadlineMs ?? DEADLINE_MS);
       let res: Response | undefined;
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         try {
@@ -61,10 +67,17 @@ export function createGeminiQuestionClient(opts: {
             method: 'POST',
             headers: { 'content-type': 'application/json', 'x-goog-api-key': opts.apiKey },
             body: JSON.stringify(body),
-            signal: AbortSignal.timeout(opts.timeoutMs ?? 10000),
+            signal: AbortSignal.timeout(
+              Math.max(1, Math.min(opts.timeoutMs ?? 10000, deadline - Date.now())),
+            ),
           });
         } catch (err) {
-          if (err instanceof Error && err.name === 'TimeoutError' && attempt < MAX_ATTEMPTS)
+          if (
+            err instanceof Error &&
+            err.name === 'TimeoutError' &&
+            attempt < MAX_ATTEMPTS &&
+            deadline - Date.now() > MIN_RETRY_MS
+          )
             continue;
           logger.warn('Gemini question request failed', {
             error: err instanceof Error ? err.name : 'UnknownError',
@@ -75,6 +88,7 @@ export function createGeminiQuestionClient(opts: {
         if ((status !== 503 && status !== 429) || attempt === MAX_ATTEMPTS) break;
         // A 429 is the free tier's per-minute quota, so wait longer than for a 503.
         const pause = (opts.retryDelayMs ?? 700) * (status === 429 ? 4 : 1) * attempt;
+        if (deadline - Date.now() - pause <= MIN_RETRY_MS) break;
         await new Promise((r) => setTimeout(r, pause));
       }
       if (!res?.ok) {

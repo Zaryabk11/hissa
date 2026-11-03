@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createGeminiQuestionClient } from '../gemini-question.client';
 
 const input = {
@@ -66,4 +66,57 @@ describe('gemini question client', () => {
     await expect(client(slow as unknown as typeof fetch).draft(input)).rejects.toThrow();
     expect(slow).toHaveBeenCalledTimes(2);
   });
+
+  it('rejects an empty candidates list', async () => {
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ candidates: [] })));
+    await expect(client(fetchFn as unknown as typeof fetch).draft(input)).rejects.toThrow();
+    const none = vi.fn(async () => new Response('{}'));
+    await expect(client(none as unknown as typeof fetch).draft(input)).rejects.toThrow();
+  });
+
+  it('waits four times longer after a 429 than after a 503', async () => {
+    vi.useFakeTimers();
+    const ok = new Response(
+      JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(out) }] } }] }),
+    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 429 }))
+      .mockResolvedValueOnce(ok);
+    const c = createGeminiQuestionClient({
+      apiKey: 'k',
+      model: 'm',
+      fetchFn: fetchFn as unknown as typeof fetch,
+      retryDelayMs: 10,
+    });
+    const done = c.draft(input);
+    await vi.advanceTimersByTimeAsync(39);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await done).toEqual(out);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops at the overall deadline instead of starting another attempt', async () => {
+    const fetchFn = vi.fn(
+      (_url: unknown, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+        }),
+    );
+    const c = createGeminiQuestionClient({
+      apiKey: 'k',
+      model: 'm',
+      fetchFn: fetchFn as unknown as typeof fetch,
+      timeoutMs: 10_000,
+      deadlineMs: 40,
+      retryDelayMs: 0,
+    });
+    const started = Date.now();
+    await expect(c.draft(input)).rejects.toThrow();
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
 });
+
+afterEach(() => vi.useRealTimers());

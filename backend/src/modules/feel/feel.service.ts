@@ -1,14 +1,20 @@
+import { logger } from '../../shared/logger';
 import { NotFoundError, ValidationError } from '../../shared/errors';
 import type { FeelRepository } from './feel.repository';
 import { checkinBodySchema } from './feel.schemas';
 import type { GeminiQuestionClient } from './gemini-question.client';
 import type { CheckinInput, CheckinMeal, DueCheckin } from './feel.types';
 import { isSafeWording, questionBank, type Question } from './question-bank';
-import { buildEvidence, GENERIC_ORDER, rankQuestions, useTrainedRanker } from './question-model';
-import { questionWeights } from './question-weights';
+import { buildEvidence } from './question-model';
 
 const MIN_AGE = 90 * 60_000;
 const MAX_AGE = 24 * 60 * 60_000;
+
+// ponytail: per-process memory, so each API instance calls Gemini at most once per user and meal
+// per 10 minutes. Move to a shared store (or a column on the meal) if the API is scaled out.
+const CACHE_TTL = 10 * 60_000;
+const CACHE_MAX = 500;
+
 function eligible(meal: CheckinMeal, now: Date): boolean {
   const age = now.getTime() - Date.parse(meal.eatenAt);
   return !meal.checkedIn && age >= MIN_AGE && age <= MAX_AGE;
@@ -21,21 +27,21 @@ export function createFeelService({
   repository: FeelRepository;
   questionClient: GeminiQuestionClient;
 }) {
+  const cache = new Map<string, { question: Question; expires: number }>();
   return {
     // The service owns the intent, options, order and fallback; Gemini only words the question.
+    // Only symptom_detail is served for now: a pre_existing answer has nowhere to be stored yet, so
+    // the ranker (rankQuestions) is deliberately not consulted.
     async getQuestion(userId: string, mealId: string, now = new Date()): Promise<Question> {
       const meal = await repository.findMeal(userId, mealId);
       if (!meal) throw new NotFoundError('Meal not found');
       if (!eligible(meal, now) || meal.dishes.length === 0)
         throw new ValidationError('This meal is not due for a check-in.');
-      // A check-in made over 24 h after its meal is too late to attribute, so it is not evidence.
-      const observations = (await repository.listObservations(userId)).filter(
-        (o) => Date.parse(o.checkedInAt) - Date.parse(o.eatenAt) <= MAX_AGE,
-      );
-      const evidence = buildEvidence(observations);
-      const intent =
-        (useTrainedRanker ? rankQuestions(evidence, questionWeights) : GENERIC_ORDER)[0] ??
-        'symptom_detail';
+      const key = `${userId}:${mealId}`;
+      const hit = cache.get(key);
+      if (hit && hit.expires > now.getTime()) return hit.question;
+
+      const intent = 'symptom_detail';
       const bank = questionBank[intent];
       const fixed: Question = {
         mealId,
@@ -44,6 +50,20 @@ export function createFeelService({
         options: bank.options.map((o) => ({ ...o })),
         source: 'fallback',
       };
+      let observations;
+      try {
+        // A check-in made over 24 h after its meal is too late to attribute, so it is not evidence.
+        observations = (await repository.listObservations(userId)).filter(
+          (o) => Date.parse(o.checkedInAt) - Date.parse(o.eatenAt) <= MAX_AGE,
+        );
+      } catch (err) {
+        // The check-in must never be blocked. Not cached, so the next request tries again.
+        logger.warn('Question history unavailable', {
+          error: err instanceof Error ? err.name : 'UnknownError',
+        });
+        return fixed;
+      }
+      const evidence = buildEvidence(observations);
       const allowed = bank.options.map((o) => o.id);
       // Aggregate only: no dish names, ids, meal history or buddy data.
       const c = evidence.candidate;
@@ -52,6 +72,7 @@ export function createFeelService({
         (c
           ? `one dish repeats across ${c.exposedN} meals with ${c.comparisonN} meals without it`
           : 'no repeated dish yet');
+      let question = fixed;
       try {
         const draft = await questionClient.draft({
           intent,
@@ -65,11 +86,13 @@ export function createFeelService({
           draft.optionIds.every((id) => allowed.includes(id)) &&
           new Set(draft.optionIds).size === allowed.length;
         const text = draft.text.trim();
-        if (idsOk && isSafeWording(text, intent)) return { ...fixed, text, source: 'gemini' };
+        if (idsOk && isSafeWording(text)) question = { ...fixed, text, source: 'gemini' };
       } catch {
         // Timeout, HTTP error or malformed JSON: the check-in must never be blocked.
       }
-      return fixed;
+      if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
+      cache.set(key, { question, expires: now.getTime() + CACHE_TTL });
+      return question;
     },
     async getDue(
       userId: string,
