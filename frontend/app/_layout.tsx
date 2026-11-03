@@ -34,6 +34,7 @@ function Routes() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(scan)" />
         <Stack.Screen name="(account)" />
+        <Stack.Screen name="meals" />
       </Stack.Protected>
     </Stack>
   );
