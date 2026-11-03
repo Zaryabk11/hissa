@@ -1,5 +1,13 @@
 import { apiAuthed } from '../../../shared/api/client';
-import type { Energy, PatternCard, Question, Stomach, Symptom } from '../feel-view';
+import type {
+  Energy,
+  Experiment,
+  ExperimentAction,
+  PatternCard,
+  Question,
+  Stomach,
+  Symptom,
+} from '../feel-view';
 
 export type DueCheckin = { mealId: string; eatenAt: string; dishes: string[] } | null;
 
@@ -22,3 +30,18 @@ export const submitCheckin = (body: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+
+const postJson = (body: unknown) => ({
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+});
+export const createExperiment = (patternKey: string, action: ExperimentAction) =>
+  apiAuthed<{ experiment: Experiment }>('/api/feel/experiments', postJson({ patternKey, action }));
+export const getCurrentExperiment = () =>
+  apiAuthed<{ experiment: Experiment | null }>('/api/feel/experiments/current');
+export const markExperimentTried = (id: string, mealId: string) =>
+  apiAuthed<{ experiment: Experiment }>(
+    `/api/feel/experiments/${encodeURIComponent(id)}/tried`,
+    postJson({ mealId }),
+  );

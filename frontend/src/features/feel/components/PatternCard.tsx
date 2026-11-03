@@ -5,8 +5,9 @@ import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import { feelContent } from '../content';
 import { getPattern } from '../api/feel';
-import { patternView, type PatternCard as Card_ } from '../feel-view';
+import { offerablePatternKey, patternView, type PatternCard as Card_ } from '../feel-view';
 import { Card } from './Card';
+import { ExperimentSection } from './ExperimentSection';
 import { Bone } from './Skeleton';
 
 /** The weekly pattern card. Any error hides the card: it is a bonus, never a blocker. */
@@ -27,7 +28,7 @@ export function PatternCard() {
     }, []),
   );
 
-  if (card === null) return null;
+  if (card === null) return <ExperimentSection patternKey={null} />;
   if (card === undefined)
     return (
       <View
@@ -40,82 +41,85 @@ export function PatternCard() {
       </View>
     );
   const view = patternView(card);
-  if (!view) return null;
+  if (!view) return <ExperimentSection patternKey={null} />;
 
   return (
-    <Card gap={10}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-        }}
-      >
-        <HissaText variant="label" accessibilityRole="header">
-          {c.title}
-        </HissaText>
-        {card.isSample ? (
-          <View
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 2,
-              borderRadius: 99,
-              backgroundColor: t.tint,
-            }}
-          >
-            <HissaText variant="caption" style={{ color: t.tintInk }}>
-              {c.sample}
-            </HissaText>
-          </View>
-        ) : null}
-      </View>
-
-      {view.kind === 'progress' ? (
-        <>
-          <HissaText variant="value">{view.caption}</HissaText>
-          <View
-            accessible
-            accessibilityRole="progressbar"
-            accessibilityLabel={view.caption}
-            accessibilityValue={{
-              min: 0,
-              max: card.needed,
-              now: Math.min(card.checkins, card.needed),
-            }}
-            style={{ height: 8, borderRadius: 4, backgroundColor: t.hair, overflow: 'hidden' }}
-          >
+    <>
+      <Card gap={10}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}
+        >
+          <HissaText variant="label" accessibilityRole="header">
+            {c.title}
+          </HissaText>
+          {card.isSample ? (
             <View
               style={{
-                width: `${view.fraction * 100}%`,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: t.pri,
+                paddingHorizontal: 10,
+                paddingVertical: 2,
+                borderRadius: 99,
+                backgroundColor: t.tint,
               }}
-            />
-          </View>
-          <HissaText muted>{c.progressHelp}</HissaText>
-        </>
-      ) : null}
+            >
+              <HissaText variant="caption" style={{ color: t.tintInk }}>
+                {c.sample}
+              </HissaText>
+            </View>
+          ) : null}
+        </View>
 
-      {view.kind === 'none' ? (
-        <>
-          <HissaText variant="label">{c.noneTitle}</HissaText>
-          <HissaText muted>{c.noneBody}</HissaText>
-        </>
-      ) : null}
+        {view.kind === 'progress' ? (
+          <>
+            <HissaText variant="value">{view.caption}</HissaText>
+            <View
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={view.caption}
+              accessibilityValue={{
+                min: 0,
+                max: card.needed,
+                now: Math.min(card.checkins, card.needed),
+              }}
+              style={{ height: 8, borderRadius: 4, backgroundColor: t.hair, overflow: 'hidden' }}
+            >
+              <View
+                style={{
+                  width: `${view.fraction * 100}%`,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: t.pri,
+                }}
+              />
+            </View>
+            <HissaText muted>{c.progressHelp}</HissaText>
+          </>
+        ) : null}
 
-      {view.kind === 'finding' ? (
-        <>
-          <HissaText>{view.label}</HissaText>
-          {view.counts.map((line) => (
-            <HissaText key={line} variant="label">
-              {line}
-            </HissaText>
-          ))}
-          <HissaText variant="caption">{c.caveat}</HissaText>
-        </>
-      ) : null}
-    </Card>
+        {view.kind === 'none' ? (
+          <>
+            <HissaText variant="label">{c.noneTitle}</HissaText>
+            <HissaText muted>{c.noneBody}</HissaText>
+          </>
+        ) : null}
+
+        {view.kind === 'finding' ? (
+          <>
+            <HissaText>{view.label}</HissaText>
+            {view.counts.map((line) => (
+              <HissaText key={line} variant="label">
+                {line}
+              </HissaText>
+            ))}
+            <HissaText variant="caption">{c.caveat}</HissaText>
+          </>
+        ) : null}
+      </Card>
+      <ExperimentSection patternKey={offerablePatternKey(card, null)} />
+    </>
   );
 }
