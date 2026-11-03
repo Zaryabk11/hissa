@@ -116,7 +116,7 @@ export function MealDetailScreen() {
     setBusy('save');
     setMessage(null);
     try {
-      const res = await updateMeal(meal.id, savePayload(lines).items);
+      const res = await updateMeal(meal.id, savePayload(lines, meal).items);
       setMeal(res.meal);
       setLines(null);
       setMessage({ text: c.detail.saved, alert: false });

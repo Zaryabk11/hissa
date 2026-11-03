@@ -112,12 +112,13 @@ describe('edit state', () => {
   it('totals kcal with the nutrition helpers and builds the PATCH body', () => {
     const lines = confirmedLines(m);
     expect(editTotal(lines)).toBe(2 * 110 + 150);
-    expect(savePayload(lines)).toEqual({
-      items: [
-        { slug: 'roti', qty: 2 },
-        { slug: 'daal', qty: 1 },
-      ],
-    });
+    const edited = lines.map((l, i) => (i === 0 ? { ...l, qty: 3 } : l));
+    const { items } = savePayload(edited, m);
+    expect(items[0]).toEqual({ ...m.items[0], confirmedPortion: 3 });
+    expect(items[1]).toEqual(m.items[1]);
+    // a removed dish keeps its prediction but is no longer confirmed
+    const removed = savePayload(edited.slice(0, 1), m).items[1];
+    expect(removed).toEqual({ ...m.items[1], confirmedDish: null, confirmedPortion: null });
   });
 });
 

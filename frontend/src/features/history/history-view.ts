@@ -1,4 +1,4 @@
-import type { ApiMeal } from '../core/api';
+import type { ApiMeal, MealInput } from '../core/api';
 import { dishById } from '../nutrition/catalog';
 import { kcalForItems, type Item } from '../nutrition/engine';
 import { stepQty } from '../scan/scanPayload';
@@ -65,7 +65,18 @@ export const canSave = (lines: Line[], meal: ApiMeal): boolean => lines.length >
 
 export const editTotal = (lines: Line[]): number => kcalForItems(lines);
 
-export const savePayload = (lines: Line[]) => ({ items: lines.map((l) => ({ slug: l.dishId, qty: l.qty })) });
+/** PATCH body: the meal's own items with the new portions. Predictions are sent back untouched so the original guess is kept. */
+export function savePayload(lines: Line[], meal: ApiMeal): { items: MealInput[] } {
+  const left = [...lines];
+  const items = meal.items.map((i): MealInput => {
+    if (!i.confirmedDish || !i.confirmedPortion) return i;
+    const k = left.findIndex((l) => l.dishId === i.confirmedDish);
+    if (k < 0) return { ...i, confirmedDish: null, confirmedPortion: null };
+    const [line] = left.splice(k, 1);
+    return { ...i, confirmedPortion: line!.qty };
+  });
+  return { items };
+}
 
 /** A 404 means the meal is gone; anything else is worth another try. */
 export const failureKind = (status: number | undefined): 'gone' | 'error' => (status === 404 ? 'gone' : 'error');
