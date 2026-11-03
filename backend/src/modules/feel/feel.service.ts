@@ -3,9 +3,10 @@ import { NotFoundError, ValidationError } from '../../shared/errors';
 import type { FeelRepository } from './feel.repository';
 import { checkinBodySchema } from './feel.schemas';
 import type { GeminiQuestionClient } from './gemini-question.client';
-import type { CheckinInput, CheckinMeal, DueCheckin } from './feel.types';
+import type { CheckinInput, CheckinMeal, DueCheckin, Observation } from './feel.types';
 import { isSafeWording, questionBank, type Question } from './question-bank';
 import { buildEvidence } from './question-model';
+import { weeklyPattern, type PatternCard } from './weekly-pattern';
 
 const MIN_AGE = 90 * 60_000;
 const MAX_AGE = 24 * 60 * 60_000;
@@ -14,6 +15,13 @@ const MAX_AGE = 24 * 60 * 60_000;
 // per 10 minutes. Move to a shared store (or a column on the meal) if the API is scaled out.
 const CACHE_TTL = 10 * 60_000;
 const CACHE_MAX = 500;
+
+// The caller's own check-ins only; one made over 24 h after its meal is too late to attribute.
+function attributable(rows: Observation[], userId: string): Observation[] {
+  return rows.filter(
+    (o) => o.userId === userId && Date.parse(o.checkedInAt) - Date.parse(o.eatenAt) <= MAX_AGE,
+  );
+}
 
 function eligible(meal: CheckinMeal, now: Date): boolean {
   const age = now.getTime() - Date.parse(meal.eatenAt);
@@ -52,10 +60,7 @@ export function createFeelService({
       };
       let observations;
       try {
-        // A check-in made over 24 h after its meal is too late to attribute, so it is not evidence.
-        observations = (await repository.listObservations(userId)).filter(
-          (o) => Date.parse(o.checkedInAt) - Date.parse(o.eatenAt) <= MAX_AGE,
-        );
+        observations = attributable(await repository.listObservations(userId), userId);
       } catch (err) {
         // The check-in must never be blocked. Not cached, so the next request tries again.
         logger.warn('Question history unavailable', {
@@ -93,6 +98,14 @@ export function createFeelService({
       if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
       cache.set(key, { question, expires: now.getTime() + CACHE_TTL });
       return question;
+    },
+    // Last 7 PKT days, keyed on when each meal was eaten (not when it was checked in).
+    async getWeeklyPattern(userId: string, now = new Date()): Promise<PatternCard> {
+      return weeklyPattern(
+        attributable(await repository.listObservations(userId), userId),
+        now,
+        false,
+      );
     },
     async getDue(
       userId: string,

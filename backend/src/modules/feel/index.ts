@@ -9,6 +9,7 @@ import { createFeelService, type FeelService } from './feel.service';
 
 export type { FeelService };
 export type { Question } from './question-bank';
+export type { PatternCard } from './weekly-pattern';
 
 // The only file other modules may import.
 export function createFeelModule({ db, config }: { db: Db; config: Config }): {
