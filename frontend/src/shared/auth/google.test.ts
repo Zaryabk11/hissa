@@ -7,6 +7,15 @@ const mocks = vi.hoisted(() => ({
   openAuthSessionAsync: vi.fn(),
   createURL: vi.fn(),
   os: vi.fn(),
+  env: 'storeClient',
+}));
+vi.mock('expo-constants', () => ({
+  default: {
+    get executionEnvironment() {
+      return mocks.env;
+    },
+  },
+  ExecutionEnvironment: { StoreClient: 'storeClient', Standalone: 'standalone' },
 }));
 vi.mock('expo-linking', () => ({ createURL: mocks.createURL }));
 vi.mock('react-native', () => ({
@@ -25,6 +34,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.createURL.mockReturnValue('hissa://');
   mocks.os.mockReturnValue('android');
+  mocks.env = 'storeClient';
   mocks.signInWithOAuth.mockResolvedValue({
     data: { url: 'https://example.com/auth' },
     error: null,
@@ -90,4 +100,14 @@ it('still rejects a callback to a different host on the same scheme', async () =
   });
   await expect(signInWithGoogle()).rejects.toThrow();
   expect(mocks.exchangeCodeForSession).not.toHaveBeenCalled();
+});
+it('uses the named callback in an installed Android build', async () => {
+  mocks.env = 'standalone';
+  mocks.openAuthSessionAsync.mockResolvedValue({ type: 'success', url: 'hissa://auth-callback?code=abc' });
+  await signInWithGoogle();
+  expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
+    provider: 'google',
+    options: { redirectTo: 'hissa://auth-callback', skipBrowserRedirect: true },
+  });
+  expect(mocks.exchangeCodeForSession).toHaveBeenCalledWith('abc');
 });

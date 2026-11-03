@@ -1,3 +1,4 @@
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
@@ -7,8 +8,13 @@ WebBrowser.maybeCompleteAuthSession();
 
 export async function signInWithGoogle(): Promise<void> {
   // iOS: a named callback host keeps Supabase from mangling the PKCE code in a bare `hissa://` URL.
-  // Android: Expo Go only routes its own `exp://` address back, so use the Expo-provided one.
-  const redirectTo = Platform.OS === 'ios' ? 'hissa://auth-callback' : Linking.createURL('');
+  // Android installed build (APK): same named callback, for the same reason.
+  // Android in Expo Go (and web) only route their own address back, so use the Expo-provided one.
+  const namedCallback =
+    Platform.OS === 'ios' ||
+    (Platform.OS === 'android' &&
+      Constants.executionEnvironment !== ExecutionEnvironment.StoreClient);
+  const redirectTo = namedCallback ? 'hissa://auth-callback' : Linking.createURL('');
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo, skipBrowserRedirect: true },

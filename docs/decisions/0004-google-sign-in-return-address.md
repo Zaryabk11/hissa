@@ -16,3 +16,7 @@
 - Required project settings: Google provider enabled with the client ID and secret, redirect allow-list `hissa://**,exp://**`, a site URL (currently `http://localhost:3000`).
 
 **Consequences:** iOS sign-in does not depend on the network address. Android in Expo Go still needs a hostname the phone can resolve (Android may not resolve `.local`) or a development build or tunnel; this is unverified. Expo Go signs in with PKCE method `plain` because it has no `crypto.subtle`; a polyfill (`expo-crypto`) would restore S256. Only Google accounts on the consent screen's test-user list can sign in while the app is in Testing mode. Never put the Google client secret in the repository; it lives in the Supabase dashboard.
+
+## Addendum: installed Android build
+
+An installed Android build (APK) uses `hissa://auth-callback` too, for the same reason. Android in Expo Go and web keep the Expo-provided address. Not yet tried on an Android device.
