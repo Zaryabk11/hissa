@@ -35,8 +35,9 @@ Regenerate the catalog seed with `node database/scripts/build-seed.mjs`.
 | `GEMINI_MODEL`              | `gemini-flash-lite-latest` | Empty value uses default                          |
 | `GEMINI_TIMEOUT_MS`         | `10000`                    | Gemini timeout per attempt (ms), up to 3 attempts |
 | `SCAN_DAILY_CAP`            | `10`                       | Scans per user per PKT day                        |
+| `DEMO_USER_ID`              | empty                      | Optional demo-only user id (see Demo history)     |
 
-The server refuses to start if a required variable is missing.
+The server refuses to start if a required variable is missing. `DEMO_USER_ID` is optional: only that user's weekly card may have `isSample: true`; leave it empty in production.
 
 ## Conventions
 
@@ -84,6 +85,9 @@ The server refuses to start if a required variable is missing.
 | GET    | `/api/feel/question/:mealId`         | The follow-up question for a due meal             |
 | GET    | `/api/feel/pattern`                  | The caller's weekly pattern card                  |
 | POST   | `/api/feel/checkins`                 | Save a check-in: 201 `{ id }`                     |
+| POST   | `/api/feel/experiments`              | Save one private "try next time" choice: 201      |
+| GET    | `/api/feel/experiments/current`      | The caller's newest choice, or `null`             |
+| POST   | `/api/feel/experiments/:id/tried`    | Mark it tried with a later meal: 200              |
 
 ### Duo Streaks
 
@@ -147,9 +151,31 @@ Codes are six characters `A-Z0-9`. The app builds the share link with `Linking.c
   }
   ```
 
-  `pattern` is `null` unless `state` is `pattern` or `question`. `comparison` is `{ "matching", "total" }` (meals without the dish) for `kind: "dish"` and `null` for a category. `state` rules: fewer than 7 check-ins in the window gives `insufficient_data` (progress text in `label`); a category needs at least 3 relevant meals with the outcome in 60% or more; a dish also needs at least 3 meals without it and a gap of 25 points or more, otherwise a consistent-looking dish is a `question`; `no_pattern` means 7 or more check-ins and nothing consistent. `isSample` is always `false` here (the demo account is Task 9). `label` states what the logs show; it never claims a cause.
+  `pattern` is `null` unless `state` is `pattern` or `question`. `comparison` is `{ "matching", "total" }` (meals without the dish) for `kind: "dish"` and `null` for a category. `state` rules: fewer than 7 check-ins in the window gives `insufficient_data` (progress text in `label`); a category needs at least 3 relevant meals with the outcome in 60% or more; a dish also needs at least 3 meals without it and a gap of 25 points or more, otherwise a consistent-looking dish is a `question`; `no_pattern` means 7 or more check-ins and nothing consistent. `isSample` is `true` only for the user whose id equals the backend's optional `DEMO_USER_ID`; every other user always gets `false`. `label` states what the logs show; it never claims a cause.
 
 - `POST /api/feel/checkins` body: `{ "mealId": "<uuid>", "energy": "low|okay|good", "stomach": "heavy|fine|light", "symptom": "bloated|upset|other|not_sure" }` (`symptom` optional; the app offers it after a heavy stomach). The body is strict: unknown fields give 400. 400 also for a meal that is not due, already answered, or not the caller's (404). Skipping a check-in writes nothing.
+
+- **Try next time (experiments).** One private choice per user, saved from the caller's own weekly card. Nothing here is shown to a buddy, and it never claims a cause. Every endpoint uses the token's user only. Errors use the usual `{ "error": { "code", "message" } }` shape. Experiment shape:
+
+  ```json
+  {
+    "id": "<uuid>",
+    "patternKey": "category:rice:heavy",
+    "action": "smaller_portion | different_side | observe_again",
+    "status": "active | tried",
+    "createdAt": "2026-11-03T08:00:00.000Z",
+    "triedAt": null,
+    "tried": null
+  }
+  ```
+
+  `tried` is `null` while active. Once tried it is `{ "mealId", "energy": "low|okay|good|null", "stomach": "heavy|fine|light|null" }`, taken from the caller's own check-in for that meal (`null` while there is none), so the app can show how a later meal felt. It is for review only and says nothing about cause.
+  - `POST /api/feel/experiments` body `{ "patternKey": string, "action": "smaller_portion|different_side|observe_again" }` (strict) gives 201 `{ "experiment": Experiment }`. `patternKey` must equal the `pattern.patternKey` of the caller's own **current** weekly card (state `pattern` or `question`), recomputed from their own check-ins; anything else is **400** `validation_error`. **409** `conflict` while the caller already has an `active` experiment (a tried one does not block a new one).
+  - `GET /api/feel/experiments/current` gives 200 `{ "experiment": Experiment | null }`: the caller's newest experiment, active or tried.
+  - `POST /api/feel/experiments/:id/tried` body `{ "mealId": "<uuid>" }` (strict) gives 200 `{ "experiment": Experiment }`. **404** when the id is not the caller's. **400** `validation_error` when the meal is not the caller's own or was not saved after the experiment was created (`meals.created_at` strictly later). **409** `conflict` when it is already tried (the first meal is kept).
+  - Validation errors in this API are 400, not 422.
+
+- **Demo history (sample data only).** `node database/scripts/seed-demo-history.mjs [--dry-run]` with `DEMO_USER_ID`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the environment seeds 14 days of invented meals (2 a day) with one check-in each for that one existing demo-only user, so the weekly card shows `category:rice:heavy`. It refuses to run without a UUID `DEMO_USER_ID`, never creates users or credentials, reads the service key from the environment only, writes nothing for any other user, and is repeatable (row ids are derived from the user id, so a re-run updates in place; run it again on the day of a demo to move the dates forward). Set the same id as `DEMO_USER_ID` on the backend so the card carries `isSample: true`. The app must label it as sample data.
 
 ### GET /api/health
 

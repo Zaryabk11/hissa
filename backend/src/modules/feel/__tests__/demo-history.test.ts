@@ -30,7 +30,8 @@ async function observations(): Promise<Observation[]> {
   const category = Object.fromEntries(csv.map((l) => l.split(',')).map((c) => [c[0], c[2] ?? '']));
   const { meals, items, checkins } = buildDemoHistory(DEMO, NOW);
   return meals.map((m) => {
-    const c = checkins.find((x) => x.meal_id === m.id)!;
+    const c = checkins.find((x) => x.meal_id === m.id);
+    if (!c) throw new Error('meal without check-in');
     return {
       userId: DEMO,
       mealId: m.id,
