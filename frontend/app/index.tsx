@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { getProfile } from '../src/features/core/api';
 import { getOnboardingFinished, getOnboardingOwner, hydrateAnswers } from '../src/features/onboarding/store';
 import { canUseDraft } from '../src/features/onboarding/draftOwner';
@@ -36,7 +36,7 @@ const Status = (props: { label: string; onRetry?: () => void }) => (
   </HissaRoot>
 );
 
-// Signed-out visitors see the landing page (or sign in when they arrived through an invite link).
+// Signed-out: the website gets the landing page; the app (and any invite link) goes straight to sign in.
 export default function Index() {
   const { session, loading } = useSession();
   const [code, setCode] = useState<string | null | undefined>(undefined);
@@ -60,7 +60,7 @@ export default function Index() {
   }, [session, code, retry]);
   if (loading || code === undefined)
     return <Status label="Loading session" />;
-  if (!session) return <Redirect href={code ? '/(auth)/sign-in' : '/landing'} />;
+  if (!session) return <Redirect href={code || Platform.OS !== 'web' ? '/(auth)/sign-in' : '/landing'} />;
   const target = destination?.userId === session.user.id ? destination.target : null;
   if (!code && target === 'error') return <Status label="Could not connect" onRetry={() => { setDestination(null); setRetry((n) => n + 1); }} />;
   if (!code && !target) return <Status label="Loading profile" />;
