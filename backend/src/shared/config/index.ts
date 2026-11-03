@@ -13,6 +13,8 @@ const envSchema = z.object({
     z.string().min(1).default('gemini-flash-lite-latest'),
   ),
   GEMINI_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+  // Optional demo-only account id: the only user whose weekly card may be labelled sample data.
+  DEMO_USER_ID: z.preprocess((v) => (v === '' ? undefined : v), z.uuid().optional()),
   SCAN_DAILY_CAP: z.coerce.number().int().positive().default(10),
 });
 

@@ -36,9 +36,7 @@ const insert = (status = 'active', action = 'smaller_portion', mealId = 'null') 
 
 describe.skipIf(!container)('user_experiments are private and written only by the backend', () => {
   beforeAll(async () => {
-    await sql(
-      `insert into auth.users(id) values ('${user}'),('${other}') on conflict do nothing`,
-    );
+    await sql(`insert into auth.users(id) values ('${user}'),('${other}') on conflict do nothing`);
   });
   beforeEach(async () => {
     await sql('truncate public.meals cascade');
@@ -80,8 +78,6 @@ describe.skipIf(!container)('user_experiments are private and written only by th
   });
 
   it('refuses a tried meal that belongs to another user', async () => {
-    await expect(sql(insert('tried', 'observe_again', otherMeal))).rejects.toThrow(
-      /foreign key/,
-    );
+    await expect(sql(insert('tried', 'observe_again', otherMeal))).rejects.toThrow(/foreign key/);
   });
 });

@@ -1,9 +1,17 @@
 import { logger } from '../../shared/logger';
-import { NotFoundError, ValidationError } from '../../shared/errors';
+import { ConflictError, NotFoundError, ValidationError } from '../../shared/errors';
 import type { FeelRepository } from './feel.repository';
 import { checkinBodySchema } from './feel.schemas';
 import type { GeminiQuestionClient } from './gemini-question.client';
-import type { CheckinInput, CheckinMeal, DueCheckin, Observation } from './feel.types';
+import type {
+  CheckinInput,
+  CheckinMeal,
+  DueCheckin,
+  Experiment,
+  ExperimentAction,
+  ExperimentRow,
+  Observation,
+} from './feel.types';
 import { isSafeWording, questionBank, type Question } from './question-bank';
 import { buildEvidence } from './question-model';
 import { weeklyPattern, type PatternCard } from './weekly-pattern';
@@ -31,10 +39,34 @@ function eligible(meal: CheckinMeal, now: Date): boolean {
 export function createFeelService({
   repository,
   questionClient,
+  demoUserId,
 }: {
   repository: FeelRepository;
   questionClient: GeminiQuestionClient;
+  // Optional demo-only account: the one user whose weekly card is labelled sample data.
+  demoUserId?: string;
 }) {
+  // The experiment plus, once tried, how the owner's own check-in for that meal looked.
+  async function present(userId: string, row: ExperimentRow): Promise<Experiment> {
+    const feeling = row.triedMealId
+      ? await repository.findCheckinFeeling(userId, row.triedMealId)
+      : null;
+    return {
+      id: row.id,
+      patternKey: row.patternKey,
+      action: row.action,
+      status: row.status,
+      createdAt: row.createdAt,
+      triedAt: row.triedAt,
+      tried: row.triedMealId
+        ? {
+            mealId: row.triedMealId,
+            energy: feeling?.energy ?? null,
+            stomach: feeling?.stomach ?? null,
+          }
+        : null,
+    };
+  }
   const cache = new Map<string, { question: Question; expires: number }>();
   return {
     // The service owns the intent, options, order and fallback; Gemini only words the question.
@@ -104,8 +136,50 @@ export function createFeelService({
       return weeklyPattern(
         attributable(await repository.listObservations(userId), userId),
         now,
-        false,
+        demoUserId !== undefined && userId === demoUserId,
       );
+    },
+    // The key must belong to the caller's own current card, recomputed here from their own rows.
+    async createExperiment(
+      userId: string,
+      patternKey: string,
+      action: ExperimentAction,
+      now = new Date(),
+    ): Promise<Experiment> {
+      const card = await this.getWeeklyPattern(userId, now);
+      if (card.pattern?.patternKey !== patternKey)
+        throw new ValidationError('Choose an action from your current weekly card.');
+      const current = await repository.findCurrentExperiment(userId);
+      if (current?.status === 'active')
+        throw new ConflictError('You already have a try-next-time choice in progress.');
+      try {
+        return await present(userId, await repository.insertExperiment(userId, patternKey, action));
+      } catch (error) {
+        // unique active-per-user index: another request got there first.
+        if ((error as { code?: string }).code === '23505')
+          throw new ConflictError('You already have a try-next-time choice in progress.');
+        throw error;
+      }
+    },
+    async getCurrentExperiment(userId: string): Promise<Experiment | null> {
+      const row = await repository.findCurrentExperiment(userId);
+      return row ? present(userId, row) : null;
+    },
+    async markExperimentTried(
+      userId: string,
+      id: string,
+      mealId: string,
+      now = new Date(),
+    ): Promise<Experiment> {
+      const experiment = await repository.findExperiment(userId, id);
+      if (!experiment) throw new NotFoundError('Experiment not found');
+      if (experiment.status !== 'active') throw new ConflictError('Already marked as tried.');
+      const savedAt = await repository.findMealSavedAt(userId, mealId);
+      if (savedAt === null || !(Date.parse(savedAt) > Date.parse(experiment.createdAt)))
+        throw new ValidationError('Choose one of your meals saved after you made this choice.');
+      const row = await repository.markExperimentTried(userId, id, mealId, now.toISOString());
+      if (!row) throw new ConflictError('Already marked as tried.');
+      return present(userId, row);
     },
     async getDue(
       userId: string,

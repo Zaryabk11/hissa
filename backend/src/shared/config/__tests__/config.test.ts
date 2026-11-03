@@ -39,4 +39,12 @@ describe('loadConfig', () => {
       /GEMINI_API_KEY/,
     );
   });
+
+  it('leaves DEMO_USER_ID unset when absent or empty and accepts a user id', () => {
+    const id = '4f1b2c3d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
+    expect(loadConfig(minimalEnv).DEMO_USER_ID).toBeUndefined();
+    expect(loadConfig({ ...minimalEnv, DEMO_USER_ID: '' }).DEMO_USER_ID).toBeUndefined();
+    expect(loadConfig({ ...minimalEnv, DEMO_USER_ID: id }).DEMO_USER_ID).toBe(id);
+    expect(() => loadConfig({ ...minimalEnv, DEMO_USER_ID: 'not-an-id' })).toThrow(/DEMO_USER_ID/);
+  });
 });
