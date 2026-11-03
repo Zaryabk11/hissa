@@ -8,7 +8,14 @@ export type ApiDish = {
   kcalPer100g: number;
 };
 export type Profile = {
+  id: string;
   displayName: string | null;
+  goal: 'lose' | 'maintain';
+  sex: 'male' | 'female';
+  age: number;
+  heightCm: number;
+  weightKg: number;
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active';
   dailyCalorieBudget: number;
 };
 export type ScanItem = {
@@ -48,7 +55,21 @@ const json = (body: unknown) => ({
 export const getProfile = () => apiAuthed<Profile>('/api/profiles/me');
 export const putProfile = (body: unknown) =>
   apiAuthed<Profile>('/api/profiles/me', { ...json(body), method: 'PUT' });
-export const getCatalog = () => apiAuthed<{ dishes: ApiDish[] }>('/api/nutrition/catalog');
+// The catalog changes rarely: share one in-flight request and reuse the answer for a few minutes.
+const CATALOG_TTL_MS = 5 * 60_000;
+let catalog: { at: number; request: Promise<{ dishes: ApiDish[] }> } | null = null;
+export const getCatalog = () => {
+  if (!catalog || Date.now() - catalog.at > CATALOG_TTL_MS) {
+    const request = apiAuthed<{ dishes: ApiDish[] }>('/api/nutrition/catalog');
+    const entry = { at: Date.now(), request };
+    catalog = entry;
+    // A failed request must not be cached.
+    request.catch(() => {
+      if (catalog === entry) catalog = null;
+    });
+  }
+  return catalog.request;
+};
 // The web camera returns a data: URI (often PNG); the API wants raw base64 and the real mime type.
 export const scanPhoto = (image: string, mimeType: string) => {
   const m = /^data:([^;,]+)[^,]*,/.exec(image);
@@ -60,6 +81,5 @@ export const scanPhoto = (image: string, mimeType: string) => {
 };
 export const getPlan = (items: { slug: string; units: number }[]) =>
   apiAuthed<Plan>('/api/plan', json({ items }));
-export const saveMeal = (items: MealInput[]) =>
-  apiAuthed<ApiMeal>('/api/meals', json({ items }));
+export const saveMeal = (items: MealInput[]) => apiAuthed<ApiMeal>('/api/meals', json({ items }));
 export const getToday = () => apiAuthed<Today>('/api/meals/today');

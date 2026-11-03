@@ -23,17 +23,32 @@ import { setItems, setManualReason, useScan } from './store';
 
 const PHOTO = 300;
 const BAND = 130;
+const BAR_MS = 20_000; // the bar eases toward 92% over this long, then waits for the real answer
+const MATCHING_AFTER_S = 4;
+const SLOW_AFTER_S = 12;
 
 /** Screen h. The captured photo with a lime sweep while the API recognises the plate. */
 export function ScanningScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const { photoUri, image, mimeType, noPlate } = useScan();
+  const { photoUri, image, mimeType } = useScan();
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const reduced = useReducedMotion();
   const y = useSharedValue(-BAND);
+  const progress = useSharedValue(0);
+  const [seconds, setSeconds] = useState(0);
+
+  // The wait is mostly the model, so the bar is an honest "still working" cue, not a measured percentage.
+  useEffect(() => {
+    if (error) return;
+    progress.set(0);
+    progress.set(withTiming(0.92, { duration: BAR_MS, easing: Easing.out(Easing.cubic) }));
+    const start = Date.now();
+    const tick = setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(tick);
+  }, [attempt, error, progress]);
 
   useEffect(() => {
     if (!photoUri || !image) {
@@ -41,7 +56,7 @@ export function ScanningScreen() {
       return;
     }
     let live = true;
-    Promise.all([getCatalog(), noPlate ? Promise.resolve({ mode: 'detected' as const, items: [] }) : scanPhoto(image, mimeType)])
+    Promise.all([getCatalog(), scanPhoto(image, mimeType)])
       .then(([catalog, result]) => {
         if (!live) return;
         setCatalog(catalog.dishes);
@@ -62,12 +77,14 @@ export function ScanningScreen() {
     return () => {
       live = false;
     };
-  }, [photoUri, image, mimeType, noPlate, router, attempt]);
+  }, [photoUri, image, mimeType, router, attempt]);
 
   useEffect(() => {
     y.set(reduced ? 0 : withRepeat(withTiming(height, { duration: 3200, easing: Easing.out(Easing.quad) }), -1));
   }, [reduced, height, y]);
   const sweep = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }));
+  const fill = useAnimatedStyle(() => ({ width: `${progress.get() * 100}%` }));
+  const stage = seconds >= SLOW_AFTER_S ? c.scanning.slow : seconds >= MATCHING_AFTER_S ? c.scanning.matching : c.scanning.sub;
 
   return (
     <HissaThemeProvider theme={graphite}>
@@ -86,8 +103,13 @@ export function ScanningScreen() {
             {error ?? c.scanning.title}
           </HissaText>
           <HissaText variant="caption" style={{ marginTop: 4 }}>
-            {error ? <PrimaryButton label="Retry scan" onPress={() => { setError(null); setAttempt((n) => n + 1); }} /> : c.scanning.sub}
+            {error ? <PrimaryButton label="Retry scan" onPress={() => { setError(null); setSeconds(0); setAttempt((n) => n + 1); }} /> : stage}
           </HissaText>
+          {!error && (
+            <View style={{ alignSelf: 'stretch', height: 6, borderRadius: 3, marginTop: 16, overflow: 'hidden', backgroundColor: graphite.hair }}>
+              <Animated.View style={[{ height: 6, borderRadius: 3, backgroundColor: graphite.pri }, fill]} />
+            </View>
+          )}
         </View>
         <View style={{ position: 'absolute', top: insets.top + 12, right: 20 }}>
           <CloseButton onPhoto onPress={() => router.back()} />

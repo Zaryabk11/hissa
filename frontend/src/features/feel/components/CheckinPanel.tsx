@@ -1,67 +1,67 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { theme } from '../../../shared/theme';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { View } from 'react-native';
 import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
-import { getDueCheckin, submitCheckin, type DueCheckin } from '../api/feel';
+import { Chip } from '../../../shared/ui/hissa/Choice';
+import { HissaText } from '../../../shared/ui/hissa/HissaText';
+import { PrimaryButton } from '../../../shared/ui/hissa/PrimaryButton';
+import { getDueCheckin, getQuestion, submitCheckin, type DueCheckin } from '../api/feel';
+import { feelContent as c } from '../content';
 import {
   canSubmit,
+  checkinBody,
   needsSymptomDetail,
+  preExistingStep,
+  shouldAskPreExisting,
   shouldAutoSubmit,
+  symptomStep,
   type Energy,
+  type PreExisting,
+  type Question,
   type Stomach,
   type Symptom,
 } from '../feel-view';
+import { Card } from './Card';
+import { Bone, CardSkeleton } from './Skeleton';
 
 const ENERGY: Energy[] = ['low', 'okay', 'good'];
 const STOMACH: Stomach[] = ['heavy', 'fine', 'light'];
-const SYMPTOMS: { id: Symptom; label: string }[] = [
-  { id: 'bloated', label: 'bloated' },
-  { id: 'upset', label: 'upset' },
-  { id: 'other', label: 'other' },
-  { id: 'not_sure', label: 'not sure' },
-];
 
-function Choice({
-  label,
-  selected,
-  onPress,
-  disabled = false,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  const t = useHissaTheme();
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected, disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={[styles.choice, { borderColor: t.hair }, selected && { backgroundColor: t.pri }, disabled && styles.disabled]}
-    >
-      <Text style={[styles.choiceText, { color: selected ? t.onPri : t.ink }]}>{label}</Text>
-    </Pressable>
+    <View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ gap: 8 }}>
+      <HissaText variant="eyebrow">{label}</HissaText>
+      <View style={{ flexDirection: 'row', gap: 8 }}>{children}</View>
+    </View>
   );
 }
 
 export function CheckinPanel() {
   const t = useHissaTheme();
   const [due, setDue] = useState<DueCheckin | undefined>(undefined);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [energy, setEnergy] = useState<Energy | null>(null);
   const [stomach, setStomach] = useState<Stomach | null>(null);
   const [symptom, setSymptom] = useState<Symptom | undefined>(undefined);
   const [message, setMessage] = useState<string | null>(null);
   const [skipped, setSkipped] = useState<string[]>([]); // meal ids skipped on this screen
+  // null question = the server had nothing usable, so the fixed wording is shown.
+  const [asked, setAsked] = useState<{ mealId: string; question: Question | null } | null>(null);
+  // Optional follow-up after the symptom step; null question = nothing offered, today's flow.
+  const [followUp, setFollowUp] = useState<{ mealId: string; question: Question | null } | null>(
+    null,
+  );
+  const [preExisting, setPreExisting] = useState<PreExisting | undefined>(undefined);
   const saving = useRef(false);
+  const asking = useRef<string | null>(null);
+  const askingFollowUp = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setDue(await getDueCheckin(skipped));
+      setLoadFailed(false);
     } catch {
-      setMessage('Could not load your check-in.');
+      setLoadFailed(true);
     }
   }, [skipped]);
   useFocusEffect(
@@ -71,22 +71,54 @@ export function CheckinPanel() {
     }, [load]),
   );
 
+  // The follow-up question is only needed for a heavy stomach, and never blocks saving.
+  const mealId = due?.mealId;
+  const heavy = needsSymptomDetail(stomach);
+  useEffect(() => {
+    if (!mealId || !heavy || asking.current === mealId) return;
+    asking.current = mealId;
+    getQuestion(mealId)
+      .then((question) => ({ mealId, question }))
+      .catch(() => ({ mealId, question: null }))
+      .then(setAsked);
+  }, [mealId, heavy]);
+
+  // Once the symptom step is answered, ask the server for the optional follow-up; never blocks saving.
+  const askFollowUp = !!mealId && shouldAskPreExisting(stomach, symptom);
+  useEffect(() => {
+    if (!mealId || !askFollowUp || askingFollowUp.current === mealId) return;
+    askingFollowUp.current = mealId;
+    getQuestion(mealId, true)
+      .then((question) => ({ mealId, question }))
+      .catch(() => ({ mealId, question: null }))
+      .then(setFollowUp);
+  }, [mealId, askFollowUp]);
+
+  const preExistingStepNow = preExistingStep(
+    followUp && followUp.mealId === mealId ? followUp.question : null,
+  );
+  const preExistingShown = askFollowUp && preExistingStepNow !== null;
+
   async function save(nextEnergy: Energy, nextStomach: Stomach) {
     if (!due || saving.current) return;
     saving.current = true;
     try {
-      await submitCheckin({
-        mealId: due.mealId,
-        energy: nextEnergy,
-        stomach: nextStomach,
-        ...(needsSymptomDetail(nextStomach) && symptom ? { symptom } : {}),
-      });
+      await submitCheckin(
+        checkinBody({
+          mealId: due.mealId,
+          energy: nextEnergy,
+          stomach: nextStomach,
+          symptom,
+          preExisting: preExistingShown ? preExisting : undefined,
+        }),
+      );
       setEnergy(null);
       setStomach(null);
       setSymptom(undefined);
-      setMessage('Thanks. Saved.');
+      setPreExisting(undefined);
+      setMessage(c.saved);
     } catch {
-      setMessage('Could not save. This meal may not be due for a check-in.');
+      setMessage(c.saveError);
     } finally {
       saving.current = false;
     }
@@ -101,92 +133,143 @@ export function CheckinPanel() {
       void save(nextEnergy, nextStomach);
   }
 
-  if (due === undefined) return <Text style={[styles.text, { color: t.ink }]}>{message ?? 'Loading…'}</Text>;
+  if (loadFailed)
+    return (
+      <Card>
+        <HissaText accessibilityRole="alert">{c.loadError}</HissaText>
+        <PrimaryButton label={c.retry} onPress={() => void load()} />
+      </Card>
+    );
+  if (due === undefined) return <CardSkeleton label={c.loading} />;
   if (due === null)
-    return <Text style={[styles.text, { color: t.ink }]}>{message ?? 'Nothing to check in on right now. A check-in appears 90 minutes after a saved meal.'}</Text>;
+    return (
+      <Card gap={8}>
+        {message ? (
+          <HissaText variant="label" accessibilityRole="alert">
+            {message}
+          </HissaText>
+        ) : null}
+        <HissaText variant="label" accessibilityRole="header">
+          {c.empty.title}
+        </HissaText>
+        <HissaText muted>{c.empty.body}</HissaText>
+      </Card>
+    );
+
+  const questionPending = heavy && asked?.mealId !== due.mealId;
+  const step = symptomStep(asked?.mealId === due.mealId ? asked.question : null);
 
   return (
-    <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
-      <Text style={[styles.text, { color: t.ink }]}>How did this meal sit? {due.dishes.join(', ')}</Text>
-      <Text style={[styles.label, { color: t.muted }]}>Energy</Text>
-      <View style={styles.row}>
+    <Card gap={16}>
+      <View style={{ gap: 4 }}>
+        <HissaText variant="label" accessibilityRole="header">
+          {c.title}
+        </HissaText>
+        {due.dishes.length ? <HissaText muted>{due.dishes.join(', ')}</HissaText> : null}
+      </View>
+      <Row label={c.energy.label}>
         {ENERGY.map((value) => (
-          <Choice
+          <Chip
             key={value}
-            label={value}
+            label={c.energy[value]}
             selected={energy === value}
             onPress={() => pick(value, stomach)}
           />
         ))}
-      </View>
-      <Text style={[styles.label, { color: t.muted }]}>Stomach</Text>
-      <View style={styles.row}>
+      </Row>
+      <Row label={c.stomach.label}>
         {STOMACH.map((value) => (
-          <Choice
+          <Chip
             key={value}
-            label={value}
+            label={c.stomach[value]}
             selected={stomach === value}
             onPress={() => pick(energy, value)}
           />
         ))}
-      </View>
-      {needsSymptomDetail(stomach) ? (
-        <>
-          <Text style={[styles.label, { color: t.muted }]}>Anything specific? (optional)</Text>
-          <View style={styles.row}>
-            {SYMPTOMS.map(({ id, label }) => (
-              <Choice
+      </Row>
+      {heavy ? (
+        questionPending ? (
+          <View
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel={c.loadingQuestion}
+            accessibilityState={{ busy: true }}
+            style={{ gap: 8 }}
+          >
+            <Bone width="70%" height={20} />
+            <Bone width="100%" height={48} radius={14} />
+          </View>
+        ) : (
+          <View accessibilityRole="radiogroup" accessibilityLabel={step.text} style={{ gap: 8 }}>
+            <HissaText variant="eyebrow">{step.text}</HissaText>
+            <View style={{ gap: 8 }}>
+              {pairs(step.options).map((pair) => (
+                <View key={pair[0].id} style={{ flexDirection: 'row', gap: 8 }}>
+                  {pair.map(({ id, label }) => (
+                    <Chip
+                      key={id}
+                      label={label}
+                      selected={symptom === id}
+                      onPress={() => setSymptom(id)}
+                    />
+                  ))}
+                </View>
+              ))}
+            </View>
+          </View>
+        )
+      ) : null}
+      {heavy && !questionPending && preExistingShown && preExistingStepNow ? (
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel={preExistingStepNow.text}
+          style={{ gap: 8 }}
+        >
+          <HissaText variant="eyebrow">{preExistingStepNow.text}</HissaText>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {preExistingStepNow.options.map(({ id, label }) => (
+              <Chip
                 key={id}
                 label={label}
-                selected={symptom === id}
-                onPress={() => setSymptom(id)}
+                selected={preExisting === id}
+                onPress={() => setPreExisting(id)}
               />
             ))}
           </View>
-        </>
+        </View>
       ) : null}
-      <View style={styles.row}>
-        {needsSymptomDetail(stomach) ? (
-          <Choice
-            label="Save"
-            selected={false}
+      <View style={{ gap: 8 }}>
+        {heavy ? (
+          <PrimaryButton
+            label={c.save}
             disabled={!canSubmit(energy, stomach)}
             onPress={() => energy && stomach && void save(energy, stomach)}
           />
         ) : null}
-        <Choice
-          label="Skip"
-          selected={false}
+        <PrimaryButton
+          outline
+          label={c.skip}
           onPress={() => {
             setMessage(null);
             setEnergy(null);
             setStomach(null);
             setSymptom(undefined);
+            setPreExisting(undefined);
             setSkipped([...skipped, due.mealId]);
           }}
         />
       </View>
-      {message ? <Text style={[styles.message, { color: t.muted }]}>{message}</Text> : null}
-    </View>
+      {message ? (
+        <HissaText accessibilityRole="alert" style={{ color: t.muted }}>
+          {message}
+        </HissaText>
+      ) : null}
+    </Card>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { gap: theme.spacing.sm, padding: 16, borderWidth: 1, borderRadius: 18 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
-  text: { color: theme.colors.text, fontSize: 16 },
-  label: { color: theme.colors.muted, fontSize: 14 },
-  message: { color: theme.colors.muted },
-  choice: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.muted,
-  },
-  selected: { backgroundColor: theme.colors.text },
-  disabled: { opacity: 0.4 },
-  choiceText: { color: theme.colors.text },
-  selectedText: { color: theme.colors.background },
-});
+function pairs<T>(items: T[]): [T, ...T[]][] {
+  const out: [T, ...T[]][] = [];
+  for (let i = 0; i < items.length; i += 2) out.push(items.slice(i, i + 2) as [T, ...T[]]);
+  return out;
+}

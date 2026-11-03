@@ -25,12 +25,15 @@ export const scanContent = {
   scanning: {
     title: 'Looking at your plate',
     sub: 'A few seconds, hang on',
+    matching: 'Matching what I see to your dishes',
+    slow: 'Still working, this one is taking a little longer',
     photo: 'Your photo',
   },
   review: {
     title: 'Is this right?',
     sub: 'Tap to confirm, fix anything off',
     photo: 'Your plate',
+    planning: 'Building your plan',
     confirmed: 'Confirmed',
     swap: (name: string) => `Swap ${name}`,
     question: (name: string) => `${name}, tap to answer`,

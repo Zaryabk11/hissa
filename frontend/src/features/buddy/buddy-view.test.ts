@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buddyView, httpStatus, normalizeCode } from './buddy-view';
+import { buddyView, daysLabel, httpStatus, normalizeCode, togetherLine } from './buddy-view';
 import type { BuddyStatus } from './api/buddy';
 
 const base: BuddyStatus = {
@@ -86,5 +86,26 @@ describe('normalizeCode', () => {
   });
   it.each(['', 'ABC12', 'ABC1234', 'ABC-12', 'ab c123'])('rejects %j', (input) => {
     expect(normalizeCode(input)).toBeNull();
+  });
+});
+
+describe('daysLabel', () => {
+  it.each([
+    [0, 'days together'],
+    [1, 'day together'],
+    [12, 'days together'],
+  ])('%j -> %s', (n, label) => {
+    expect(daysLabel(n)).toBe(label);
+  });
+});
+
+describe('togetherLine', () => {
+  it.each([
+    [true, true, 'You both logged today'],
+    [true, false, "You logged, your buddy hasn't yet"],
+    [false, true, "Your buddy logged, you haven't yet"],
+    [false, false, 'Neither of you has logged yet today'],
+  ])('own %j buddy %j', (own, buddy, line) => {
+    expect(togetherLine(own, buddy)).toBe(line);
   });
 });

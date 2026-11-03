@@ -1,100 +1,299 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { ApiError } from '../../shared/api/client';
-import { useSession } from '../../shared/auth/session';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
-import { getBuddyStatus, type BuddyStatus } from '../buddy/api/buddy';
+import { getBuddyStatus, sendNudge, type BuddyStatus } from '../buddy/api/buddy';
 import { getCatalog, getProfile, getToday, type Profile, type Today } from '../core/api';
+import { getDueCheckin, type DueCheckin } from '../feel/api/feel';
 import { dishById, setCatalog } from '../nutrition/catalog';
 import { portionText } from '../nutrition/engine';
 import { BudgetRing } from './components/BudgetRing';
+import { WeekCard } from './components/WeekCard';
 import { TodaySkeleton } from './components/Skeleton';
+import { todayContent as c } from './content';
+import { dayLabel } from './format';
+import { buddyCard, ringView } from './today-view';
 
-type Loaded = { profile: Profile; today: Today; buddy: BuddyStatus | null };
+type Loaded = { profile: Profile; today: Today; buddy: BuddyStatus | null; due: DueCheckin };
+
+const fetchAll = () =>
+  Promise.all([
+    getProfile(),
+    getCatalog(),
+    getToday(),
+    getBuddyStatus().catch(() => null),
+    getDueCheckin().catch(() => null),
+  ]);
+
+function Card({
+  children,
+  onPress,
+  label,
+}: {
+  children: React.ReactNode;
+  onPress?: () => void;
+  label?: string;
+}) {
+  const t = useHissaTheme();
+  const style = {
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: t.surf,
+    borderWidth: 1,
+    borderColor: t.hair,
+    gap: 4,
+  } as const;
+  return onPress ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={style}
+    >
+      {children}
+    </Pressable>
+  ) : (
+    <View style={style}>{children}</View>
+  );
+}
 
 export function TodayScreen() {
   const router = useRouter();
-  const { signOut } = useSession();
   const t = useHissaTheme();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [weekKey, setWeekKey] = useState(0);
+  const hasData = useRef(false);
 
-  useFocusEffect(useCallback(() => {
-    void retry;
-    let live = true;
-    setLoaded(null);
-    setError(null);
-    Promise.all([getProfile(), getCatalog(), getToday(), getBuddyStatus().catch(() => null)])
-      .then(([profile, catalog, today, buddy]) => {
-        if (!live) return;
-        setCatalog(catalog.dishes);
-        setLoaded({ profile, today, buddy });
-      })
-      .catch((cause) => {
-        if (!live) return;
-        if (cause instanceof ApiError && cause.status === 404 && cause.path === '/api/profiles/me') router.replace('/onboarding/goal');
-        else setError('Could not load today. Check your connection and try again.');
-      });
-    return () => { live = false; };
-  }, [retry, router]));
+  const load = useCallback(
+    (live: () => boolean) =>
+      fetchAll()
+        .then(([profile, catalog, today, buddy, due]) => {
+          if (!live()) return;
+          setCatalog(catalog.dishes);
+          hasData.current = true;
+          setLoaded({ profile, today, buddy, due });
+          setNotice(null);
+        })
+        .catch((cause) => {
+          if (!live()) return;
+          if (
+            cause instanceof ApiError &&
+            cause.status === 404 &&
+            cause.path === '/api/profiles/me'
+          )
+            router.replace('/onboarding/goal');
+          // Keep what is on screen when only a refresh fails.
+          else if (hasData.current) setNotice(c.refresh.failed);
+          else setError(c.loadError);
+        }),
+    [router],
+  );
 
-  if (error) return <HissaScreen><HissaText accessibilityRole="alert">{error}</HissaText><PrimaryButton label="Try again" onPress={() => setRetry((n) => n + 1)} /></HissaScreen>;
+  // Focus reloads quietly: the skeleton shows only while there is nothing to show yet.
+  useFocusEffect(
+    useCallback(() => {
+      void retry;
+      let live = true;
+      void load(() => live);
+      return () => {
+        live = false;
+      };
+    }, [retry, load]),
+  );
+
+  const refresh = () => {
+    setRefreshing(true);
+    setWeekKey((n) => n + 1);
+    void load(() => true).finally(() => setRefreshing(false));
+  };
+
+  const nudge = () => {
+    sendNudge()
+      .then(() =>
+        setLoaded((l) => l && l.buddy && { ...l, buddy: { ...l.buddy, nudgedToday: true } }),
+      )
+      .catch(() => setNotice(c.streak.nudgeError));
+  };
+
+  if (error)
+    return (
+      <HissaScreen>
+        <HissaText accessibilityRole="alert">{error}</HissaText>
+        <View style={{ marginTop: 16 }}>
+          <PrimaryButton
+            label={c.retry}
+            onPress={() => {
+              setError(null);
+              setRetry((n) => n + 1);
+            }}
+          />
+        </View>
+      </HissaScreen>
+    );
   if (!loaded) return <TodaySkeleton />;
 
-  const { profile, today, buddy } = loaded;
-  const budget = profile.dailyCalorieBudget;
-  const remaining = Math.max(0, budget - today.totalCalories);
+  const { profile, today, buddy, due } = loaded;
   const empty = today.meals.length === 0;
+  const ring = ringView(profile.dailyCalorieBudget, today.totalCalories, empty);
+  const card = buddyCard(buddy);
+  const buddyName = c.streak.buddyFallback;
 
   return (
-    <HissaScreen>
+    <HissaScreen onRefresh={refresh} refreshing={refreshing}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <HissaText variant="caption">{today.day}</HissaText>
-        <Pressable accessibilityRole="button" onPress={() => void signOut().catch(() => setError('Could not sign out. Try again.'))} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 }}><HissaText variant="caption">Sign out</HissaText></Pressable>
+        <HissaText variant="caption">{dayLabel(today.day)}</HissaText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={c.profile}
+          onPress={() => router.push('/profile')}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: t.surf,
+            borderWidth: 1,
+            borderColor: t.hair,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <HissaText variant="label">
+            {(profile.displayName?.trim()[0] ?? 'H').toUpperCase()}
+          </HissaText>
+        </Pressable>
       </View>
       <HissaText variant="title" accessibilityRole="header" style={{ marginTop: 4 }}>
-        {profile.displayName ? `Salaam, ${profile.displayName}` : 'Salaam'}
+        {c.greeting(profile.displayName)}
       </HissaText>
+      {notice && (
+        <HissaText accessibilityRole="alert" muted style={{ marginTop: 8 }}>
+          {notice}
+        </HissaText>
+      )}
       <View style={{ alignItems: 'center', marginTop: 24 }}>
-        <BudgetRing fraction={budget > 0 ? today.totalCalories / budget : 0} label={`About ${empty ? budget : remaining} kcal ${empty ? 'for today' : 'left'}, an estimate`}>
-          <HissaText variant="hero">{Math.round(empty ? budget : remaining).toLocaleString('en-US')}</HissaText>
-          <HissaText variant="button">{empty ? 'for today' : 'left'}</HissaText>
-          <HissaText variant="caption">About, an estimate</HissaText>
+        <BudgetRing
+          fraction={ring.fraction}
+          label={c.ring.label(ring.shown.toLocaleString('en-US'), ring.caption)}
+        >
+          <HissaText variant="hero">{ring.shown.toLocaleString('en-US')}</HissaText>
+          <HissaText variant="button">{ring.caption}</HissaText>
+          <HissaText variant="caption">{c.ring.estimate}</HissaText>
         </BudgetRing>
       </View>
+      {ring.atBudget && (
+        <HissaText style={{ marginTop: 16, textAlign: 'center' }}>{c.ring.atBudget}</HissaText>
+      )}
+
+      {due && (
+        <View style={{ marginTop: 20 }}>
+          <Card
+            onPress={() => router.push('/(tabs)/feel')}
+            label={`${c.checkin.title} ${c.checkin.cta}`}
+          >
+            <HissaText variant="label">{c.checkin.title}</HissaText>
+            <HissaText variant="caption">{c.checkin.body}</HissaText>
+          </Card>
+        </View>
+      )}
+
       {empty ? (
-        <View style={{ marginTop: 28, padding: 24, borderRadius: 24, borderWidth: 1, borderStyle: 'dashed', borderColor: t.rim, alignItems: 'center', gap: 12 }}>
-          <HissaText variant="title" accessibilityRole="header">Your plate starts here</HissaText>
-          <HissaText muted style={{ textAlign: 'center' }}>Snap what is in front of you. Hissa will suggest a portion.</HissaText>
-          <View style={{ alignSelf: 'stretch' }}><PrimaryButton label="Scan my plate" onPress={() => router.push('/(tabs)/scan')} /></View>
+        <View
+          style={{
+            marginTop: 28,
+            padding: 24,
+            borderRadius: 24,
+            borderWidth: 1,
+            borderStyle: 'dashed',
+            borderColor: t.rim,
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <HissaText variant="title" accessibilityRole="header">
+            {c.empty.title}
+          </HissaText>
+          <HissaText muted style={{ textAlign: 'center' }}>
+            {c.empty.body}
+          </HissaText>
+          <View style={{ alignSelf: 'stretch' }}>
+            <PrimaryButton label={c.empty.cta} onPress={() => router.push('/(tabs)/scan')} />
+          </View>
         </View>
       ) : (
         <View style={{ marginTop: 28, gap: 10 }}>
-          <HissaText variant="label" accessibilityRole="header">Meals today</HissaText>
+          <HissaText variant="label" accessibilityRole="header">
+            {c.meals.title}
+          </HissaText>
           {today.meals.map((meal) => {
-            const confirmed = meal.items.filter((item) => item.confirmedDish && item.confirmedPortion);
-            const names = confirmed.map((item) => dishById(item.confirmedDish!)?.name ?? item.confirmedDish).join(', ');
+            const confirmed = meal.items.filter(
+              (item) => item.confirmedDish && item.confirmedPortion,
+            );
+            const names = confirmed
+              .map((item) => dishById(item.confirmedDish!)?.name ?? item.confirmedDish)
+              .join(', ');
             return (
-              <View key={meal.id} style={{ padding: 16, borderRadius: 18, backgroundColor: t.surf, borderWidth: 1, borderColor: t.hair, gap: 4 }}>
+              <Card key={meal.id}>
                 <HissaText variant="label">{names}</HissaText>
-                <HissaText variant="caption">{new Date(meal.eatenAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</HissaText>
-                {confirmed.map((item, i) => <HissaText key={i} muted>{portionText({ dishId: item.confirmedDish!, qty: item.confirmedPortion! })} {dishById(item.confirmedDish!)?.name ?? item.confirmedDish}</HissaText>)}
-                <HissaText variant="caption">About {Math.round(meal.totalCalories)} kcal, an estimate</HissaText>
-              </View>
+                <HissaText variant="caption">
+                  {new Date(meal.eatenAt).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </HissaText>
+                {confirmed.map((item, i) => (
+                  <HissaText key={i} muted>
+                    {portionText({ dishId: item.confirmedDish!, qty: item.confirmedPortion! })}{' '}
+                    {dishById(item.confirmedDish!)?.name ?? item.confirmedDish}
+                  </HissaText>
+                ))}
+                <HissaText variant="caption">
+                  {c.meals.kcal(Math.round(meal.totalCalories).toLocaleString('en-US'))}
+                </HissaText>
+              </Card>
             );
           })}
         </View>
       )}
-      {buddy?.pairStatus === 'active' && (
-        <Pressable accessibilityRole="button" accessibilityLabel="Open buddy" onPress={() => router.push('/(tabs)/buddy')} style={{ marginTop: 20, padding: 16, borderRadius: 18, backgroundColor: t.surf, borderWidth: 1, borderColor: t.hair }}>
-          <HissaText variant="label">Shared streak: {buddy.streak} days</HissaText>
-          <HissaText variant="caption">{buddy.buddyLoggedToday ? 'Your buddy logged today' : 'Your buddy has not logged yet'}</HissaText>
-        </Pressable>
+
+      <View style={{ marginTop: 20 }}>
+        <WeekCard budget={profile.dailyCalorieBudget} refreshKey={weekKey} />
+      </View>
+
+      {card && (
+        <View style={{ marginTop: 20, gap: 8 }}>
+          {card.kind === 'active' ? (
+            <Card onPress={() => router.push('/(tabs)/buddy')} label={c.streak.open}>
+              <HissaText variant="label">{c.streak.days(card.streak)}</HissaText>
+              <HissaText variant="caption">{card.line}</HissaText>
+            </Card>
+          ) : (
+            <Card
+              onPress={() => router.push('/(tabs)/buddy')}
+              label={card.kind === 'invite' ? c.streak.invite.cta : c.streak.pendingInvite.cta}
+            >
+              <HissaText variant="label">
+                {card.kind === 'invite' ? c.streak.invite.title : c.streak.pendingInvite.title}
+              </HissaText>
+              <HissaText variant="caption">
+                {card.kind === 'invite' ? c.streak.invite.body : c.streak.pendingInvite.body}
+              </HissaText>
+            </Card>
+          )}
+          {card.kind === 'active' && card.canNudge && (
+            <PrimaryButton outline label={c.streak.nudgeLabel(buddyName)} onPress={nudge} />
+          )}
+          {card.kind === 'active' && card.nudged && (
+            <HissaText variant="caption">{c.streak.nudged}</HissaText>
+          )}
+        </View>
       )}
     </HissaScreen>
   );

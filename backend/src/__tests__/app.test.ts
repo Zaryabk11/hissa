@@ -19,10 +19,17 @@ describe('app', () => {
       .set('Access-Control-Request-Headers', 'authorization,content-type');
     expect(preflight.status).toBe(204);
     expect(preflight.headers['access-control-allow-origin']).toBe('*');
-    expect(preflight.headers['access-control-allow-methods']).toContain('PUT');
-    expect((preflight.headers['access-control-allow-headers'] ?? '').toLowerCase()).toContain('authorization');
+    const methods = (preflight.headers['access-control-allow-methods'] ?? '').split(/,\s*/);
+    expect(methods).toEqual(
+      expect.arrayContaining(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']),
+    );
+    expect((preflight.headers['access-control-allow-headers'] ?? '').toLowerCase()).toContain(
+      'authorization',
+    );
 
-    const response = await request(createApp()).get('/api/auth').set('Origin', 'http://localhost:8081');
+    const response = await request(createApp())
+      .get('/api/auth')
+      .set('Origin', 'http://localhost:8081');
     expect(response.headers['access-control-allow-origin']).toBe('*');
   });
 

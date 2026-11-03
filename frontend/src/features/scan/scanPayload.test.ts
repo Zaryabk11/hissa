@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isNoPlateResult, mealPayload, reviewItemsFromScan } from './scanPayload';
+import { isNoPlateResult, mealPayload, reviewItemsFromScan, stepQty } from './scanPayload';
 
 describe('scan to saved meal', () => {
   it('recognizes the backend unknown sentinel as a no-plate result', () => {
@@ -26,5 +26,18 @@ describe('scan to saved meal', () => {
       { dish: 'roti', name: 'Roti', unit: 'roti', portion: 1, confidence: 0.9, needsConfirmation: false },
     ]);
     expect(mealPayload(items, [{ slug: 'roti', units: 1 }, { slug: 'roti', units: 0.5 }]).items.map((i) => i.confirmedPortion)).toEqual([1, 0.5]);
+  });
+});
+
+describe('portion stepping', () => {
+  it('steps half a unit for katori, bowl and plate, one for the rest', () => {
+    expect(stepQty(1, 'katori', 1)).toBe(1.5);
+    expect(stepQty(1, 'plate', -1)).toBe(0.5);
+    expect(stepQty(2, 'roti', 1)).toBe(3);
+  });
+  it('never drops below one step or above 20', () => {
+    expect(stepQty(0.5, 'bowl', -1)).toBe(0.5);
+    expect(stepQty(1, 'piece', -1)).toBe(1);
+    expect(stepQty(20, 'roti', 1)).toBe(20);
   });
 });

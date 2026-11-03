@@ -4,6 +4,12 @@ import type { ReviewItem } from './store';
 export const isNoPlateResult = (items: ScanItem[]): boolean =>
   items.length === 0 || (items.length === 1 && items[0]?.dish === 'unknown');
 
+/** One tap of the portion +/- control: half a unit for katori, bowl and plate, a whole one otherwise; kept between one step and 20. */
+export function stepQty(qty: number, unit: string, direction: 1 | -1): number {
+  const step = ['katori', 'bowl', 'plate'].includes(unit) ? 0.5 : 1;
+  return Math.min(20, Math.max(step, qty + direction * step));
+}
+
 export function reviewItemsFromScan(found: ScanItem[]): ReviewItem[] {
   return found.map((item, n) => ({
     id: `scan-${n}`,

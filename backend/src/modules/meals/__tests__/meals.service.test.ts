@@ -23,6 +23,9 @@ function setup(listed: Meal[] = []) {
     insertItems: vi.fn(async () => {}),
     deleteMeal: vi.fn(async () => {}),
     listMealsBetween: vi.fn(async () => listed),
+    getMeal: vi.fn(async () => listed[0] ?? null),
+    replaceItems: vi.fn(async () => true),
+    removeMeal: vi.fn(async () => true),
   };
   const nutrition = {
     getDish: vi.fn(async (slug: string) => ({ id: `id-${slug}`, slug }) as Dish),
@@ -192,5 +195,132 @@ describe('meals service', () => {
     });
     expect(repository.listMealsBetween).toHaveBeenCalledWith('u1', startIso, endIso);
     await expect(service.caloriesToday('u1')).resolves.toBe(750);
+  });
+
+  describe('week and history', () => {
+    // 2026-11-02 05:00 PKT and 2026-10-30 23:30 PKT (= 18:30Z)
+    const meals: Meal[] = [
+      { id: 'a', eatenAt: '2026-10-30T18:30:00.000Z', totalCalories: 300, items: [] },
+      { id: 'b', eatenAt: '2026-11-01T08:00:00.000Z', totalCalories: 200, items: [] },
+      { id: 'c', eatenAt: '2026-11-01T14:00:00.000Z', totalCalories: 450, items: [] },
+    ];
+
+    it('weekTotals returns exactly 7 PKT days, oldest first, empty days as 0/0, one scoped query', async () => {
+      const { service, repository } = setup(meals);
+      const { days } = await service.weekTotals('u1');
+      expect(days.map((d) => d.day)).toEqual([
+        '2026-10-27',
+        '2026-10-28',
+        '2026-10-29',
+        '2026-10-30',
+        '2026-10-31',
+        '2026-11-01',
+        '2026-11-02',
+      ]);
+      // 18:30Z on the 30th is 23:30 PKT on the 30th; 14:00Z on the 1st is 19:00 PKT on the 1st.
+      expect(days[3]).toEqual({ day: '2026-10-30', totalCalories: 300, mealCount: 1 });
+      expect(days[5]).toEqual({ day: '2026-11-01', totalCalories: 650, mealCount: 2 });
+      expect(days[6]).toEqual({ day: '2026-11-02', totalCalories: 0, mealCount: 0 });
+      expect(repository.listMealsBetween).toHaveBeenCalledExactlyOnceWith(
+        'u1',
+        pktDayBounds('2026-10-27').startIso,
+        pktDayBounds('2026-11-02').endIso,
+      );
+    });
+
+    it('history groups by PKT day, newest day first, only days with meals', async () => {
+      const { service, repository } = setup(meals);
+      const { days } = await service.history('u1', 14);
+      expect(days).toEqual([
+        { day: '2026-11-01', totalCalories: 650, meals: [meals[1], meals[2]] },
+        { day: '2026-10-30', totalCalories: 300, meals: [meals[0]] },
+      ]);
+      expect(repository.listMealsBetween).toHaveBeenCalledExactlyOnceWith(
+        'u1',
+        pktDayBounds('2026-10-20').startIso,
+        pktDayBounds('2026-11-02').endIso,
+      );
+    });
+
+    it('history defaults to 14 days', async () => {
+      const { service, repository } = setup([]);
+      await expect(service.history('u1')).resolves.toEqual({ days: [] });
+      expect(repository.listMealsBetween).toHaveBeenCalledWith(
+        'u1',
+        pktDayBounds('2026-10-20').startIso,
+        expect.any(String),
+      );
+    });
+  });
+
+  describe('get, update, delete one meal', () => {
+    const stored: Meal = {
+      id: 'm9',
+      eatenAt: '2026-11-01T08:00:00.000Z',
+      totalCalories: 1,
+      items: [],
+    };
+
+    it("getMeal returns the meal, or NotFoundError when it is not the user's", async () => {
+      const { service, repository } = setup([stored]);
+      await expect(service.getMeal('u1', 'm9')).resolves.toBe(stored);
+      expect(repository.getMeal).toHaveBeenCalledWith('u1', 'm9');
+      repository.getMeal.mockResolvedValueOnce(null);
+      await expect(service.getMeal('u1', 'other')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('updateMeal recomputes totals from the catalog, replaces items for the owner and returns the meal', async () => {
+      const { service, repository, streaks } = setup([stored]);
+      const out = await service.updateMeal('u1', 'm9', {
+        items: [
+          item({ confirmedPortion: 3 }),
+          item({ predictedDish: 'daal', confirmedDish: 'daal', confirmedPortion: 1 }),
+        ],
+      });
+      expect(out).toBe(stored);
+      expect(repository.replaceItems).toHaveBeenCalledExactlyOnceWith('u1', 'm9', 450, [
+        {
+          predicted_dish_id: 'id-roti',
+          confirmed_dish_id: 'id-roti',
+          predicted_portion: 2,
+          confirmed_portion: 3,
+          confidence: 0.9,
+        },
+        {
+          predicted_dish_id: 'id-daal',
+          confirmed_dish_id: 'id-daal',
+          predicted_portion: 2,
+          confirmed_portion: 1,
+          confidence: 0.9,
+        },
+      ]);
+      expect(streaks.markMealSaved).not.toHaveBeenCalled();
+    });
+
+    it('updateMeal needs a confirmed dish and writes nothing otherwise', async () => {
+      const { service, repository } = setup([stored]);
+      await expect(
+        service.updateMeal('u1', 'm9', {
+          items: [item({ confirmedDish: null, confirmedPortion: null })],
+        }),
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(repository.replaceItems).not.toHaveBeenCalled();
+    });
+
+    it("updateMeal on a meal that is not the user's is NotFoundError", async () => {
+      const { service, repository } = setup([stored]);
+      repository.replaceItems.mockResolvedValueOnce(false);
+      await expect(service.updateMeal('u2', 'm9', { items: [item()] })).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+    });
+
+    it("deleteMeal removes through one atomic repository call, NotFoundError when not the user's", async () => {
+      const { service, repository } = setup();
+      await expect(service.deleteMeal('u1', 'm9')).resolves.toBeUndefined();
+      expect(repository.removeMeal).toHaveBeenCalledExactlyOnceWith('u1', 'm9');
+      repository.removeMeal.mockResolvedValueOnce(false);
+      await expect(service.deleteMeal('u2', 'm9')).rejects.toBeInstanceOf(NotFoundError);
+    });
   });
 });

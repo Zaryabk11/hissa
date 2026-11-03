@@ -1,17 +1,18 @@
 import { useRouter } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { MIN_TAP } from '../../shared/theme/hissaTokens';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { ProgressDots } from '../../shared/ui/hissa/ProgressDots';
+import { backFallback } from './backTarget';
 import { onboardingContent as c, TOTAL_STEPS } from './content';
 
-/** Back button, progress bars, then "Step n of 4". Back goes one screen back, or to the landing if there is no history. */
+/** Back button, progress bars, then "Step n of 4". Back goes one screen back, or, with no history, to the landing (web) or the index redirector (app). */
 export function StepHeader({ step }: { step: number }) {
   const t = useHissaTheme();
   const router = useRouter();
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/landing'));
+  const back = () => (router.canGoBack() ? router.back() : router.replace(backFallback(Platform.OS)));
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

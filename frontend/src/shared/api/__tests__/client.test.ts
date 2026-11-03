@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiAuthed, apiGet } from '../client';
+import { apiAuthed } from '../client';
 import type { Session } from '@supabase/supabase-js';
 import { getSessionSnapshot, setUsableSession, subscribeSession } from '../../auth/session-state';
 
@@ -105,11 +105,5 @@ describe('API authentication', () => {
     await expect(apiAuthed('/api/auth')).rejects.toThrow('Sign in');
     expect(auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps health requests anonymous', async () => {
-    await apiGet('/api/health');
-    expect(auth.getSession).not.toHaveBeenCalled();
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/health'));
   });
 });

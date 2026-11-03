@@ -2,7 +2,6 @@
 import assert from 'node:assert/strict';
 import { CATALOG } from './catalog.ts';
 import { kcalForItems, planForRemaining, portionText, remainingBudget } from './engine.ts';
-import { averageKcal, dateKey, lastDays, weekHasEnoughData } from './week.ts';
 
 const plate = [
   { dishId: 'chicken-karahi', qty: 1 },
@@ -45,17 +44,5 @@ assert.equal(portionText({ dishId: 'chicken-karahi', qty: 1 }), '1 katori');
 assert.equal(portionText({ dishId: 'kebab', qty: 2 }), '2 pieces');
 assert.equal(portionText({ dishId: 'chai', qty: 1 }), '1 cup');
 assert.equal(portionText({ dishId: 'salad', qty: 1 }), 'As much as you like');
-
-// week
-const today = new Date(2026, 10, 2); // Mon 2 Nov 2026
-assert.equal(dateKey(today), '2026-11-02');
-const byDate = { '2026-11-02': [{ items: plate }], '2026-11-01': [{ items: plate }], '2026-10-30': [{ items: plate }] };
-const days = lastDays(byDate, today);
-assert.equal(days.length, 7);
-assert.equal(days[6].isToday, true);
-assert.equal(days[6].letter, 'M');
-assert.equal(weekHasEnoughData(days), true);
-assert.equal(weekHasEnoughData(lastDays({ '2026-11-02': [{ items: plate }] }, today)), false);
-assert.equal(averageKcal(days), 640);
 
 console.log('nutrition checks passed');

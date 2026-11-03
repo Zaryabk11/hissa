@@ -27,6 +27,7 @@ function meal(
     stomach,
     symptom,
     answerId: null,
+    questionType: null,
   };
 }
 // Weights that strongly favour pre_existing whenever they are used.
@@ -152,6 +153,7 @@ describe('owner-scoped observation history', () => {
     stomach: 'heavy',
     symptom: null,
     answer_id: null,
+    question_type: null,
     created_at: createdAt,
   });
   const rows = [
@@ -170,7 +172,7 @@ describe('owner-scoped observation history', () => {
       id: 'late',
       user_id: 'owner',
       eaten_at: '2026-11-01T10:00:00+00:00',
-      meal_items: [],
+      meal_items: [{ confirmed: { slug: 'dal', category: 'other' } }],
       feel_checkins: checkin('2026-11-02T10:00:01+00:00'),
     },
     {
@@ -189,7 +191,7 @@ describe('owner-scoped observation history', () => {
     },
   ];
 
-  it('queries only the authenticated user and drops late check-ins and meals with no confirmed dish', async () => {
+  it('queries only the authenticated user and drops meals with no confirmed dish (the 24 h rule lives in the service)', async () => {
     const { db, calls } = fakeDb(rows);
     const observations = await createFeelRepository(db).listObservations('owner');
     expect(calls).toContainEqual(['from', 'meals']);
@@ -199,11 +201,25 @@ describe('owner-scoped observation history', () => {
         userId: 'owner',
         mealId: 'mine',
         eatenAt: '2026-11-01T10:00:00+00:00',
+        checkedInAt: '2026-11-01T12:00:00+00:00',
         dishes: [{ slug: 'raita', category: 'other' }],
         energy: 'low',
         stomach: 'heavy',
         symptom: null,
         answerId: null,
+        questionType: null,
+      },
+      {
+        userId: 'owner',
+        mealId: 'late',
+        eatenAt: '2026-11-01T10:00:00+00:00',
+        checkedInAt: '2026-11-02T10:00:01+00:00',
+        dishes: [{ slug: 'dal', category: 'other' }],
+        energy: 'low',
+        stomach: 'heavy',
+        symptom: null,
+        answerId: null,
+        questionType: null,
       },
     ]);
   });

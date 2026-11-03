@@ -1,9 +1,10 @@
 import type { ComponentProps } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import type { Tabs } from 'expo-router';
+import { useRouter, type Tabs } from 'expo-router';
 import { useHissaTheme } from '../../theme/HissaThemeProvider';
 import { MIN_TAP } from '../../theme/hissaTokens';
+import { useColumnLayout } from './HissaScreen';
 import { HissaText } from './HissaText';
 
 type BarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
@@ -15,8 +16,11 @@ const LABELS = {
   scan: 'Scan a meal',
   feel: 'Food & Feel',
   buddy: 'Buddy',
+  profile: 'Profile',
 } as const;
 type TabName = keyof typeof LABELS;
+// Two tabs either side of Scan, so the raised button sits at the bar's centre.
+const ORDER = ['today', 'feel', 'scan', 'buddy'] as const;
 
 function Icon({ name, color }: { name: TabName; color: string }) {
   const p = {
@@ -42,6 +46,13 @@ function Icon({ name, color }: { name: TabName; color: string }) {
         <Path d="M8 14c1 1.5 2.3 2.2 4 2.2s3-.7 4-2.2M9 9.5h.01M15 9.5h.01" />
       </Svg>
     );
+  if (name === 'profile')
+    return (
+      <Svg {...p}>
+        <Circle cx={12} cy={8.5} r={3.5} />
+        <Path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" />
+      </Svg>
+    );
   if (name === 'buddy')
     return (
       <Svg {...p}>
@@ -61,9 +72,13 @@ function Icon({ name, color }: { name: TabName; color: string }) {
 /** Today | raised Scan | Food & Feel | Buddy. Plugs into expo-router `Tabs` as `tabBar`, so the screens stay real routes. */
 export function TabBar({ state, navigateToTab, insets }: BarProps) {
   const t = useHissaTheme();
+  const router = useRouter();
+  const { split, columnMax } = useColumnLayout();
   if (state.routes[state.index].name === 'scan') return null; // the camera is full screen
   return (
-    <View style={{ backgroundColor: t.bg }}>
+    <View style={{ backgroundColor: t.bg, flexDirection: 'row' }}>
+      {split && <View style={{ flex: 1 }} />}
+      <View style={{ flex: 1 }}>
       <View
         accessibilityRole="tablist"
         style={{
@@ -71,7 +86,7 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
           paddingBottom: insets.bottom,
           flexDirection: 'row',
           width: '100%',
-          maxWidth: 480,
+          maxWidth: columnMax,
           alignSelf: 'center',
         }}
       >
@@ -89,8 +104,10 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
             borderTopColor: t.hair,
           }}
         />
-        {state.routes.map((route, i) => {
-          const name = route.name as TabName;
+        {ORDER.map((name) => {
+          const i = state.routes.findIndex((r) => r.name === name);
+          const route = state.routes[i];
+          if (!route) return null;
           const focused = state.index === i;
           const press = () => navigateToTab(route.key);
           const isScan = name === 'scan';
@@ -104,10 +121,10 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
               onPress={press}
               style={
                 isScan
-                  ? { width: SCAN_SIZE + 8 + 24, height: SCAN_SIZE + 8 + 20, marginTop: -RAISE, alignItems: 'center' }
+                  ? { width: '20%', height: SCAN_SIZE + 8 + 20, marginTop: -RAISE, alignItems: 'center' }
                   : {
-                      // Today is as wide as Food & Feel plus Buddy, so the raised Scan button sits at the bar's centre.
-                      flex: name === 'today' ? 2 : 1,
+                      // Five equal slots with Scan in the middle one, so it sits at the bar's centre.
+                      width: '20%',
                       minHeight: MIN_TAP + 18,
                       marginTop: 22,
                       alignItems: 'center',
@@ -143,6 +160,19 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
             </Pressable>
           );
         })}
+        {/* Profile is a screen outside the tabs, so it is pushed rather than switched to. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={LABELS.profile}
+          onPress={() => router.push('/profile')}
+          style={{ width: '20%', minHeight: MIN_TAP + 18, marginTop: 22, alignItems: 'center', justifyContent: 'center', gap: 2 }}
+        >
+          <Icon name="profile" color={t.muted} />
+          <HissaText variant="caption" style={{ color: t.muted }}>
+            {LABELS.profile}
+          </HissaText>
+        </Pressable>
+      </View>
       </View>
     </View>
   );

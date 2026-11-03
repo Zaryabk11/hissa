@@ -1,10 +1,12 @@
 import * as Linking from 'expo-linking';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Share, TextInput, View } from 'react-native';
 import { clearPendingInvite, getPendingInvite } from '../../../shared/auth/session';
 import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
-import { theme } from '../../../shared/theme';
+import { hissaFonts, hissaRadii } from '../../../shared/theme/hissaTokens';
+import { HissaText } from '../../../shared/ui/hissa/HissaText';
+import { PrimaryButton } from '../../../shared/ui/hissa/PrimaryButton';
 import {
   ackNudge,
   createInvite,
@@ -15,35 +17,12 @@ import {
   sendNudge,
   type BuddyStatus,
 } from '../api/buddy';
-import { buddyView, httpStatus, normalizeCode } from '../buddy-view';
+import { buddyView, daysLabel, httpStatus, normalizeCode, togetherLine } from '../buddy-view';
+import { buddyContent as c } from '../content';
+import { BuddySkeleton, Card, LoggedRow } from './parts';
 
 const REFRESH_MS = 5000;
-const OFFLINE = 'Could not reach Hissa. Retrying.';
-const RETRY = 'Could not reach Hissa. Try again.';
 const DEAD_ANSWER = [400, 404, 409]; // the server says this invitation can no longer be used
-
-function Button({
-  label,
-  onPress,
-  disabled,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  const t = useHissaTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={[styles.button, { backgroundColor: t.pri }, disabled && styles.disabled]}
-    >
-      <Text style={[styles.buttonText, { color: t.onPri }]}>{label}</Text>
-    </Pressable>
-  );
-}
 
 export function BuddyPanel() {
   const t = useHissaTheme();
@@ -53,8 +32,9 @@ export function BuddyPanel() {
   const [invite, setInvite] = useState<string | null>(null); // a code someone sent me
   const [typed, setTyped] = useState('');
   const [pending, setPending] = useState(false); // a button action is in flight
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [copied, setCopied] = useState(false);
   const acting = useRef(false);
-  const acked = useRef(false);
   const alive = useRef(false); // true only while the tab is focused: gates setState after an await
   const busy = useRef(false); // a status request is in flight; ticks never overlap
   const handled = useRef<string | null>(null); // an answered code is not offered again
@@ -72,18 +52,9 @@ export function BuddyPanel() {
       const next = await getBuddyStatus();
       if (!alive.current) return;
       setStatus(next);
-      setMessage((m) => (m === OFFLINE ? null : m));
-      // Without push, an unread nudge is shown once when the app is next open.
-      if (!next.unreadNudge) acked.current = false;
-      else if (!acked.current) {
-        acked.current = true;
-        setMessage('Your buddy nudged you to log a meal today.');
-        await ackNudge().catch(() => {
-          acked.current = false; // retried on the next refresh
-        });
-      }
+      setMessage((m) => (m === c.offline ? null : m));
     } catch {
-      if (alive.current) setMessage(OFFLINE);
+      if (alive.current) setMessage(c.offline);
     } finally {
       busy.current = false;
     }
@@ -91,7 +62,7 @@ export function BuddyPanel() {
 
   const openInvite = useCallback(async (raw: string | null | undefined) => {
     const code = raw ? normalizeCode(raw) : null;
-    if (!code) return setMessage('That is not a valid six-character code.');
+    if (!code) return setMessage(c.invalidCode);
     try {
       await previewInvite(code);
       if (!alive.current) return;
@@ -100,9 +71,9 @@ export function BuddyPanel() {
     } catch (error) {
       if (!alive.current) return;
       const status = httpStatus(error);
-      if (status !== 400 && status !== 404) return setMessage(RETRY); // keep the code to retry
+      if (status !== 400 && status !== 404) return setMessage(c.retry); // keep the code to retry
       failed.current.add(code);
-      setMessage('That invitation is not valid or has already been used.');
+      setMessage(c.deadInvite);
       await clearPendingInvite();
     }
   }, []);
@@ -137,7 +108,7 @@ export function BuddyPanel() {
     } catch (error) {
       const status = httpStatus(error);
       settled = status !== null && dead.includes(status);
-      say(settled ? failure : RETRY);
+      say(settled ? failure : c.retry);
     }
     acting.current = false;
     setPending(false);
@@ -148,111 +119,226 @@ export function BuddyPanel() {
   async function answer(decision: 'accept' | 'decline') {
     const code = invite;
     if (!code) return;
-    const failure = 'That invitation could not be used.';
-    if (!(await act(() => respondInvite(code, decision), failure, DEAD_ANSWER))) return;
+    if (!(await act(() => respondInvite(code, decision), c.invite.failed, DEAD_ANSWER))) return;
     handled.current = code;
     setInvite(null); // not gated on alive: leaving the tab mid-request must not bring the card back
     await clearPendingInvite();
   }
 
   async function share(code: string) {
-    await Share.share({
-      message: `Join me on Hissa: ${Linking.createURL(`/invite/${code}`)} (code ${code})`,
-    });
+    try {
+      await Share.share({
+        message: `Join me on Hissa: ${Linking.createURL(`/invite/${code}`)} (code ${code})`,
+      });
+    } catch {
+      // The share sheet is unavailable or failed; the code is still on screen.
+    }
+  }
+
+  // Web only: native has no clipboard module installed, and its share sheet already offers Copy.
+  async function copy(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard blocked: the code is selectable on screen.
+    }
+  }
+
+  async function endPairing() {
+    await act(endPair, c.paired.endFailed);
+    setConfirmEnd(false);
   }
 
   const view = status ? buddyView(status) : null;
+  const loadFailed = !status && message === c.offline;
+  const notice = message && !loadFailed ? message : null;
+
   return (
-    <View>
-      {!status && !message && <Text style={[styles.text, { color: t.ink }]}>Loading buddy status…</Text>}
-      {message ? (
-        <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.message, { color: t.ink }]}>
-          {message}
-        </Text>
-      ) : null}
-      {invite ? (
-        <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
-          <Text style={[styles.text, { color: t.ink }]}>You have been invited to be accountability buddies.</Text>
-          <Button disabled={pending} label="Accept" onPress={() => void answer('accept')} />
-          <Button disabled={pending} label="Decline" onPress={() => void answer('decline')} />
-        </View>
-      ) : null}
-      {view?.kind === 'none' ? (
-        <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
-          <Button
+    <View style={{ gap: 16 }}>
+      {!status && !loadFailed && <BuddySkeleton />}
+      {loadFailed && (
+        <Card>
+          <HissaText accessibilityRole="alert" accessibilityLiveRegion="polite">
+            {c.loadFailed}
+          </HissaText>
+          <PrimaryButton label={c.tryAgain} onPress={() => void refresh()} />
+        </Card>
+      )}
+      {notice && (
+        <Card>
+          <HissaText accessibilityRole="alert" accessibilityLiveRegion="polite">
+            {notice}
+          </HissaText>
+        </Card>
+      )}
+      {view?.kind === 'active' && view.unreadNudge && (
+        <Card tint>
+          <HissaText accessibilityLiveRegion="polite" style={{ color: t.tintInk }}>
+            {c.paired.nudged}
+          </HissaText>
+          <PrimaryButton
             disabled={pending}
-            label="Create invite"
-            onPress={() => void act(createInvite, 'Could not create an invite.')}
+            label={c.paired.gotIt}
+            onPress={() => void act(ackNudge, c.retry)}
           />
+        </Card>
+      )}
+      {invite && (
+        <Card>
+          <HissaText variant="title" accessibilityRole="header">
+            {c.invite.title}
+          </HissaText>
+          <HissaText muted>{c.invite.body}</HissaText>
+          <CodeText code={invite} />
+          <PrimaryButton
+            disabled={pending}
+            label={c.invite.accept}
+            onPress={() => void answer('accept')}
+          />
+          <PrimaryButton
+            outline
+            disabled={pending}
+            label={c.invite.decline}
+            onPress={() => void answer('decline')}
+          />
+        </Card>
+      )}
+      {view?.kind === 'none' && (
+        <Card>
+          <HissaText variant="title" accessibilityRole="header">
+            {c.unpaired.title}
+          </HissaText>
+          <HissaText muted>{c.unpaired.body}</HissaText>
+          <PrimaryButton
+            disabled={pending}
+            label={c.unpaired.create}
+            onPress={() => void act(createInvite, c.unpaired.createFailed)}
+          />
+          <HissaText variant="label" style={{ marginTop: 8 }}>
+            {c.unpaired.haveCode}
+          </HissaText>
           <TextInput
-            accessibilityLabel="Invite code"
+            accessibilityLabel={c.unpaired.codeLabel}
             autoCapitalize="characters"
+            autoCorrect={false}
             maxLength={6}
             onChangeText={setTyped}
-            placeholder="Enter a code"
-            style={[styles.input, { color: t.ink, borderColor: t.hair }]}
+            onSubmitEditing={() => void openInvite(typed)}
+            placeholder={c.unpaired.codePlaceholder}
+            placeholderTextColor={t.muted}
+            style={{
+              minHeight: 48,
+              paddingHorizontal: 16,
+              borderRadius: hissaRadii.control,
+              borderWidth: 1,
+              borderColor: t.hair,
+              backgroundColor: t.bg,
+              color: t.ink,
+              fontFamily: hissaFonts.body400,
+              fontSize: 16,
+            }}
             value={typed}
           />
-          <Button label="Check code" onPress={() => void openInvite(typed)} />
-        </View>
-      ) : null}
-      {view?.kind === 'pending' ? (
-        <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
-          <Text style={[styles.text, { color: t.ink }]}>Your invite code: {view.code}</Text>
-          <Button label="Share invite" onPress={() => void share(view.code)} />
-          <Button
-            disabled={pending}
-            label="Cancel invite"
-            onPress={() => void act(endPair, 'Could not cancel.')}
+          <PrimaryButton
+            outline
+            disabled={!normalizeCode(typed)}
+            label={c.unpaired.check}
+            onPress={() => void openInvite(typed)}
           />
-        </View>
-      ) : null}
-      {view?.kind === 'active' ? (
-        <View style={[styles.card, { backgroundColor: t.surf, borderColor: t.hair }]}>
-          <Text style={[styles.text, { color: t.ink }]}>Shared streak: {view.streak} days</Text>
-          <Text style={[styles.text, { color: t.ink }]}>
-            You logged today: {view.ownLoggedToday ? 'yes' : 'not yet'}
-          </Text>
-          <Text style={[styles.text, { color: t.ink }]}>
-            Buddy logged today: {view.buddyLoggedToday ? 'yes' : 'not yet'}
-          </Text>
-          {view.canNudge ? (
-            <Button
-              disabled={pending}
-              label="Nudge buddy"
-              onPress={() => void act(sendNudge, 'You can nudge once per day.')}
+        </Card>
+      )}
+      {view?.kind === 'pending' && (
+        <Card>
+          <HissaText variant="title" accessibilityRole="header">
+            {c.pending.title}
+          </HissaText>
+          <CodeText code={view.code} />
+          <HissaText variant="caption">{c.pending.body}</HissaText>
+          {Platform.OS === 'web' && (
+            <PrimaryButton
+              outline
+              label={copied ? c.pending.copied : c.pending.copy}
+              onPress={() => void copy(view.code)}
             />
-          ) : null}
-          {view.nudgeSent ? <Text style={[styles.text, { color: t.ink }]}>Nudge sent</Text> : null}
-          <Button
+          )}
+          <PrimaryButton label={c.pending.share} onPress={() => void share(view.code)} />
+          <PrimaryButton
+            outline
             disabled={pending}
-            label="End pairing"
-            onPress={() => void act(endPair, 'Could not end pairing.')}
+            label={c.pending.cancel}
+            onPress={() => void act(endPair, c.pending.cancelFailed)}
           />
-        </View>
-      ) : null}
+        </Card>
+      )}
+      {view?.kind === 'active' && (
+        <>
+          <Card>
+            <View
+              accessible
+              accessibilityLabel={`${view.streak} ${daysLabel(view.streak)}`}
+              style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}
+            >
+              <HissaText variant="hero">{view.streak}</HissaText>
+              <HissaText variant="button" muted>
+                {daysLabel(view.streak)}
+              </HissaText>
+            </View>
+            <HissaText muted>{togetherLine(view.ownLoggedToday, view.buddyLoggedToday)}</HissaText>
+            <View style={{ height: 1, backgroundColor: t.hair }} />
+            <LoggedRow who={c.paired.you} logged={view.ownLoggedToday} />
+            <LoggedRow who={c.paired.buddy} logged={view.buddyLoggedToday} />
+          </Card>
+          {view.canNudge && (
+            <PrimaryButton
+              disabled={pending}
+              label={c.paired.nudge}
+              onPress={() => void act(sendNudge, c.paired.nudgeFailed)}
+            />
+          )}
+          {view.nudgeSent && (
+            <PrimaryButton disabled label={c.paired.nudgeSent} onPress={() => undefined} />
+          )}
+          <HissaText variant="caption" style={{ textAlign: 'center' }}>
+            {c.paired.privacy}
+          </HissaText>
+          {confirmEnd ? (
+            <Card>
+              <HissaText variant="label" accessibilityRole="header">
+                {c.paired.endTitle}
+              </HissaText>
+              <HissaText muted>{c.paired.endBody}</HissaText>
+              <PrimaryButton
+                disabled={pending}
+                label={c.paired.endConfirm}
+                onPress={() => void endPairing()}
+              />
+              <PrimaryButton
+                outline
+                disabled={pending}
+                label={c.paired.endKeep}
+                onPress={() => setConfirmEnd(false)}
+              />
+            </Card>
+          ) : (
+            <PrimaryButton outline label={c.paired.end} onPress={() => setConfirmEnd(true)} />
+          )}
+        </>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { gap: theme.spacing.sm, marginBottom: theme.spacing.md, padding: 16, borderWidth: 1, borderRadius: 18 },
-  text: { color: theme.colors.text, fontSize: 16 },
-  message: { color: theme.colors.muted, marginBottom: theme.spacing.md },
-  input: {
-    borderWidth: 1,
-    borderColor: theme.colors.muted,
-    borderRadius: 6,
-    padding: theme.spacing.sm,
-    color: theme.colors.text,
-  },
-  button: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: 6,
-    backgroundColor: theme.colors.text,
-  },
-  disabled: { opacity: 0.5 },
-  buttonText: { color: theme.colors.background, fontSize: 16 },
-});
+function CodeText({ code }: { code: string }) {
+  return (
+    <HissaText
+      selectable
+      accessibilityLabel={`Code ${code.split('').join(' ')}`}
+      variant="hero"
+      style={{ fontSize: 40, lineHeight: 48, letterSpacing: 6 }}
+    >
+      {code}
+    </HissaText>
+  );
+}
