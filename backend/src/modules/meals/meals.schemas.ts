@@ -38,3 +38,18 @@ export const saveMealBodySchema = z.object({
 });
 
 export type SaveMealBody = z.infer<typeof saveMealBodySchema>;
+
+// PATCH replaces the items with the same shape and rules as a save.
+export const updateMealBodySchema = saveMealBodySchema;
+export type UpdateMealBody = SaveMealBody;
+
+export const mealParamsSchema = z.object({ id: z.guid() });
+
+// Whole days only, 1 to 60. Optional: the service defaults it.
+export const historyQuerySchema = z.object({
+  days: z
+    .string()
+    .regex(/^\d{1,2}$/)
+    .refine((d) => Number(d) >= 1 && Number(d) <= 60, { message: 'days must be 1 to 60' })
+    .optional(),
+});

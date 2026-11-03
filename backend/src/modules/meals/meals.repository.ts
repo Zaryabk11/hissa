@@ -14,6 +14,21 @@ interface MealRecord {
   }[];
 }
 
+function toMeal(m: MealRecord): Meal {
+  return {
+    id: m.id,
+    eatenAt: m.eaten_at,
+    totalCalories: Number(m.total_calories ?? 0),
+    items: m.meal_items.map((i) => ({
+      predictedDish: i.predicted?.slug ?? null,
+      predictedPortion: i.predicted_portion === null ? null : Number(i.predicted_portion),
+      confirmedDish: i.confirmed?.slug ?? null,
+      confirmedPortion: i.confirmed_portion === null ? null : Number(i.confirmed_portion),
+      confidence: i.confidence === null ? null : Number(i.confidence),
+    })),
+  };
+}
+
 const LIST_SELECT = `id, eaten_at, total_calories,
   meal_items(predicted_portion, confirmed_portion, confidence,
     predicted:dishes!predicted_dish_id(slug), confirmed:dishes!confirmed_dish_id(slug))`;
@@ -54,18 +69,47 @@ export function createMealsRepository(db: Db) {
         .lt('eaten_at', endIso)
         .order('eaten_at', { ascending: true });
       if (error) throw error;
-      return (data as unknown as MealRecord[]).map((m) => ({
-        id: m.id,
-        eatenAt: m.eaten_at,
-        totalCalories: Number(m.total_calories ?? 0),
-        items: m.meal_items.map((i) => ({
-          predictedDish: i.predicted?.slug ?? null,
-          predictedPortion: i.predicted_portion === null ? null : Number(i.predicted_portion),
-          confirmedDish: i.confirmed?.slug ?? null,
-          confirmedPortion: i.confirmed_portion === null ? null : Number(i.confirmed_portion),
-          confidence: i.confidence === null ? null : Number(i.confidence),
-        })),
-      }));
+      return (data as unknown as MealRecord[]).map(toMeal);
+    },
+
+    async getMeal(userId: string, mealId: string): Promise<Meal | null> {
+      const { data, error } = await db
+        .from('meals')
+        .select(LIST_SELECT)
+        .eq('id', mealId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? toMeal(data as unknown as MealRecord) : null;
+    },
+
+    // One database transaction (migration 20261103000100): a failed edit keeps the old items.
+    // False when the meal is not the user's.
+    async replaceItems(
+      userId: string,
+      mealId: string,
+      totalCalories: number,
+      items: Omit<MealItemRow, 'meal_id'>[],
+    ): Promise<boolean> {
+      const { data, error } = await db.rpc('meal_replace_items', {
+        actor_id: userId,
+        target_meal_id: mealId,
+        new_total: totalCalories,
+        new_items: items,
+      });
+      if (error) throw error;
+      return data === true;
+    },
+
+    // One database transaction: the meal, its items, check-ins and (if it was the last meal of its
+    // PKT day) the streak day go together or not at all. False when the meal is not the user's.
+    async removeMeal(userId: string, mealId: string): Promise<boolean> {
+      const { data, error } = await db.rpc('meal_delete', {
+        actor_id: userId,
+        target_meal_id: mealId,
+      });
+      if (error) throw error;
+      return data === true;
     },
   };
 }
