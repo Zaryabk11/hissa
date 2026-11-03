@@ -81,6 +81,7 @@ The server refuses to start if a required variable is missing.
 | POST   | `/api/streaks/nudge`                 | Nudge the buddy (once per day): 204               |
 | POST   | `/api/streaks/nudge/ack`             | Mark received nudges as seen: 204                 |
 | GET    | `/api/feel/due`                      | The meal waiting for a check-in, or `null`        |
+| GET    | `/api/feel/question/:mealId`         | The follow-up question for a due meal             |
 | POST   | `/api/feel/checkins`                 | Save a check-in: 201 `{ id }`                     |
 
 ### Duo Streaks
@@ -104,6 +105,25 @@ Codes are six characters `A-Z0-9`. The app builds the share link with `Linking.c
 ### Food and Feel
 
 - `GET /api/feel/due` returns `{ "mealId", "eatenAt", "dishes": ["Chicken karahi", ...] }` for the caller's oldest meal that is 90 minutes to 24 hours old, has a confirmed dish and no check-in, else JSON `null`. Optional `?skip=id,id` skips meals the user dismissed on screen.
+- `GET /api/feel/question/:mealId` returns the follow-up question for one of the caller's due meals (same rule as `/due`: 90 minutes to 24 hours old, a confirmed dish, no check-in):
+
+  ```json
+  {
+    "mealId": "<uuid>",
+    "intent": "symptom_detail",
+    "text": "How would you describe your stomach discomfort?",
+    "options": [
+      { "id": "bloated", "label": "Bloated" },
+      { "id": "upset", "label": "Upset" },
+      { "id": "other", "label": "Other" },
+      { "id": "not_sure", "label": "Not sure" }
+    ],
+    "source": "gemini"
+  }
+  ```
+
+  `intent` is `symptom_detail` (options `bloated|upset|other|not_sure`) or `pre_existing` (`yes|no|not_sure`, text such as "Did you already feel this way before this meal?"). Options and their order always come from the server, never from Gemini. `source` is `gemini` when Gemini's wording passed the checks, else `fallback` (timeout, invalid JSON, wrong option ids, or wording with numbers, diagnoses, advice or causal claims) and `text` is the fixed question. Gemini is sent only the intent, the allowed ids and an aggregate summary of the caller's own check-ins (no dish names, meal history or buddy data), with a 10 s per-attempt timeout and at most 2 attempts, so a request takes at most about 20 s and normally 1 to 3 s. 400 for a malformed meal id or a meal that is not due or already answered; 404 for a meal that is not the caller's. The answer is submitted with `POST /api/feel/checkins` (`symptom` accepts the `symptom_detail` ids; the `pre_existing` answer is not stored yet).
+
 - `POST /api/feel/checkins` body: `{ "mealId": "<uuid>", "energy": "low|okay|good", "stomach": "heavy|fine|light", "symptom": "bloated|upset|other|not_sure" }` (`symptom` optional; the app offers it after a heavy stomach). The body is strict: unknown fields give 400. 400 also for a meal that is not due, already answered, or not the caller's (404). Skipping a check-in writes nothing.
 
 ### GET /api/health
