@@ -72,6 +72,11 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 | POST   | `/api/plan`                          | Fit confirmed dishes to the remaining budget      |
 | POST   | `/api/meals`                         | Save a confirmed meal                             |
 | GET    | `/api/meals/today`                   | Today's meals and total (PKT day)                 |
+| GET    | `/api/meals/week`                    | Estimated calories and meal count for the last 7 PKT days |
+| GET    | `/api/meals/history?days=14`         | Meals grouped by PKT day, newest day first        |
+| GET    | `/api/meals/:id`                     | One of the caller's meals                         |
+| PATCH  | `/api/meals/:id`                     | Replace a meal's items (totals recomputed)        |
+| DELETE | `/api/meals/:id`                     | Delete a meal: 204                                |
 | GET    | `/api/auth`                          | The authenticated user: `{ "id": "<user id>" }`   |
 | GET    | `/api/streaks`                       | Buddy status (see below)                          |
 | POST   | `/api/streaks/invites`               | Create an invite: 201 `{ code, linkPath }`        |
@@ -395,6 +400,42 @@ Meals eaten today, where "today" is the Pakistan (PKT, UTC+5) calendar day. Olde
   ]
 }
 ```
+
+### Meal history, week totals, edit and delete
+
+All of these are scoped to the token's user. A meal that is not the caller's, or does not exist, is `404 not_found`; a malformed `:id` (not a UUID) is `400 validation_error`. Every calorie number is an estimate from the catalog. `Meal` is the same shape as one entry of `GET /api/meals/today` and the `POST /api/meals` response: `{ id, eatenAt, totalCalories, items: [{ predictedDish, predictedPortion, confirmedDish, confirmedPortion, confidence }] }`.
+
+**GET /api/meals/week** returns exactly the last 7 PKT days, oldest first, today last. Days without meals are included as `0`/`0`.
+
+```json
+{ "days": [ { "day": "2026-10-29", "totalCalories": 0, "mealCount": 0 }, ..., { "day": "2026-11-04", "totalCalories": 1180, "mealCount": 2 } ] }
+```
+
+**GET /api/meals/history?days=14** returns only days that have meals, newest day first. `days` is an optional whole number from 1 to 60 (default 14, `400` otherwise) counting back from today, today included. Meals inside a day are oldest first, like `/today`.
+
+```json
+{ "days": [ { "day": "2026-11-04", "totalCalories": 1180, "meals": [ { "id": "<uuid>", "eatenAt": "2026-11-04T07:10:00.000Z", "totalCalories": 540, "items": [] } ] } ] }
+```
+
+**GET /api/meals/:id** returns `{ "meal": Meal }`.
+
+**PATCH /api/meals/:id** replaces all items of the meal and returns `200 { "meal": Meal }`.
+
+**Deviation from the draft contract.** The draft said `{ items: [{ slug, qty }] }` but also "same item shape and validation as POST /api/meals". The body is the POST body (the five-key items above, 1 to 10 items, at least one with a `confirmedDish`), because that is the shape the app already holds and the only one that can carry the original prediction. To keep the original prediction untouched, send each item's `predictedDish`, `predictedPortion` and `confidence` back exactly as `GET /api/meals/:id` returned them; only the `confirmed*` fields should change. The server stores whatever prediction fields it is sent and does not compare them with the old ones.
+
+```json
+{ "items": [ { "predictedDish": "chicken-karahi", "predictedPortion": 1, "confirmedDish": "chicken-karahi", "confirmedPortion": 0.5, "confidence": 0.98 } ] }
+```
+
+Totals are recomputed from the catalog, never taken from the client. `eatenAt` does not change, so the PKT day and the streak day stay as they were. Any age of meal can be edited. The item swap and the new total are one database transaction (`meal_replace_items`), so a failed edit keeps the old items. An unknown dish slug is `404 not_found`, as in a save.
+
+**DELETE /api/meals/:id** returns `204` with no body. One database transaction (`meal_delete`) removes the meal, its items and its Food and Feel check-in, clears `tried_meal_id` on any experiment that pointed at it (the experiment stays), and, if it was the user's last meal with a confirmed item on that PKT day, removes that day's `streak_days` row so a deleted meal cannot keep a streak day alive. It touches no other day and no other user.
+
+```
+curl -X DELETE -H "Authorization: Bearer $TOKEN" $API/api/meals/$MEAL_ID   # 204
+```
+
+CORS now allows `GET, POST, PUT, PATCH, DELETE, OPTIONS`.
 
 ## Behaviour the app must handle
 

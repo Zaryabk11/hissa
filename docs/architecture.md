@@ -94,6 +94,7 @@ Migrations in `database/supabase/migrations/`:
 - `20261102000300_buddy_nudges.sql`: `buddy_nudges` (one per sender per day), service-only `buddy_status_operation` RPC, owner-only `streak_days` reads, and **no direct client writes** to `meals` and `meal_items` (owners keep select-only policies).
 - `20261102000400_feel_learning.sql`: `feel_checkins` gets `symptom`, `question_type`, `answer_id`, `question_source`; a composite foreign key ties a check-in to its meal's owner; direct client writes to `feel_checkins` are revoked.
 - `20261102000500_user_experiments.sql`: `user_experiments` (one private choice from a weekly card: `pattern_key`, `action`, `status` active or tried, `tried_meal_id` tied to the owner's meal by a composite foreign key), a unique partial index allowing one `active` row per user, owner select-only RLS, and no direct client writes. **Not yet applied to the hosted project** (applying it is held with the other remote migrations).
+- `20261103000100_meal_delete.sql`: backend-only functions `meal_delete(actor_id, meal_id)` and `meal_replace_items(actor_id, meal_id, total, items)`, executable by `service_role` only. Each is one transaction scoped to the actor: delete removes the meal (items and check-ins cascade, `user_experiments.tried_meal_id` is set null) and the PKT day's `streak_days` row when no other meal with a confirmed item remains that day; replace swaps the items and total. **Written, not applied to the hosted project.**
 
 All of the migrations above except `20261102000500` are applied to the hosted project `zvhwzekbgmuaaiepkcwn` (verified 2026-11-02). Direct clients never write meals, check-ins or buddy data: everything goes through the API ([decision 0006](decisions/0006-v2-learning-loop-and-backend-only-writes.md)).
 
@@ -102,6 +103,10 @@ All of the migrations above except `20261102000500` are applied to the hosted pr
 ## Decisions
 
 See [decisions/](decisions/).
+
+## Meal history, edit and delete
+
+`meals` also serves `GET /api/meals/week`, `/history`, `/:id`, `PATCH /:id` and `DELETE /:id` (see `backend/README.md`). History and week totals group the caller's meals by PKT day in the service (one range query via `listMealsBetween`). Edits recompute totals with the same pricing code as a save (`priceItems`). The repository calls the two migration functions through RPC, so the delete, the streak-day removal and the item swap are each atomic; `supabase-js` has no transaction and ordered client-side calls could leave a half-deleted meal. For that reason `meals` does not call `streaks` for removal: the function owns the `streak_days` cleanup, using the same "has a confirmed item" rule as the status repair in `buddy_status_operation`, so a status read cannot bring the day back. Editing never changes `eaten_at`, so no streak change is needed.
 
 ## Saved-meal buddy status
 
