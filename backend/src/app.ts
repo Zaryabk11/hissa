@@ -14,7 +14,7 @@ export function createApp(config: Config = loadConfig()): Express {
   app.use((req, res, next) => {
     if (!req.path.startsWith('/api/')) return next();
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     if (req.method === 'OPTIONS') { res.status(204).end(); return; }
     next();
