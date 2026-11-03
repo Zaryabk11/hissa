@@ -23,4 +23,33 @@ export const feelContent = {
     noneTitle: 'No pattern yet',
     noneBody: 'Nothing stands out in your logs so far. That is fine. Keep checking in.',
   },
+  experiment: {
+    title: 'Try next time',
+    private: 'Only you can see this. It is a small experiment, not advice.',
+    prompt: 'Pick one small thing to try at a later meal.',
+    actions: {
+      smaller_portion: 'A smaller portion',
+      different_side: 'A different side',
+      observe_again: 'Just observe again',
+    },
+    confirm: 'Save my choice',
+    saving: 'Saving',
+    activeTitle: 'Your try-next-time choice',
+    activeHelp: 'Only you can see this. Tell Hissa once you have tried it at a meal.',
+    tried: 'I tried it',
+    marking: 'Saving',
+    needMeal: 'Save a meal first, then come back.',
+    reviewTitle: 'What you logged',
+    reviewPending:
+      'Your check-in for that meal is not done yet. It appears about 90 minutes after you save the meal.',
+    reviewNote: "One meal can't say why. This is just for you to compare.",
+    loading: 'Loading your try-next-time choice',
+    loadError: 'Could not load your choice. Check your connection and try again.',
+    errors: {
+      conflict: 'You already have a choice in progress. Mark it as tried first.',
+      invalid:
+        'That pattern has moved on, so this choice could not be saved. Check the card again.',
+      generic: 'Could not save. Please try again.',
+    },
+  },
 } as const;

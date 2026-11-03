@@ -1,3 +1,5 @@
+import { feelContent } from './content';
+
 export type Energy = 'low' | 'okay' | 'good';
 export type Stomach = 'heavy' | 'fine' | 'light';
 export type Symptom = 'bloated' | 'upset' | 'other' | 'not_sure';
@@ -97,4 +99,60 @@ export function patternView(card: PatternCard): PatternView | null {
     default:
       return null;
   }
+}
+
+// Private "try next time" experiment (POST/GET /api/feel/experiments...).
+export type ExperimentAction = 'smaller_portion' | 'different_side' | 'observe_again';
+export const EXPERIMENT_ACTIONS: ExperimentAction[] = [
+  'smaller_portion',
+  'different_side',
+  'observe_again',
+];
+export type Experiment = {
+  id: string;
+  patternKey: string;
+  action: ExperimentAction;
+  status: 'active' | 'tried';
+  createdAt: string;
+  triedAt: string | null;
+  tried: { mealId: string; energy: Energy | null; stomach: Stomach | null } | null;
+};
+
+// The key to save a choice against: only a real pattern card, and never while one is active.
+export const offerablePatternKey = (
+  card: PatternCard | null,
+  experiment: Experiment | null,
+): string | null =>
+  card?.state === 'pattern' && experiment?.status !== 'active'
+    ? (card.pattern?.patternKey ?? null)
+    : null;
+
+// The latest of the caller's meals saved after the experiment began, or null.
+export function latestMealIdAfter(
+  meals: { id: string; eatenAt: string }[],
+  createdAt: string,
+): string | null {
+  const since = Date.parse(createdAt);
+  let best: { id: string; at: number } | null = null;
+  for (const m of meals) {
+    const at = Date.parse(m.eatenAt);
+    if (at > since && (!best || at > best.at)) best = { id: m.id, at };
+  }
+  return best?.id ?? null;
+}
+
+// Plain restating of what was logged. It never says the action changed anything.
+export function reviewLines(experiment: Experiment): string[] {
+  const c = feelContent.experiment;
+  const { energy, stomach } = experiment.tried ?? { energy: null, stomach: null };
+  const parts = [energy && `energy ${energy}`, stomach && `stomach ${stomach}`].filter(
+    (p): p is string => !!p,
+  );
+  if (!parts.length) return [c.reviewPending];
+  return [`You logged: ${parts.join(', ')} for that meal.`, c.reviewNote];
+}
+
+export function experimentErrorMessage(status: number | undefined): string {
+  const e = feelContent.experiment.errors;
+  return status === 409 ? e.conflict : status === 422 ? e.invalid : e.generic;
 }
