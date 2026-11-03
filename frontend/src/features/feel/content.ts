@@ -48,7 +48,7 @@ export const feelContent = {
     errors: {
       conflict: 'You already have a choice in progress. Mark it as tried first.',
       invalid:
-        'That pattern has moved on, so this choice could not be saved. Check the card again.',
+        'This could not be saved right now. Check the card, or save a meal first, then try again.',
       generic: 'Could not save. Please try again.',
     },
   },

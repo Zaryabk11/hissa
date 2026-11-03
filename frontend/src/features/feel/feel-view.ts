@@ -154,5 +154,5 @@ export function reviewLines(experiment: Experiment): string[] {
 
 export function experimentErrorMessage(status: number | undefined): string {
   const e = feelContent.experiment.errors;
-  return status === 409 ? e.conflict : status === 422 ? e.invalid : e.generic;
+  return status === 409 ? e.conflict : status === 400 ? e.invalid : e.generic;
 }

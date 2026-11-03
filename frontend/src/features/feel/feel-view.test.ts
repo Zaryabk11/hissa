@@ -234,7 +234,7 @@ describe('review text', () => {
 describe('experiment errors', () => {
   it('is kind about a conflict and a pattern that moved on', () => {
     expect(experimentErrorMessage(409)).toBe(feelContent.experiment.errors.conflict);
-    expect(experimentErrorMessage(422)).toBe(feelContent.experiment.errors.invalid);
+    expect(experimentErrorMessage(400)).toBe(feelContent.experiment.errors.invalid);
     expect(experimentErrorMessage(500)).toBe(feelContent.experiment.errors.generic);
     expect(experimentErrorMessage(undefined)).toBe(feelContent.experiment.errors.generic);
   });
