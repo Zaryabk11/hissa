@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { feelContent } from './content';
 import {
   FIXED_SYMPTOM_STEP,
+  experimentErrorMessage,
+  latestMealIdAfter,
+  offerablePatternKey,
+  reviewLines,
+  type Experiment,
   canSubmit,
   needsSymptomDetail,
   patternView,
@@ -144,5 +150,105 @@ describe('pattern card view', () => {
   it('hides a card with an unknown state or no wording', () => {
     expect(patternView(card({ state: 'weird' as PatternCard['state'] }))).toBeNull();
     expect(patternView(card({ state: 'pattern', label: '' }))).toBeNull();
+  });
+});
+
+const exp = (over: Partial<Experiment> = {}): Experiment => ({
+  id: 'e1',
+  patternKey: 'k',
+  action: 'smaller_portion',
+  status: 'active',
+  createdAt: '2026-11-03T08:00:00.000Z',
+  triedAt: null,
+  tried: null,
+  ...over,
+});
+const withPattern = card({ state: 'pattern', label: 'L', pattern: found });
+
+describe('try next time offer', () => {
+  it('offers the pattern key only for a pattern card', () => {
+    expect(offerablePatternKey(withPattern, null)).toBe('k');
+    expect(offerablePatternKey(card({ state: 'question', label: 'Q' }), null)).toBeNull();
+    expect(offerablePatternKey(card({ state: 'no_pattern' }), null)).toBeNull();
+    expect(offerablePatternKey(card({ state: 'pattern', label: 'L' }), null)).toBeNull();
+    expect(offerablePatternKey(null, null)).toBeNull();
+  });
+
+  it('is hidden while an experiment is active and offered again once tried', () => {
+    expect(offerablePatternKey(withPattern, exp())).toBeNull();
+    expect(offerablePatternKey(withPattern, exp({ status: 'tried' }))).toBe('k');
+  });
+});
+
+describe('meal chosen for "I tried it"', () => {
+  const meal = (id: string, eatenAt: string) => ({ id, eatenAt });
+  it('is null with no meals or only older ones', () => {
+    expect(latestMealIdAfter([], exp().createdAt)).toBeNull();
+    expect(latestMealIdAfter([meal('a', '2026-11-03T07:00:00.000Z')], exp().createdAt)).toBeNull();
+  });
+  it('picks the one later meal', () => {
+    expect(latestMealIdAfter([meal('a', '2026-11-03T09:00:00.000Z')], exp().createdAt)).toBe('a');
+  });
+  it('picks the latest of several, in any order, ignoring older and bad times', () => {
+    expect(
+      latestMealIdAfter(
+        [
+          meal('old', '2026-11-03T07:00:00.000Z'),
+          meal('late', '2026-11-03T13:00:00.000Z'),
+          meal('bad', 'nope'),
+          meal('mid', '2026-11-03T10:00:00.000Z'),
+        ],
+        exp().createdAt,
+      ),
+    ).toBe('late');
+  });
+});
+
+describe('review text', () => {
+  it('says the check-in is not done when both answers are missing', () => {
+    expect(
+      reviewLines(exp({ status: 'tried', tried: { mealId: 'm', energy: null, stomach: null } })),
+    ).toEqual([feelContent.experiment.reviewPending]);
+    expect(reviewLines(exp({ status: 'tried', tried: null }))).toEqual([
+      feelContent.experiment.reviewPending,
+    ]);
+  });
+  it('shows a partial answer plainly', () => {
+    const lines = reviewLines(
+      exp({ status: 'tried', tried: { mealId: 'm', energy: 'good', stomach: null } }),
+    );
+    expect(lines[0]).toBe('You logged: energy good for that meal.');
+    expect(lines).toContain(feelContent.experiment.reviewNote);
+  });
+  it('shows both answers with the comparison note', () => {
+    const lines = reviewLines(
+      exp({ status: 'tried', tried: { mealId: 'm', energy: 'good', stomach: 'fine' } }),
+    );
+    expect(lines).toEqual([
+      'You logged: energy good, stomach fine for that meal.',
+      "One meal can't say why. This is just for you to compare.",
+    ]);
+  });
+});
+
+describe('experiment errors', () => {
+  it('is kind about a conflict and a pattern that moved on', () => {
+    expect(experimentErrorMessage(409)).toBe(feelContent.experiment.errors.conflict);
+    expect(experimentErrorMessage(422)).toBe(feelContent.experiment.errors.invalid);
+    expect(experimentErrorMessage(500)).toBe(feelContent.experiment.errors.generic);
+    expect(experimentErrorMessage(undefined)).toBe(feelContent.experiment.errors.generic);
+  });
+});
+
+describe('experiment copy', () => {
+  it('never uses causal or medical wording', () => {
+    const lines = [
+      JSON.stringify(feelContent.experiment),
+      ...reviewLines(
+        exp({ status: 'tried', tried: { mealId: 'm', energy: 'low', stomach: 'heavy' } }),
+      ),
+      ...reviewLines(exp({ status: 'tried' })),
+    ];
+    for (const line of lines) expect(line).not.toMatch(/cause|because|diagnos|avoid|intoleran/i);
   });
 });
