@@ -12,6 +12,7 @@ import { getDueCheckin, type DueCheckin } from '../feel/api/feel';
 import { dishById, setCatalog } from '../nutrition/catalog';
 import { portionText } from '../nutrition/engine';
 import { BudgetRing } from './components/BudgetRing';
+import { WeekCard } from './components/WeekCard';
 import { TodaySkeleton } from './components/Skeleton';
 import { todayContent as c } from './content';
 import { dayLabel } from './format';
@@ -68,6 +69,7 @@ export function TodayScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [weekKey, setWeekKey] = useState(0);
   const hasData = useRef(false);
 
   const load = useCallback(
@@ -109,6 +111,7 @@ export function TodayScreen() {
 
   const refresh = () => {
     setRefreshing(true);
+    setWeekKey((n) => n + 1);
     void load(() => true).finally(() => setRefreshing(false));
   };
 
@@ -259,6 +262,10 @@ export function TodayScreen() {
           })}
         </View>
       )}
+
+      <View style={{ marginTop: 20 }}>
+        <WeekCard budget={profile.dailyCalorieBudget} refreshKey={weekKey} />
+      </View>
 
       {card && (
         <View style={{ marginTop: 20, gap: 8 }}>
