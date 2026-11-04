@@ -34,8 +34,8 @@ flowchart TD
   save --> streak["Shared streak with one buddy"]
   save --> checkin["Check-in 90 min later"]
   checkin --> pattern["Weekly pattern card"]
-  avoid["Avoid list: a hard filter"] -.-> confirm
-  avoid -.-> rank
+  avoid["Avoid list"] -.->|flags| confirm
+  avoid -.->|filters| rank
   pattern --> rank["Recipe ranking"]
   budget["Remaining budget"] --> rank
   often["Dishes eaten often"] --> rank

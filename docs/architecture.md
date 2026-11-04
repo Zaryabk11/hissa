@@ -15,7 +15,7 @@ hissa/
     app.ts, server.ts
     shared/            config, db, errors, middleware, logger, time (PKT day)
     modules/<name>/    auth profiles scan nutrition plan meals streaks feel recipes
-  backend/scripts/     synthetic-question-data.ts, train-question-ranker.ts (offline, not in the build)
+  backend/scripts/     synthetic-question-data.ts, train-question-ranker.ts, draft-recipes.ts, recipe-draft-guard.ts (offline, not in the build)
   database/
     data/catalog.csv   the dish catalog (78 dishes), see data-sources.md
     scripts/           build-seed.mjs turns catalog.csv into seed.sql, plus tests
