@@ -7,6 +7,7 @@ import { createMealsModule } from './meals';
 import { createNutritionModule } from './nutrition';
 import { createPlanModule } from './plan';
 import { createProfilesModule } from './profiles';
+import { createRecipesModule } from './recipes';
 import { createScanModule } from './scan';
 import { createStreaksModule } from './streaks';
 
@@ -34,6 +35,13 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
     nutrition: nutrition.service,
   });
   const feel = createFeelModule(deps);
+  const recipes = createRecipesModule({
+    ...deps,
+    profiles: profiles.service,
+    meals: meals.service,
+    feel: feel.service,
+    nutrition: nutrition.service,
+  });
 
   return {
     auth: auth.router,
@@ -44,5 +52,6 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
     meals: meals.router,
     streaks: streaks.router,
     feel: feel.router,
+    recipes: recipes.router,
   };
 }

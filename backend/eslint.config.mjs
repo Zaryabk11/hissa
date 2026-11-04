@@ -3,7 +3,7 @@ import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-const modules = ['auth', 'profiles', 'scan', 'nutrition', 'plan', 'meals', 'streaks', 'feel'];
+const modules = ['auth', 'profiles', 'scan', 'nutrition', 'plan', 'meals', 'streaks', 'feel', 'recipes'];
 
 // Layer rule: routes -> controller -> service -> repository. Each layer lists what it must not import.
 const forbiddenByLayer = {

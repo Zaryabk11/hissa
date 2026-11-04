@@ -242,6 +242,20 @@ describe('meals service', () => {
       );
     });
 
+    it('dishCounts counts confirmed slugs only over 30 days', async () => {
+      const mk = (confirmedDish: string | null) => ({ confirmedDish }) as Meal['items'][number];
+      const { service, repository } = setup([
+        { ...meals[1], items: [mk('roti'), mk('daal'), mk(null)] } as Meal,
+        { ...meals[2], items: [mk('roti')] } as Meal,
+      ]);
+      await expect(service.dishCounts('u1')).resolves.toEqual({ roti: 2, daal: 1 });
+      expect(repository.listMealsBetween).toHaveBeenCalledWith(
+        'u1',
+        pktDayBounds('2026-10-04').startIso,
+        pktDayBounds('2026-11-02').endIso,
+      );
+    });
+
     it('history defaults to 14 days', async () => {
       const { service, repository } = setup([]);
       await expect(service.history('u1')).resolves.toEqual({ days: [] });
