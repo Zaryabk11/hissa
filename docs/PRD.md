@@ -17,7 +17,7 @@ Trackers record what you already ate. In most Pakistani homes the household cook
 | Module           | Priority    | Effort | Done means                                                            |
 | ---------------- | ----------- | ------ | --------------------------------------------------------------------- |
 | 1. Portion Coach | Must ship   | ~60%   | Photo to confirmed portion plan, saved to the daily log, tested e2e   |
-| 2. Duo Streaks   | Should ship | ~25%   | Two real users paired, shared streak updates from real scans          |
+| 2. Duo Streaks   | Should ship | ~25%   | Two real users as friends, streaks update from real scans          |
 | 3. Food and Feel | Could ship  | ~15%   | 2-tap feel check-in after a meal, one weekly insight from logged data |
 
 Status (2026-11-03): Module 1 is built and connected to the Expo app. Module 2 (Duo Streaks) is built end to end (API, database, app) and verified by a local two-account smoke test. Module 3 has the 90-minute check-in and a per-user evidence model; the Gemini-worded follow-up question is built (API only); the weekly pattern card is available from the API (`GET /api/feel/pattern`) but has no app screen yet; the private experiment is not built. Live status: `docs/superpowers/plans/2026-11-02-v2-status.md`.
@@ -37,11 +37,11 @@ Photo -> Gemini picks dishes from OUR catalog (structured output with an enum pl
 
 ### 2. Duo Streaks
 
-Two users share one streak. A day counts when a person saves at least one meal. The streak grows only when both count; it resets at midnight PKT if either misses. One buddy at a time, one nudge per day. The buddy sees "logged today" and the streak, never meals, photos or calories.
+Friends are added by username. A day counts when a person saves at least one meal; each person has their own streak, which resets at midnight PKT if a day is missed. A user can set one habit goal (a streak or N days in a window) and choose to share it; friends can cheer a reached goal and nudge a friend who has not logged (one nudge per friend per day). A friend sees only username, display name, "logged today", the streak, nudge state and a shared goal, never meals, photos or calories. Notifications are an in-app inbox only, with no push.
 
 ### 3. Food and Feel
 
-2-tap check-in 90 minutes after a saved meal (energy: low/okay/good, stomach: heavy/fine/light). A weekly pattern card is built by a simple rule (one answer in 60% or more of a category's check-ins, at least 3 check-ins). The card text is written by fixed templates from the observed counts, not by Gemini. The app can ask one follow-up question (`GET /api/feel/question/:mealId`): the service picks the question type and fixed options, Gemini only words it from an aggregate summary (no dish names, meals or buddy data), and a fixed question is used if the wording is missing, malformed or unsafe. After a heavy stomach and the symptom answer, the app may also ask one skippable fixed question, "Did you already feel this way before this meal?" (at most once per 14 days, never worded by Gemini); a "yes" keeps that meal out of the weekly pattern and the per-user model, so a stomach that was already unhappy is not counted against the meal's dishes. Copy says "pattern", never "cause" or "diagnosis".
+2-tap check-in 90 minutes after a saved meal (energy: low/okay/good, stomach: heavy/fine/light). A weekly pattern card is built by a simple rule (one answer in 60% or more of a category's check-ins, at least 3 check-ins). The card text is written by fixed templates from the observed counts, not by Gemini. The app can ask one follow-up question (`GET /api/feel/question/:mealId`): the service picks the question type and fixed options, Gemini only words it from an aggregate summary (no dish names, meals or friend data), and a fixed question is used if the wording is missing, malformed or unsafe. After a heavy stomach and the symptom answer, the app may also ask one skippable fixed question, "Did you already feel this way before this meal?" (at most once per 14 days, never worded by Gemini); a "yes" keeps that meal out of the weekly pattern and the per-user model, so a stomach that was already unhappy is not counted against the meal's dishes. Copy says "pattern", never "cause" or "diagnosis".
 
 ## Guardrails
 

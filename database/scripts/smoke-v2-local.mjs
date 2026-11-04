@@ -1,4 +1,4 @@
-// Local-only v2 smoke: buddy, streak, nudge, feel. Throwaway users, deleted at the end.
+// Local-only v2 smoke: friends, streak, nudge, goals, notifications, feel. Throwaway users, deleted at the end.
 // Run: node --env-file=backend/.env database/scripts/smoke-v2-local.mjs  (backend must be running)
 const SB = process.env.SUPABASE_URL;
 const ANON = process.env.SUPABASE_ANON_KEY;
@@ -59,81 +59,75 @@ async function makeUser(name) {
 }
 
 try {
-  for (const n of ['A', 'B', 'C', 'D', 'E']) await makeUser(n);
-  const { A: a, B: b, C: c, D: d, E: e } = users;
+  for (const n of ['A', 'B', 'C']) await makeUser(n);
+  const { A: a, B: b, C: c } = users;
 
   const profiles = await admin(`/rest/v1/profiles?select=id&id=in.(${a.id},${b.id})`);
   check('both profiles exist (signup trigger)', profiles.json?.length === 2, show(profiles));
 
-  const inv = await api(a.token, '/api/streaks/invites', { method: 'POST' });
-  const code = inv.json?.code;
+  for (const [n, u] of [
+    ['a', a],
+    ['b', b],
+    ['c', c],
+  ]) {
+    u.username = `smoke_${n}_${Date.now().toString(36)}`.slice(0, 20);
+    const r = await api(u.token, '/api/profiles/me/username', {
+      method: 'PUT',
+      body: { username: u.username },
+    });
+    check(`${n} sets a username`, r.status < 300, show(r));
+  }
+
+  const req = await api(a.token, '/api/friends/requests', {
+    method: 'POST',
+    body: { username: b.username },
+  });
+  check('A requests B by username', req.status === 204, show(req));
+
+  const selfReq = await api(a.token, '/api/friends/requests', {
+    method: 'POST',
+    body: { username: a.username },
+  });
+  check('self-request fails', selfReq.status >= 400, show(selfReq));
+
+  const bOver = await api(b.token, '/api/friends/overview');
   check(
-    'A creates invite (6 chars A-Z0-9)',
-    inv.status === 201 && /^[A-Z0-9]{6}$/.test(code ?? ''),
-    show(inv),
+    'B sees A as an incoming request',
+    bOver.json?.incoming?.some((p) => p.userId === a.id),
+    show(bOver),
   );
 
-  const prev = await api(b.token, `/api/streaks/invites/${code}`);
-  const prevText = JSON.stringify(prev.json);
-  check(
-    'B previews invite, no ids/emails',
-    prev.status === 200 &&
-      !prevText.includes(a.id) &&
-      !prevText.includes('@') &&
-      Object.keys(prev.json).sort().join() === 'code,status',
-    show(prev),
-  );
+  const stranger = await api(c.token, `/api/friends/requests/${a.id}/accept`, { method: 'POST' });
+  check('C cannot accept a request not sent to C', stranger.status >= 400, show(stranger));
 
-  const self = await api(a.token, `/api/streaks/invites/${code}/accept`, { method: 'POST' });
-  check('self-accept fails', self.status >= 400, show(self));
-
-  const acc = await api(b.token, `/api/streaks/invites/${code}/accept`, { method: 'POST' });
+  const acc = await api(b.token, `/api/friends/requests/${a.id}/accept`, { method: 'POST' });
   check('B accepts', acc.status === 204, show(acc));
 
-  const third = await api(c.token, `/api/streaks/invites/${code}/accept`, { method: 'POST' });
-  check('C cannot accept used invite', third.status >= 400, show(third));
-
-  const again = await api(b.token, `/api/streaks/invites/${code}/accept`, { method: 'POST' });
+  const again = await api(b.token, `/api/friends/requests/${a.id}/accept`, { method: 'POST' });
   check('second accept fails', again.status >= 400, show(again));
-
-  const bInv = await api(b.token, '/api/streaks/invites', { method: 'POST' });
-  check('B cannot invite while paired', bInv.status >= 400, show(bInv));
-
-  // Race: C accepts D's and E's invites at once; at most one pair may become active.
-  const dInv = await api(d.token, '/api/streaks/invites', { method: 'POST' });
-  const eInv = await api(e.token, '/api/streaks/invites', { method: 'POST' });
-  const race = await Promise.all(
-    [dInv.json?.code, eInv.json?.code].map((k) =>
-      api(c.token, `/api/streaks/invites/${k}/accept`, { method: 'POST' }),
-    ),
-  );
-  const active = await admin(
-    `/rest/v1/buddy_pairs?select=id&status=eq.active&or=(inviter_id.eq.${c.id},invitee_id.eq.${c.id})`,
-  );
-  check(
-    'simultaneous accepts leave at most one active pair',
-    active.json?.length <= 1 && race.filter((r) => r.status === 204).length <= 1,
-    `race=${race.map(show).join(' | ')} active=${show(active)}`,
-  );
 
   const cat = await api(a.token, '/api/nutrition/catalog');
   const slug = cat.json?.dishes?.[0]?.slug;
   check('catalog has a dish', !!slug, show(cat));
 
-  // Nudge before buddy logged: A nudges B (B has not logged).
-  const n1 = await api(a.token, '/api/streaks/nudge', { method: 'POST' });
-  check('nudge allowed when buddy not logged', n1.status === 204, show(n1));
-  const n2 = await api(a.token, '/api/streaks/nudge', { method: 'POST' });
+  // Nudge before the friend logged: A nudges B (B has not logged).
+  const n1 = await api(a.token, `/api/friends/${b.id}/nudge`, { method: 'POST' });
+  check('nudge allowed when friend not logged', n1.status === 204, show(n1));
+  const n2 = await api(a.token, `/api/friends/${b.id}/nudge`, { method: 'POST' });
   check('second nudge same day rejected', n2.status >= 400, show(n2));
 
-  const bStat = await api(b.token, '/api/streaks');
-  check('B sees unreadNudge', bStat.json?.unreadNudge === true, show(bStat));
-  const ack = await api(b.token, '/api/streaks/nudge/ack', { method: 'POST' });
-  const bStat2 = await api(b.token, '/api/streaks');
+  const bNotes = await api(b.token, '/api/notifications');
   check(
-    'ack clears unreadNudge',
-    ack.status === 204 && bStat2.json?.unreadNudge === false,
-    `${show(ack)} ${show(bStat2)}`,
+    'B has an unread nudge in the inbox',
+    bNotes.json?.items?.some((i) => i.kind === 'nudge' && !i.read),
+    show(bNotes),
+  );
+  const ack = await api(b.token, '/api/notifications/read', { method: 'POST' });
+  const bNotes2 = await api(b.token, '/api/notifications');
+  check(
+    'mark read clears unread',
+    ack.status === 204 && bNotes2.json?.unread === 0,
+    `${show(ack)} ${show(bNotes2)}`,
   );
 
   const item = {
@@ -148,25 +142,34 @@ try {
   check('A saves meal', meal.status === 201 && !!mealId, show(meal));
 
   const aStat = await api(a.token, '/api/streaks');
-  check('A ownLoggedToday true', aStat.json?.ownLoggedToday === true, show(aStat));
-  const bView = await api(b.token, '/api/streaks');
-  check('B sees buddyLoggedToday true', bView.json?.buddyLoggedToday === true, show(bView));
-  const keys = 'buddyLoggedToday,ownLoggedToday,pairStatus,pendingInviteCode,streak,unreadNudge';
+  check('A loggedToday true', aStat.json?.loggedToday === true, show(aStat));
+  const bView = await api(b.token, '/api/friends/overview');
+  const aRow = bView.json?.friends?.find((f) => f.userId === a.id);
+  check('B sees A loggedToday true', aRow?.loggedToday === true, show(bView));
+  const keys = 'displayName,loggedToday,nudgedToday,streak,userId,username';
   check(
-    'streaks keys are exactly BuddyStatus',
-    Object.keys(bView.json ?? {})
+    'friend row has exactly the shared fields',
+    Object.keys(aRow ?? {})
       .sort()
       .join() === keys,
     show(bView),
   );
 
-  const n3 = await api(b.token, '/api/streaks/nudge', { method: 'POST' });
-  check('nudge rejected after buddy logged', n3.status >= 400, show(n3));
+  const n3 = await api(b.token, `/api/friends/${a.id}/nudge`, { method: 'POST' });
+  check('nudge rejected after friend logged', n3.status >= 400, show(n3));
+
+  const goal = await api(a.token, '/api/goals', {
+    method: 'POST',
+    body: { type: 'streak', target: 7, shared: true },
+  });
+  check('A creates a shared goal', goal.status === 201, show(goal));
 
   // Direct PostgREST with B's JWT against A's rows.
   for (const [table, filter] of [
     ['streak_days', `user_id=eq.${a.id}`],
-    ['buddy_pairs', `inviter_id=eq.${a.id}`],
+    ['friendships', `user_low=eq.${a.id}`],
+    ['goals', `user_id=eq.${a.id}`],
+    ['notifications', `user_id=eq.${a.id}`],
     ['meals', `user_id=eq.${a.id}`],
     ['meal_items', `meal_id=eq.${mealId}`],
     ['feel_checkins', `user_id=eq.${a.id}`],
@@ -218,12 +221,12 @@ try {
   const ci3 = await api(b.token, '/api/feel/checkins', { method: 'POST', body: ans });
   check("check-in on another user's meal rejected", ci3.status >= 400, show(ci3));
 
-  const end = await api(a.token, '/api/streaks/end', { method: 'POST' });
-  const aEnd = await api(a.token, '/api/streaks');
-  const bEnd = await api(b.token, '/api/streaks');
+  const end = await api(a.token, `/api/friends/${b.id}`, { method: 'DELETE' });
+  const aEnd = await api(a.token, '/api/friends/overview');
+  const bEnd = await api(b.token, '/api/friends/overview');
   check(
-    'end pair -> both pairStatus none',
-    end.status === 204 && aEnd.json?.pairStatus === 'none' && bEnd.json?.pairStatus === 'none',
+    'remove friend -> both friend lists empty',
+    end.status === 204 && aEnd.json?.friends?.length === 0 && bEnd.json?.friends?.length === 0,
     `${show(end)} ${show(aEnd)} ${show(bEnd)}`,
   );
 } catch (err) {

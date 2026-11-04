@@ -24,8 +24,8 @@ Everything below is the prepared plan. Steps marked **owner** need an account or
   | 2   | `20261101000000_catalog_and_scan_log.sql`           | applied per status doc                                                                                  |
   | 3   | `20261102000000_profiles_on_signup.sql`             | applied per status doc                                                                                  |
   | 4   | `20261102000100_revoke_handle_new_user_execute.sql` | applied per status doc                                                                                  |
-  | 5   | `20261102000200_buddy_invites_and_privacy.sql`      | applied per status doc                                                                                  |
-  | 6   | `20261102000300_buddy_nudges.sql`                   | applied per status doc                                                                                  |
+  | 5   | `20261102000200_…`                                | applied per status doc                                                                                  |
+  | 6   | `20261102000300_…`                                | applied per status doc                                                                                  |
   | 7   | `20261102000400_feel_learning.sql`                  | applied per status doc                                                                                  |
   | 8   | `20261102000500_user_experiments.sql`               | to be applied by an authorized owner (file lands with Task 9; check it exists on the branch you deploy) |
 
@@ -76,7 +76,7 @@ curl -i "$API/api/health"          # expect 200 and {"status":"ok"}
 
 The health response is covered by `backend/src/__tests__/app.test.ts`. It has not been run against any deployed URL.
 
-There is **no authenticated smoke script for a remote API**. `database/scripts/smoke-v2-local.mjs` (buddy, streak, nudge and check-in, 32 checks) deliberately refuses any host other than `localhost` or `127.0.0.1` and creates throwaway users with the service-role key, so do not point it at production. After deploy, verify by hand with two real Google accounts on the test-user list: sign in on both, create and accept an invite, scan a plate, save the meal, and confirm the streak, a nudge, and a check-in.
+There is **no authenticated smoke script for a remote API**. `database/scripts/smoke-v2-local.mjs` (friends, streak, nudge, goal, notification and check-in checks) deliberately refuses any host other than `localhost` or `127.0.0.1` and creates throwaway users with the service-role key, so do not point it at production. After deploy, verify by hand with two real Google accounts on the test-user list: sign in on both, add each other by username, scan a plate, save the meal, and confirm the streak, a nudge, and a check-in.
 
 ## 4. Build the Android APK (after the gate is lifted)
 
