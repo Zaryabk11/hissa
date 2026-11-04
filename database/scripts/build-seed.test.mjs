@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import { parseCatalog, renderSeed } from './build-seed.mjs';
 
 const HEADER =
-  'slug,name,category,unit,grams_per_unit,kcal_per_100g,protein_per_100g,carbs_per_100g,fat_per_100g,source,basis,unit_basis';
-const ROW = 'daal,Daal,lentil,katori,150,120,7,18,2,khan2019,lab,derived';
+  'slug,name,category,unit,grams_per_unit,kcal_per_100g,protein_per_100g,carbs_per_100g,fat_per_100g,source,basis,unit_basis,protein_type';
+const ROW = 'daal,Daal,lentil,katori,150,120,7,18,2,khan2019,lab,derived,';
 const csv = (...rows) => [HEADER, ...rows].join('\n') + '\n';
 // Replace one field (by column index) of ROW.
 const withField = (i, value) =>
@@ -27,6 +27,7 @@ test('a valid row parses to numbers', () => {
       source: 'khan2019',
       basis: 'lab',
       unit_basis: 'derived',
+      protein_type: null,
     },
   ]);
 });
@@ -51,13 +52,14 @@ const bad = {
   'unknown source': [[ROW, other(9, 'wikipedia')], /unknown source "wikipedia"/],
   'unknown basis': [[ROW, other(10, 'guess')], /unknown basis "guess"/],
   'unknown unit_basis': [[ROW, other(11, 'magic')], /unknown unit_basis "magic"/],
+  'unknown protein_type': [[ROW, other(12, 'pork')], /unknown protein_type "pork"/],
   'name with comma': [
-    [ROW, 'other,"Daal, thick",lentil,katori,150,120,7,18,2,khan2019,lab,derived'],
-    /expected 12 columns, got 13/,
+    [ROW, 'other,"Daal, thick",lentil,katori,150,120,7,18,2,khan2019,lab,derived,'],
+    /expected 13 columns, got 14/,
   ],
   'name with quote': [[ROW, other(1, 'Dal"x')], /double quote/],
   'macro mismatch': [
-    [ROW, 'other,X,lentil,katori,150,500,7,18,2,khan2019,lab,derived'],
+    [ROW, 'other,X,lentil,katori,150,500,7,18,2,khan2019,lab,derived,'],
     /kcal 500 does not match macros/,
   ],
 };
@@ -92,4 +94,44 @@ test('renderSeed([]) has no insert', () => {
   const sql = renderSeed([]);
   assert.doesNotMatch(sql, /insert/i);
   assert.match(sql, /^-- GENERATED/);
+});
+
+test('parseCatalog accepts an empty protein_type as null and a known one as is', () => {
+  assert.equal(parseCatalog(csv(ROW))[0].protein_type, null);
+  assert.equal(parseCatalog(csv(withField(12, 'veg')))[0].protein_type, 'veg');
+});
+
+test('seed sql includes protein_type, null for empty', () => {
+  const sql = renderSeed(parseCatalog(csv(ROW, other(12, 'beef'))));
+  assert.match(sql, /unit_basis, protein_type\)/);
+  assert.match(sql, /'derived', null\)/);
+  assert.match(sql, /'derived', 'beef'\)/);
+  assert.match(sql, /protein_type = excluded\.protein_type/);
+});
+
+const RECIPE = {
+  slug: 'daal-simple',
+  title: "Ma'ash daal",
+  dish: 'daal',
+  minutes: 30,
+  servings: 4,
+  ingredients: [{ item: 'daal', quantity: '1 cup' }],
+  steps: ['Boil.', 'Temper.', 'Serve.'],
+  reviewed: false,
+};
+
+test('recipes.json rows become inserts with reviewed false', () => {
+  const sql = renderSeed(parseCatalog(csv(ROW)), [RECIPE]);
+  assert.match(sql, /insert into public\.recipes \(slug, title, dish_id, minutes, servings, ingredients, steps, reviewed\)/);
+  assert.ok(sql.includes("(select id from public.dishes where slug = 'daal')"));
+  assert.ok(sql.includes("'Ma''ash daal'"));
+  assert.match(sql, /, false\)/);
+  assert.match(sql, /on conflict \(slug\) do update set title = excluded\.title/);
+});
+
+test('unknown dish slug fails with the recipe slug', () => {
+  assert.throws(
+    () => renderSeed(parseCatalog(csv(ROW)), [{ ...RECIPE, dish: 'nope' }]),
+    /daal-simple.*nope/,
+  );
 });

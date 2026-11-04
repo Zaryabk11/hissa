@@ -3,27 +3,35 @@ import { isNoPlateResult, mealPayload, reviewItemsFromScan, stepQty } from './sc
 
 describe('scan to saved meal', () => {
   it('recognizes the backend unknown sentinel as a no-plate result', () => {
-    expect(isNoPlateResult([{ dish: 'unknown', name: null, unit: null, portion: 0, confidence: 0, needsConfirmation: true }])).toBe(true);
-    expect(isNoPlateResult([{ dish: 'roti', name: 'Roti', unit: 'roti', portion: 1, confidence: 0.9, needsConfirmation: false }])).toBe(false);
+    expect(isNoPlateResult([{ dish: 'unknown', name: null, unit: null, portion: 0, confidence: 0, needsConfirmation: true, avoided: false }])).toBe(true);
+    expect(isNoPlateResult([{ dish: 'roti', name: 'Roti', unit: 'roti', portion: 1, confidence: 0.9, needsConfirmation: false, avoided: false }])).toBe(false);
   });
   it('keeps the original prediction when the user corrects a dish and takes the planned portion', () => {
-    const items = reviewItemsFromScan([{ dish: 'daal', name: 'Daal', unit: 'katori', portion: 1, confidence: 0.4, needsConfirmation: true }]);
+    const items = reviewItemsFromScan([{ dish: 'daal', name: 'Daal', unit: 'katori', portion: 1, confidence: 0.4, needsConfirmation: true, avoided: false }]);
     items[0]!.dishId = 'haleem';
     items[0]!.confirmed = true;
     const result = mealPayload(items, [{ slug: 'haleem', units: 0.5 }]);
     expect(result.items).toEqual([{ predictedDish: 'daal', predictedPortion: 1, confirmedDish: 'haleem', confirmedPortion: 0.5, confidence: 0.4 }]);
   });
 
+  it('scan items keep avoided flag into review items', () => {
+    const items = reviewItemsFromScan([
+      { dish: 'nihari', name: 'Nihari', unit: 'katori', portion: 1, confidence: 0.9, needsConfirmation: false, avoided: true },
+      { dish: 'roti', name: 'Roti', unit: 'roti', portion: 1, confidence: 0.9, needsConfirmation: false, avoided: false },
+    ]);
+    expect(items.map((i) => i.avoided)).toEqual([true, false]);
+  });
+
   it('keeps removed predictions and skips an unknown item until it has a catalog dish', () => {
-    const items = reviewItemsFromScan([{ dish: 'roti', name: 'Roti', unit: 'roti', portion: 2, confidence: 0.9, needsConfirmation: false }]);
+    const items = reviewItemsFromScan([{ dish: 'roti', name: 'Roti', unit: 'roti', portion: 2, confidence: 0.9, needsConfirmation: false, avoided: false }]);
     items[0]!.removed = true;
     expect(mealPayload(items).items).toEqual([{ predictedDish: 'roti', predictedPortion: 2, confirmedDish: null, confirmedPortion: null, confidence: 0.9 }]);
   });
 
   it('assigns separate planned portions to repeated dishes', () => {
     const items = reviewItemsFromScan([
-      { dish: 'roti', name: 'Roti', unit: 'roti', portion: 2, confidence: 0.9, needsConfirmation: false },
-      { dish: 'roti', name: 'Roti', unit: 'roti', portion: 1, confidence: 0.9, needsConfirmation: false },
+      { dish: 'roti', name: 'Roti', unit: 'roti', portion: 2, confidence: 0.9, needsConfirmation: false, avoided: false },
+      { dish: 'roti', name: 'Roti', unit: 'roti', portion: 1, confidence: 0.9, needsConfirmation: false, avoided: false },
     ]);
     expect(mealPayload(items, [{ slug: 'roti', units: 1 }, { slug: 'roti', units: 0.5 }]).items.map((i) => i.confirmedPortion)).toEqual([1, 0.5]);
   });

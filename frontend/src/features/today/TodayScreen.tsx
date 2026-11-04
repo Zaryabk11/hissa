@@ -13,6 +13,7 @@ import { dishById, setCatalog } from '../nutrition/catalog';
 import { portionText } from '../nutrition/engine';
 import { BudgetRing } from './components/BudgetRing';
 import { WeekCard } from './components/WeekCard';
+import { TodayRecipes } from '../recipes/components/TodayRecipes';
 import { TodaySkeleton } from './components/Skeleton';
 import { todayContent as c } from './content';
 import { dayLabel } from './format';

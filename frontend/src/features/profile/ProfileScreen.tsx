@@ -8,7 +8,9 @@ import { Chip, OptionCard } from '../../shared/ui/hissa/Choice';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
-import { getProfile, putProfile, type Profile } from '../core/api';
+import { AvoidsPicker } from '../avoids/AvoidsPicker';
+import { avoidsContent } from '../avoids/content';
+import { getAvoids, getCatalog, getProfile, putAvoids, putProfile, type Avoids, type Profile } from '../core/api';
 import { profileContent as c } from './content';
 import {
   BOUNDS,
@@ -129,6 +131,38 @@ export function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; alert: boolean } | null>(null);
   const [signOutError, setSignOutError] = useState(false);
+  const [avoids, setAvoids] = useState<Avoids | null>(null);
+  const [dishes, setDishes] = useState<{ slug: string; name: string }[]>([]);
+  const [avoidsSaving, setAvoidsSaving] = useState(false);
+  const [avoidsMsg, setAvoidsMsg] = useState<{ text: string; alert: boolean } | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    Promise.all([getAvoids(), getCatalog()])
+      .then(([a, cat]) => {
+        if (!live) return;
+        setAvoids(a);
+        setDishes(cat.dishes.map(({ slug, name }) => ({ slug, name })));
+      })
+      .catch(() => live && setAvoidsMsg({ text: avoidsContent.loadError, alert: true }));
+    return () => {
+      live = false;
+    };
+  }, [retry]);
+
+  const saveAvoids = async () => {
+    if (!avoids || avoidsSaving) return;
+    setAvoidsSaving(true);
+    setAvoidsMsg(null);
+    try {
+      setAvoids(await putAvoids(avoids));
+      setAvoidsMsg({ text: avoidsContent.saved, alert: false });
+    } catch {
+      setAvoidsMsg({ text: avoidsContent.saveError, alert: true });
+    } finally {
+      setAvoidsSaving(false);
+    }
+  };
 
   useEffect(() => {
     void retry;
@@ -341,6 +375,20 @@ export function ProfileScreen() {
             />
           ))}
         </View>
+      </Section>
+
+      <Section title={avoidsContent.profileTitle}>
+        {avoids && (
+          <>
+            <AvoidsPicker value={avoids} onChange={(a) => { setAvoids(a); setAvoidsMsg(null); }} dishes={dishes} />
+            <PrimaryButton outline label={avoidsSaving ? avoidsContent.saving : avoidsContent.save} disabled={avoidsSaving} onPress={() => void saveAvoids()} />
+          </>
+        )}
+        {avoidsMsg && (
+          <HissaText accessibilityRole={avoidsMsg.alert ? 'alert' : undefined} accessibilityLiveRegion="polite">
+            {avoidsMsg.text}
+          </HissaText>
+        )}
       </Section>
 
       <View style={{ marginTop: 32, gap: 12 }}>

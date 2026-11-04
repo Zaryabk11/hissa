@@ -18,6 +18,7 @@ const karahi: Dish = {
   source: 'farooq2026',
   basis: 'lab',
   unitBasis: 'assumed',
+  proteinType: null,
 };
 
 const repository: NutritionRepository = {

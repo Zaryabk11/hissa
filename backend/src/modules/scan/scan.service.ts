@@ -1,5 +1,6 @@
 import { pktDay } from '../../shared/time/pkt';
 import type { Dish, NutritionService } from '../nutrition';
+import { isAvoided, type ProfilesService } from '../profiles';
 import { GeminiUnavailableError, type GeminiClient } from './gemini.client';
 import { resizePhoto } from './resize-photo';
 import type { ScanBody } from './scan.schemas';
@@ -13,6 +14,7 @@ interface ScanDeps {
   repository: Pick<ScanRepository, 'countScansForDay' | 'recordScan'>;
   gemini: GeminiClient;
   nutrition: Pick<NutritionService, 'listCatalog'>;
+  profiles: Pick<ProfilesService, 'getAvoids'>;
   dailyCap: number;
   now?: () => Date;
 }
@@ -24,6 +26,7 @@ const NOTHING_FOUND: ScanItem = {
   portion: 0,
   confidence: 0,
   needsConfirmation: true,
+  avoided: false,
 };
 
 // Business rules for scan: daily cap, resize, Gemini detection, confirmation flags.
@@ -31,6 +34,7 @@ export function createScanService({
   repository,
   gemini,
   nutrition,
+  profiles,
   dailyCap,
   now = () => new Date(),
 }: ScanDeps) {
@@ -73,6 +77,7 @@ export function createScanService({
       const found = detected.filter((d) => bySlug.has(d.dish));
       if (found.length === 0) return { mode: 'detected', items: [NOTHING_FOUND] };
 
+      const avoids = await profiles.getAvoids(userId);
       const items = found.map((d): ScanItem => {
         const dish = bySlug.get(d.dish) as Dish;
         const portionOk = Number.isFinite(d.portion) && d.portion > 0 && d.portion <= MAX_PORTION;
@@ -83,6 +88,7 @@ export function createScanService({
           portion: portionOk ? d.portion : 1,
           confidence: d.confidence,
           needsConfirmation: !portionOk || d.confidence < CONFIDENCE_FLOOR,
+          avoided: isAvoided(avoids, dish),
         };
       });
       return { mode: 'detected', items };

@@ -129,3 +129,7 @@ See [decisions/](decisions/).
 ## Google sign-in
 
 Supabase Auth with the Google provider and PKCE; the app opens the browser sheet, receives `?code=` and exchanges it (`frontend/src/shared/auth/google.ts`). The session is stored in SecureStore and refreshed; `apiAuthed` attaches the bearer token and signs the user out on a 401. Route guards in `frontend/app/_layout.tsx` keep `(tabs)` and `(scan)` closed without a session. Return-address rules and project settings: [decision 0004](decisions/0004-google-sign-in-return-address.md).
+
+## Avoids and recipes (v3)
+
+`profiles` owns the avoid list and exports `isAvoided` through its `index.ts`; `scan` uses it to set `ScanItem.avoided`. The `recipes` module reads `profiles` (budget, avoids), `meals` (calories today, dish counts), `nutrition` (catalog) and a narrow `PatternSource` slice of `feel`, all through their `index.ts`. `rank.ts` is a pure function. Recipes come from `database/data/recipes.json` through the seed builder; `backend/scripts/draft-recipes.ts` asks Gemini for drafts offline (banned-word guard `recipe-draft-guard.ts`), writes them as `reviewed: false`, and only reviewed rows are served.

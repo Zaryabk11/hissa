@@ -8,7 +8,7 @@ export type Detected = {
   ask?: string[];
 };
 
-export type ReviewItem = Detected & { id: string; confirmed: boolean; removed: boolean; predictedDish: string | null; predictedPortion: number | null; confidence: number | null };
+export type ReviewItem = Detected & { id: string; confirmed: boolean; removed: boolean; avoided: boolean; predictedDish: string | null; predictedPortion: number | null; confidence: number | null };
 
 type ScanState = { photoUri: string | null; image: string | null; mimeType: string; items: ReviewItem[]; plan: Plan | null; manualReason: string | null };
 
@@ -21,7 +21,7 @@ const set = (patch: Partial<ScanState>) => {
   listeners.forEach((l) => l());
 };
 
-export const newItem = (d: Detected): ReviewItem => ({ ...d, id: `i${nextId++}`, confirmed: false, removed: false, predictedDish: null, predictedPortion: null, confidence: null });
+export const newItem = (d: Detected): ReviewItem => ({ ...d, id: `i${nextId++}`, confirmed: false, removed: false, avoided: false, predictedDish: null, predictedPortion: null, confidence: null });
 
 export const startScan = (photoUri: string, image: string | null = null, mimeType = 'image/jpeg') => set({ photoUri, image, mimeType, items: [], plan: null, manualReason: null });
 export const setItems = (items: ReviewItem[]) => set({ items });

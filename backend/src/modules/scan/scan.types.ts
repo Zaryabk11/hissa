@@ -7,6 +7,7 @@ export interface ScanItem {
   portion: number;
   confidence: number;
   needsConfirmation: boolean;
+  avoided: boolean;
 }
 
 export type ScanResult =

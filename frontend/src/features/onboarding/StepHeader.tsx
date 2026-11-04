@@ -8,7 +8,7 @@ import { ProgressDots } from '../../shared/ui/hissa/ProgressDots';
 import { backFallback } from './backTarget';
 import { onboardingContent as c, TOTAL_STEPS } from './content';
 
-/** Back button, progress bars, then "Step n of 4". Back goes one screen back, or, with no history, to the landing (web) or the index redirector (app). */
+/** Back button, progress bars, then "Step n of 5". Back goes one screen back, or, with no history, to the landing (web) or the index redirector (app). */
 export function StepHeader({ step }: { step: number }) {
   const t = useHissaTheme();
   const router = useRouter();
