@@ -6,3 +6,5 @@ export const setUsername = (username: string) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username }),
   });
+
+export const getMyStreak = () => apiAuthed<{ streak: number; loggedToday: boolean }>('/api/streaks');

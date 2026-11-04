@@ -5,6 +5,7 @@ import { BOUNDS, clamp, formToPayload, isDirty, profileToForm } from './profile-
 const server: Profile = {
   id: 'u1',
   displayName: 'Ayesha',
+  username: null,
   goal: 'maintain',
   sex: 'female',
   age: 25,
