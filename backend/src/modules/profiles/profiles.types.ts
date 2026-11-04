@@ -39,6 +39,8 @@ export interface ProfileRow {
   daily_calorie_budget: number | null;
 }
 
+export type CardRow = Pick<ProfileRow, 'id' | 'username' | 'display_name'>;
+
 export type ProfileUpsertRow = Omit<ProfileRow, 'username'>;
 
 // What other modules (friends, notifications) may show about a person.

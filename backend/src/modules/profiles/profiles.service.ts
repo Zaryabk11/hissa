@@ -2,7 +2,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../../shared/erro
 import { computeDailyBudget } from './budget';
 import type { ProfilesRepository } from './profiles.repository';
 import { usernameSchema } from './profiles.schemas';
-import type { PersonCard, Profile, ProfileInput, ProfileRow } from './profiles.types';
+import type { CardRow, PersonCard, Profile, ProfileInput, ProfileRow } from './profiles.types';
 
 interface ProfilesDeps {
   repository: ProfilesRepository;
@@ -21,7 +21,7 @@ const toProfile = (r: ProfileRow, dailyCalorieBudget: number): Profile => ({
   dailyCalorieBudget,
 });
 
-const toCard = (r: ProfileRow): PersonCard => ({
+const toCard = (r: CardRow): PersonCard => ({
   userId: r.id,
   username: r.username,
   displayName: r.display_name,
@@ -70,7 +70,10 @@ export function createProfilesService({ repository }: ProfilesDeps) {
     },
 
     async searchUsernames(prefix: string, limit: number): Promise<PersonCard[]> {
-      return (await repository.searchUsernames(prefix.toLowerCase(), limit)).map(toCard);
+      const p = prefix.toLowerCase();
+      // Usernames hold only [a-z0-9_]; anything else (e.g. PostgREST's `*` wildcard) cannot match, so skip the query.
+      if (!/^[a-z0-9_]+$/.test(p)) return [];
+      return (await repository.searchUsernames(p, limit)).map(toCard);
     },
 
     async getCards(userIds: string[]): Promise<PersonCard[]> {

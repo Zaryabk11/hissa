@@ -1,5 +1,5 @@
 import type { Db } from '../../shared/db';
-import type { ProfileRow, ProfileUpsertRow } from './profiles.types';
+import type { CardRow, ProfileRow, ProfileUpsertRow } from './profiles.types';
 
 const COLUMNS =
   'id, username, display_name, goal, sex, age, height_cm, weight_kg, activity_level, daily_calorie_budget';
@@ -39,7 +39,7 @@ export function createProfilesRepository(db: Db) {
       return data.length > 0;
     },
 
-    async searchUsernames(prefix: string, limit: number): Promise<ProfileRow[]> {
+    async searchUsernames(prefix: string, limit: number): Promise<CardRow[]> {
       const { data, error } = await db
         .from('profiles')
         .select(CARD_COLUMNS)
@@ -47,13 +47,13 @@ export function createProfilesRepository(db: Db) {
         .order('username')
         .limit(limit);
       if (error) throw error;
-      return data as ProfileRow[];
+      return data as CardRow[];
     },
 
-    async findCards(userIds: string[]): Promise<ProfileRow[]> {
+    async findCards(userIds: string[]): Promise<CardRow[]> {
       const { data, error } = await db.from('profiles').select(CARD_COLUMNS).in('id', userIds);
       if (error) throw error;
-      return data as ProfileRow[];
+      return data as CardRow[];
     },
   };
 }
