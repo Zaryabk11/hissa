@@ -5,7 +5,7 @@ import type { Db } from '../../../shared/db';
 import { ConflictError, ValidationError } from '../../../shared/errors';
 import { errorHandler } from '../../../shared/middleware/error-handler';
 import { createProfilesController } from '../profiles.controller';
-import { createProfilesRepository } from '../profiles.repository';
+import { createProfilesRepository, type ProfilesRepository } from '../profiles.repository';
 import { createProfilesRouter } from '../profiles.routes';
 import { createProfilesService } from '../profiles.service';
 import type { CardRow, ProfileRow } from '../profiles.types';
@@ -18,7 +18,9 @@ function setup() {
     searchUsernames: vi.fn(async (_prefix: string, _limit: number) => [] as CardRow[]),
     findCards: vi.fn(async (_ids: string[]) => [] as CardRow[]),
   };
-  const service = createProfilesService({ repository });
+  const service = createProfilesService({
+    repository: repository as unknown as ProfilesRepository,
+  });
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

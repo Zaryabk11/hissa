@@ -47,3 +47,21 @@ export type ProfileUpsertRow = Omit<ProfileRow, 'username'>;
 
 // What other modules (friends, notifications) may show about a person.
 export type PersonCard = { userId: string; username: string | null; displayName: string | null };
+
+export interface Avoids {
+  proteins: ProteinType[];
+  dishes: string[];
+}
+
+// A row of public.user_avoids as written; listAvoids joins the dish slug.
+export interface AvoidRow {
+  kind: 'dish' | 'protein';
+  protein: ProteinType | null;
+  dish_id: string | null;
+}
+
+export interface AvoidListRow {
+  kind: 'dish' | 'protein';
+  protein: ProteinType | null;
+  dishes: { slug: string } | null;
+}

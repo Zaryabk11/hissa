@@ -259,6 +259,8 @@ export function TodayScreen() {
         <WeekCard budget={profile.dailyCalorieBudget} refreshKey={weekKey} />
       </View>
 
+      <TodayRecipes refreshKey={weekKey} />
+
       {card.kind === 'streak' && (
         <View style={{ marginTop: 20 }}>
           <Card onPress={() => router.push('/(tabs)/social')} label={c.streak.open}>

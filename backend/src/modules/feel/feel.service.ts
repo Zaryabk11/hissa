@@ -130,7 +130,7 @@ export function createFeelService({
       }
       const evidence = buildEvidence(observations);
       const allowed = bank.options.map((o) => o.id);
-      // Aggregate only: no dish names, ids, meal history or buddy data.
+      // Aggregate only: no dish names, ids, meal history or friend data.
       const c = evidence.candidate;
       const evidenceSummary =
         `${evidence.n} check-ins; ` +

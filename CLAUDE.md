@@ -11,7 +11,7 @@ Hissa is a portion coach app for desi households. See `docs/PRD.md` and `docs/ar
 ## Layout
 
 - `frontend/` Expo + TypeScript + Expo Router. `src/features/<feature>/` and `src/shared/`.
-- `backend/` Express + TypeScript modular monolith. Modules live in `backend/src/modules/<name>/` (`auth profiles nutrition scan streaks notifications friends goals meals plan feel`).
+- `backend/` Express + TypeScript modular monolith. Modules live in `backend/src/modules/<name>/` (`auth profiles nutrition scan streaks notifications friends goals meals plan feel recipes`).
 - `database/supabase/` migrations, seed, RLS.
 
 ## Backend architecture rules (enforced by `npm run lint`)

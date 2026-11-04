@@ -21,6 +21,16 @@ export function createProfilesController(service: ProfilesService) {
       await service.setUsername(req.userId, (req.body as { username: string }).username);
       res.status(204).end();
     },
+
+    async getAvoids(req: Request, res: Response): Promise<void> {
+      if (!req.userId) throw new UnauthorizedError();
+      res.json(await service.getAvoids(req.userId));
+    },
+
+    async putAvoids(req: Request, res: Response): Promise<void> {
+      if (!req.userId) throw new UnauthorizedError();
+      res.json(await service.replaceAvoids(req.userId, req.body as AvoidsBody));
+    },
   };
 }
 
