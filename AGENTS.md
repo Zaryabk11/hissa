@@ -24,7 +24,7 @@ Hissa is a portion coach app for desi households. See `docs/PRD.md` and `docs/ar
 
 ## Product rules
 
-- Gemini has two bounded jobs. In scan it only names dishes from our catalog (enum plus "unknown"). In Food and Feel it only words one approved question from a compact aggregate summary of the user's own check-ins; the service owns the intent, the options and their order, and falls back to a fixed question on a timeout, invalid JSON, a wrong option list or wording that fails an allowlist of words. Gemini never produces calorie numbers, counts, food restrictions, diagnoses or health claims.
+- Gemini has three bounded jobs. In scan it only names dishes from our catalog (enum plus "unknown"). In Food and Feel it only words one approved question from a compact aggregate summary of the user's own check-ins; the service owns the intent, the options and their order, and falls back to a fixed question on a timeout, invalid JSON, a wrong option list or wording that fails an allowlist of words. Gemini never produces calorie numbers, counts, food restrictions, diagnoses or health claims. The third job is offline and one-off: `backend/scripts/draft-recipes.ts` drafts recipes for catalog dishes, guarded by a banned-word check; it never runs at request time, and nothing is served until a human sets `reviewed: true`.
 - Every number shown to a user is labelled an estimate. Never give medical advice.
 - A buddy sees only "logged today", the streak and nudge state, never meals, photos, calories or feelings.
 - Clients never write `meals`, `meal_items`, `feel_checkins` or buddy data to Supabase directly; everything goes through the API.

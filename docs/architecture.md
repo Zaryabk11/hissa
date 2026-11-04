@@ -14,7 +14,7 @@ hissa/
   backend/src/
     app.ts, server.ts
     shared/            config, db, errors, middleware, logger, time (PKT day)
-    modules/<name>/    auth profiles scan nutrition plan meals streaks feel
+    modules/<name>/    auth profiles scan nutrition plan meals streaks feel recipes
   backend/scripts/     synthetic-question-data.ts, train-question-ranker.ts (offline, not in the build)
   database/
     data/catalog.csv   the dish catalog (78 dishes), see data-sources.md
@@ -96,6 +96,8 @@ Migrations in `database/supabase/migrations/`:
 - `20261102000500_user_experiments.sql`: `user_experiments` (one private choice from a weekly card: `pattern_key`, `action`, `status` active or tried, `tried_meal_id` tied to the owner's meal by a composite foreign key), a unique partial index allowing one `active` row per user, owner select-only RLS, and no direct client writes. **Not yet applied to the hosted project** (applying it is held with the other remote migrations).
 - `20261103000100_meal_delete.sql`: backend-only functions `meal_delete(actor_id, meal_id)` and `meal_replace_items(actor_id, meal_id, total, items)`, executable by `service_role` only. Each is one transaction scoped to the actor: delete removes the meal (items and check-ins cascade, `user_experiments.tried_meal_id` is set null) and the PKT day's `streak_days` row when no other meal with a confirmed item remains that day; replace swaps the items and total. **Written, not applied to the hosted project.**
 
+- `20261104000000_v3_avoids_recipes.sql`: `dishes.protein_type`, `user_avoids` (per user, a dish or a protein), `recipes` (one per catalog dish, `reviewed` flag), `recipe_feedback` ("not for me"), owner select-only RLS and no direct client writes. **Written, never applied to any Postgres (no Docker on the dev machine) and not applied to the hosted project.**
+
 All of the migrations above except `20261102000500` are applied to the hosted project `zvhwzekbgmuaaiepkcwn` (verified 2026-11-02). Direct clients never write meals, check-ins or buddy data: everything goes through the API ([decision 0006](decisions/0006-v2-learning-loop-and-backend-only-writes.md)).
 
 `dishes` is seeded from `database/data/catalog.csv` by `database/scripts/build-seed.mjs` (generated `seed.sql`, upsert only). Sources and portion rules are in [data-sources.md](data-sources.md).
@@ -129,3 +131,7 @@ The registry injects the streaks public service into meals. Successful item inse
 ## Google sign-in
 
 Supabase Auth with the Google provider and PKCE; the app opens the browser sheet, receives `?code=` and exchanges it (`frontend/src/shared/auth/google.ts`). The session is stored in SecureStore and refreshed; `apiAuthed` attaches the bearer token and signs the user out on a 401. Route guards in `frontend/app/_layout.tsx` keep `(tabs)` and `(scan)` closed without a session. Return-address rules and project settings: [decision 0004](decisions/0004-google-sign-in-return-address.md).
+
+## Avoids and recipes (v3)
+
+`profiles` owns the avoid list and exports `isAvoided` through its `index.ts`; `scan` uses it to set `ScanItem.avoided`. The `recipes` module reads `profiles` (budget, avoids), `meals` (calories today, dish counts), `nutrition` (catalog) and a narrow `PatternSource` slice of `feel`, all through their `index.ts`. `rank.ts` is a pure function. Recipes come from `database/data/recipes.json` through the seed builder; `backend/scripts/draft-recipes.ts` asks Gemini for drafts offline (banned-word guard `recipe-draft-guard.ts`), writes them as `reviewed: false`, and only reviewed rows are served.

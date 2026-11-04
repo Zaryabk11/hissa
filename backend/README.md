@@ -93,6 +93,12 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 | POST   | `/api/feel/experiments`              | Save one private "try next time" choice: 201      |
 | GET    | `/api/feel/experiments/current`      | The caller's newest choice, or `null`             |
 | POST   | `/api/feel/experiments/:id/tried`    | Mark it tried with a later meal: 200              |
+| GET    | `/api/profiles/me/avoids`            | The caller's avoid list: `{ proteins, dishes }`   |
+| PUT    | `/api/profiles/me/avoids`            | Replace the avoid list, returns it                |
+| GET    | `/api/recipes`                       | Ranked recipes for the caller                     |
+| GET    | `/api/recipes/:id`                   | One recipe with ingredients and steps             |
+| POST   | `/api/recipes/:id/not-for-me`        | Hide a recipe from the caller: 204                |
+| DELETE | `/api/recipes/:id/not-for-me`        | Undo it: 204                                      |
 
 ### Duo Streaks
 
@@ -181,6 +187,12 @@ Codes are six characters `A-Z0-9`. The app builds the share link with `Linking.c
   - Validation errors in this API are 400, not 422.
 
 - **Demo history (sample data only).** `node database/scripts/seed-demo-history.mjs [--dry-run]` with `DEMO_USER_ID`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the environment seeds 14 days of invented meals (2 a day) with one check-in each for that one existing demo-only user, so the weekly card shows `category:rice:heavy`. It refuses to run without a UUID `DEMO_USER_ID`, never creates users or credentials, reads the service key from the environment only, writes nothing for any other user, and is repeatable (row ids are derived from the user id, so a re-run updates in place; run it again on the day of a demo to move the dates forward). Set the same id as `DEMO_USER_ID` on the backend so the card carries `isSample: true`. The app must label it as sample data.
+
+### Avoid list and recipes (v3)
+
+`PUT /api/profiles/me/avoids` takes `{ "proteins": ["beef" | "mutton" | "chicken" | "fish" | "egg" | "veg"], "dishes": ["<dish slug>"] }` (at most 6 and 100) and replaces the whole list; `GET` returns the same shape. The list is a hard filter and a taste or belief choice, never a medical or allergy mode. Each `ScanItem` from `POST /api/scan` carries `avoided: boolean` (the dish matches the list; the app shows "You avoid this" and still lets the user keep it).
+
+`GET /api/recipes` returns `{ recipes: RecipeCard[], remainingCalories, isEstimate: true }`. A card has `id, slug, title, dish, dishName, proteinType, minutes, servings, unit, kcalPerUnit, isEstimate: true`. Only recipes with `reviewed = true` are served, so the list is empty until a human reviews the drafts in `database/data/recipes.json`. Avoided and not-for-me recipes are left out; the rest are ranked by fit to the remaining budget, the weekly "heavy" pattern and dishes the user eats often (see `modules/recipes/rank.ts`). It needs a profile (404 "Set up your profile first" otherwise). `GET /api/recipes/:id` adds `ingredients` (`{ item, quantity }`), `steps`, `notForMe` and `avoided`; an unknown or unreviewed id is 404. Recipes are drafted offline by `backend/scripts/draft-recipes.ts` (Gemini, never at request time).
 
 ### GET /api/health
 

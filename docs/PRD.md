@@ -19,8 +19,34 @@ Trackers record what you already ate. In most Pakistani homes the household cook
 | 1. Portion Coach | Must ship   | ~60%   | Photo to confirmed portion plan, saved to the daily log, tested e2e   |
 | 2. Duo Streaks   | Should ship | ~25%   | Two real users paired, shared streak updates from real scans          |
 | 3. Food and Feel | Could ship  | ~15%   | 2-tap feel check-in after a meal, one weekly insight from logged data |
+| v3. Avoids and recipes | After v2 | small | Avoid list as a hard filter; reviewed recipes ranked for the user, one-tap "not for me" |
 
 Status (2026-11-03): Module 1 is built and connected to the Expo app. Module 2 (Duo Streaks) is built end to end (API, database, app) and verified by a local two-account smoke test. Module 3 has the 90-minute check-in and a per-user evidence model; the Gemini-worded follow-up question is built (API only); the weekly pattern card is available from the API (`GET /api/feel/pattern`) but has no app screen yet; the private experiment is not built. Live status: `docs/superpowers/plans/2026-11-02-v2-status.md`.
+
+v3 (2026-11-04, built on a branch, not run on a phone, migration not applied to the hosted project): an avoid list (beef, mutton, chicken, fish, egg, veg, or single dishes) chosen at onboarding or in Profile flags dishes at scan review ("You avoid this") and removes them from recipes. A "Recipes for you" list ranks reviewed recipes by the remaining budget, the weekly pattern and what the user eats often, with a one-tap "Not for me". Recipes are drafted once offline by Gemini and served only after a human marks them reviewed; none is reviewed yet, so none is served.
+
+```mermaid
+flowchart TD
+  photo["Photo of the plate"] --> gemini["Gemini names dishes from our catalog"]
+  gemini --> confirm["User confirms or corrects"]
+  confirm --> plan["Plan fits portions to the daily budget"]
+  plan --> save["Save meal"]
+  save --> streak["Shared streak with one buddy"]
+  save --> checkin["Check-in 90 min later"]
+  checkin --> pattern["Weekly pattern card"]
+  avoid["Avoid list: a hard filter"] -.-> confirm
+  avoid -.-> rank
+  pattern --> rank["Recipe ranking"]
+  budget["Remaining budget"] --> rank
+  often["Dishes eaten often"] --> rank
+  rank --> recipes["Recipes for you"]
+  recipes --> nfm["Not for me hides a recipe"]
+  streak --> buddy["Buddy sees logged today and streak only"]
+  draft["Offline Gemini recipe drafts"] --> review["Human review"]
+  review --> recipes
+```
+
+Gemini has three bounded jobs: name dishes from the catalog, word one approved check-in question, and draft recipes offline for human review. It never produces calories, counts, restrictions, diagnoses or health claims.
 
 ### 1. Portion Coach
 
@@ -51,7 +77,7 @@ Two users share one streak. A day counts when a person saves at least one meal. 
 
 ## Out of scope for v1
 
-Training our own vision model, barcode or packaged food, workouts and wearables, groups larger than two, feeds, leaderboards, chat, meal plans and recipes, Urdu UI, medical or allergy modes, payments.
+Training our own vision model, barcode or packaged food, workouts and wearables, groups larger than two, feeds, leaderboards, chat, meal plans, user-written recipes, Urdu UI, medical or allergy modes, payments.
 
 ## Trial success metrics
 
