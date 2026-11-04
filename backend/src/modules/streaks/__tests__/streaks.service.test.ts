@@ -1,30 +1,33 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createStreaksService } from '../streaks.service';
+import { computeStreak, createStreaksService } from '../streaks.service';
 import type { StreaksRepository } from '../streaks.repository';
-const now = new Date('2026-11-05T10:00:00Z');
-function setup(patch = {}) {
-  const snapshot = {
-    pairStatus: 'active',
-    pendingInviteCode: null,
-    acceptedAt: '2026-11-02T10:00:00Z',
-    ownDays: ['2026-11-02', '2026-11-03', '2026-11-04'],
-    buddyDays: ['2026-11-02', '2026-11-03', '2026-11-04'],
-    unreadNudge: false,
-    nudgedToday: false,
-    ...patch,
-  };
+
+describe('computeStreak', () => {
+  it.each([
+    [['2026-11-03', '2026-11-04'], '2026-11-05', 2],
+    [['2026-11-05'], '2026-11-05', 1],
+    [['2026-11-03'], '2026-11-05', 0],
+    [['2026-11-01', '2026-11-03', '2026-11-04', '2026-11-05'], '2026-11-05', 3],
+    [[], '2026-11-05', 0],
+  ])('%j on %s -> %i', (days, today, expected) => {
+    expect(computeStreak(days, today)).toBe(expected);
+    expect(computeStreak(new Set(days), today)).toBe(expected);
+  });
+});
+
+function setup() {
   const repository = {
-    status: vi.fn(async () => snapshot),
     markDay: vi.fn(async () => {}),
-    nudge: vi.fn(async () => {}),
-    ackNudge: vi.fn(async () => {}),
+    daysFor: vi.fn(async () => ({ a: ['2026-11-04', '2026-11-05'] }) as Record<string, string[]>),
+    loggedDays: vi.fn(async () => ['2026-11-04']),
   };
   return {
     service: createStreaksService({ repository: repository as unknown as StreaksRepository }),
     repository,
   };
 }
-describe('saved-meal buddy status', () => {
+
+describe('streaks service', () => {
   it('marks distinct PKT days across midnight', async () => {
     const { service, repository } = setup();
     await service.markMealSaved('u1', '2026-11-02T18:59:59Z');
@@ -34,60 +37,28 @@ describe('saved-meal buddy status', () => {
       ['u1', '2026-11-03'],
     ]);
   });
-  it('counts completed consecutive days while today is in progress, only since acceptance', async () => {
-    const { service } = setup({ acceptedAt: '2026-11-03T10:00:00Z' });
-    expect(await service.getStatus('u1', now)).toEqual({
-      pairStatus: 'active',
-      pendingInviteCode: null,
-      streak: 2,
-      ownLoggedToday: false,
-      buddyLoggedToday: false,
-      unreadNudge: false,
-      nudgedToday: false,
-    });
-  });
-  it('includes today when both logged and resets after a missing yesterday', async () => {
-    const { service } = setup({
-      ownDays: ['2026-11-03', '2026-11-05'],
-      buddyDays: ['2026-11-03', '2026-11-05'],
-    });
-    expect((await service.getStatus('u1', now)).streak).toBe(1);
-    expect((await service.getStatus('u1', new Date('2026-11-06T19:00:00Z'))).streak).toBe(0);
-  });
-  it('reports the callers own delivered nudge only while paired', async () => {
-    expect((await setup({ nudgedToday: true }).service.getStatus('u1', now)).nudgedToday).toBe(
-      true,
-    );
-    const none = setup({ nudgedToday: true, pairStatus: 'none' });
-    expect((await none.service.getStatus('u1', now)).nudgedToday).toBe(false);
-  });
-  it('does not return internal rows or historical days', async () => {
-    const { service } = setup({ meals: [{ calories: 500 }], userId: 'secret' });
-    expect(Object.keys(await service.getStatus('u1', now)).sort()).toEqual(
-      [
-        'pairStatus',
-        'pendingInviteCode',
-        'streak',
-        'ownLoggedToday',
-        'buddyLoggedToday',
-        'unreadNudge',
-        'nudgedToday',
-      ].sort(),
-    );
-  });
-  it.each([{ nudgedToday: true }, { buddyDays: ['2026-11-05'] }, { pairStatus: 'none' }])(
-    'rejects ineligible nudges: %j',
-    async (patch) => {
-      const { service, repository } = setup(patch);
-      await expect(service.nudge('u1', now)).rejects.toThrow();
-      expect(repository.nudge).not.toHaveBeenCalled();
-    },
-  );
-  it('sends an eligible nudge and acknowledges only for the recipient', async () => {
+
+  it('getStreaks makes one repository call and defaults missing ids', async () => {
     const { service, repository } = setup();
-    await service.nudge('u1', now);
-    expect(repository.nudge).toHaveBeenCalledWith('u1', '2026-11-05');
-    await service.ackNudge('u1');
-    expect(repository.ackNudge).toHaveBeenCalledWith('u1');
+    const result = await service.getStreaks(['a', 'b'], new Date('2026-11-05T10:00:00Z'));
+    expect(repository.daysFor).toHaveBeenCalledTimes(1);
+    expect(repository.daysFor).toHaveBeenCalledWith(['a', 'b'], '2026-11-05');
+    expect(result).toEqual({
+      a: { streak: 2, loggedToday: true },
+      b: { streak: 0, loggedToday: false },
+    });
+  });
+
+  it('treats 19:00Z as the next PKT day', async () => {
+    const { service, repository } = setup();
+    const result = await service.getStreaks(['a'], new Date('2026-11-05T19:00:00Z'));
+    expect(repository.daysFor).toHaveBeenCalledWith(['a'], '2026-11-06');
+    expect(result.a).toEqual({ streak: 2, loggedToday: false });
+  });
+
+  it('loggedDays passes the range through', async () => {
+    const { service, repository } = setup();
+    expect(await service.loggedDays('a', '2026-11-01', '2026-11-05')).toEqual(['2026-11-04']);
+    expect(repository.loggedDays).toHaveBeenCalledWith('a', '2026-11-01', '2026-11-05');
   });
 });
