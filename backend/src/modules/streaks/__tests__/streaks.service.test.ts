@@ -42,10 +42,18 @@ describe('streaks service', () => {
     const { service, repository } = setup();
     const result = await service.getStreaks(['a', 'b'], new Date('2026-11-05T10:00:00Z'));
     expect(repository.daysFor).toHaveBeenCalledTimes(1);
+    expect(repository.daysFor).toHaveBeenCalledWith(['a', 'b'], '2026-11-05');
     expect(result).toEqual({
       a: { streak: 2, loggedToday: true },
       b: { streak: 0, loggedToday: false },
     });
+  });
+
+  it('treats 19:00Z as the next PKT day', async () => {
+    const { service, repository } = setup();
+    const result = await service.getStreaks(['a'], new Date('2026-11-05T19:00:00Z'));
+    expect(repository.daysFor).toHaveBeenCalledWith(['a'], '2026-11-06');
+    expect(result.a).toEqual({ streak: 2, loggedToday: false });
   });
 
   it('loggedDays passes the range through', async () => {
