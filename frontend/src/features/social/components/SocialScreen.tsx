@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
 import { HissaScreen } from '../../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
@@ -55,8 +56,11 @@ export function SocialScreen() {
         accessibilityRole="button"
         accessibilityLabel={c.inbox.open}
         onPress={() => router.push('/inbox')}
-        style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, borderColor: t.hair, backgroundColor: t.surf }}
+        style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: t.hair, backgroundColor: t.surf }}
       >
+        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={t.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0" />
+        </Svg>
         <HissaText variant="button">{c.inbox.open}</HissaText>
       </Pressable>
     </View>
@@ -104,9 +108,11 @@ export function SocialScreen() {
       <View style={{ gap: 12 }}>
         {(notice || d.error) && <HissaText accessibilityRole="alert">{notice ?? c.loadFailed}</HissaText>}
         {line && (
-          <Card>
-            <HissaText variant="label">{line}</HissaText>
-          </Card>
+          <View style={{ paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, backgroundColor: t.tint }}>
+            <HissaText variant="label" style={{ color: t.tintInk }}>
+              {line}
+            </HissaText>
+          </View>
         )}
         {celebrations.map((item) => (
           <CelebrationCard key={`${item.goalId}`} item={item} busy={busy} onCheer={act(() => cheer(item.goalId))} />
@@ -124,10 +130,21 @@ export function SocialScreen() {
             <GoalEditor busy={busy} onCreate={(input) => void act(() => createGoal(input))()} />
           </>
         )}
-        {overview.friends.length === 0 && <HissaText muted>{c.noFriends}</HissaText>}
-        {overview.friends.map((row) => (
-          <FriendRow key={row.userId} row={row} busy={busy} onNudge={act(() => nudgeFriend(row.userId))} onRemove={act(() => removeFriend(row.userId))} />
-        ))}
+        <Card gap={0}>
+          <HissaText variant="label" accessibilityRole="header">
+            {c.friends}
+          </HissaText>
+          {overview.friends.length === 0 && (
+            <HissaText muted style={{ marginTop: 8 }}>
+              {c.noFriends}
+            </HissaText>
+          )}
+          {overview.friends.map((row, i) => (
+            <View key={row.userId} style={i > 0 ? { borderTopWidth: 1, borderTopColor: t.hair } : { marginTop: 4 }}>
+              <FriendRow row={row} busy={busy} onNudge={act(() => nudgeFriend(row.userId))} onRemove={act(() => removeFriend(row.userId))} />
+            </View>
+          ))}
+        </Card>
         <AddFriend overview={overview} busy={busy} onRespond={(id, dec) => void act(() => respondRequest(id, dec))()} onSent={() => void d.refresh()} />
       </View>
     </HissaScreen>

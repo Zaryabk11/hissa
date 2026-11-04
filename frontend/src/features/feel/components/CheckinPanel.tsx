@@ -22,6 +22,7 @@ import {
   type Symptom,
 } from '../feel-view';
 import { Card } from './Card';
+import { PlateClock } from './PlateClock';
 import { Bone, CardSkeleton } from './Skeleton';
 
 const ENERGY: Energy[] = ['low', 'okay', 'good'];
@@ -149,10 +150,15 @@ export function CheckinPanel() {
             {message}
           </HissaText>
         ) : null}
-        <HissaText variant="label" accessibilityRole="header">
-          {c.empty.title}
-        </HissaText>
-        <HissaText muted>{c.empty.body}</HissaText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          <PlateClock />
+          <View style={{ flex: 1, gap: 4 }}>
+            <HissaText variant="label" accessibilityRole="header">
+              {c.empty.title}
+            </HissaText>
+            <HissaText muted>{c.empty.body}</HissaText>
+          </View>
+        </View>
       </Card>
     );
 

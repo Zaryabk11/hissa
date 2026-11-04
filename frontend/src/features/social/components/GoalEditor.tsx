@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { View } from 'react-native';
+import { Chip } from '../../../shared/ui/hissa/Choice';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
+import { Pill } from '../../../shared/ui/hissa/Pill';
 import { PrimaryButton } from '../../../shared/ui/hissa/PrimaryButton';
 import { Card } from '../../feel/components/Card';
 import type { GoalInput, GoalType } from '../api/goals';
@@ -25,13 +28,15 @@ export function GoalEditor({ busy, onCreate }: { busy: boolean; onCreate: (input
       <HissaText variant="label" accessibilityRole="header">
         {c.goal.new}
       </HissaText>
-      <PrimaryButton outline={type !== 'streak'} label={c.goal.streakType} onPress={() => setType('streak')} />
-      <PrimaryButton outline={type !== 'window'} label={c.goal.windowType} onPress={() => setType('window')} />
+      <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 8 }}>
+        <Chip selected={type === 'streak'} label={c.goal.streakType} onPress={() => setType('streak')} />
+        <Chip selected={type === 'window'} label={c.goal.windowType} onPress={() => setType('window')} />
+      </View>
       <TextField accessibilityLabel={c.goal.target} keyboardType="number-pad" placeholder={c.goal.target} value={target} onChangeText={setTarget} />
       {type === 'window' && (
         <TextField accessibilityLabel={c.goal.windowDays} keyboardType="number-pad" placeholder={c.goal.windowDays} value={windowDays} onChangeText={setWindowDays} />
       )}
-      <PrimaryButton outline={!shared} label={shared ? c.goal.shared : c.goal.shareToggle} onPress={() => setShared(!shared)} />
+      <Pill variant={shared ? 'filled' : 'outline'} label={shared ? c.goal.shared : c.goal.shareToggle} onPress={() => setShared(!shared)} />
       {invalid && <HissaText accessibilityRole="alert">{c.goal.invalid}</HissaText>}
       <PrimaryButton disabled={busy} label={c.goal.save} onPress={save} />
     </Card>

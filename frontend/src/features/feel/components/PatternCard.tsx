@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import { feelContent } from '../content';
@@ -85,16 +86,33 @@ export function PatternCard() {
                 max: card.needed,
                 now: Math.min(card.checkins, card.needed),
               }}
-              style={{ height: 8, borderRadius: 4, backgroundColor: t.hair, overflow: 'hidden' }}
+              style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 6, paddingVertical: 4 }}
             >
-              <View
-                style={{
-                  width: `${view.fraction * 100}%`,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: t.pri,
-                }}
-              />
+              {Array.from({ length: card.needed }, (_, i) => {
+                const done = i < card.checkins;
+                return (
+                  <View
+                    key={i}
+                    style={{
+                      flex: 1,
+                      maxWidth: 44,
+                      aspectRatio: 1,
+                      borderRadius: 99,
+                      backgroundColor: done ? t.pri : 'transparent',
+                      borderWidth: done ? 0 : 1.5,
+                      borderColor: t.rim,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {done && (
+                      <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={t.onPri} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                        <Path d="M5 12l4 4 10-10" />
+                      </Svg>
+                    )}
+                  </View>
+                );
+              })}
             </View>
             <HissaText muted>{c.progressHelp}</HissaText>
           </>

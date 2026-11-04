@@ -25,6 +25,7 @@ export const socialContent = {
   },
   status: { logged: 'Logged today', not_yet: 'Not yet today', lost: 'Streak lost' },
   streak: (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`,
+  friends: 'Friends',
   nudge: 'Nudge',
   nudged: 'Nudged today',
   remove: 'Remove',

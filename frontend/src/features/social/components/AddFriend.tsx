@@ -1,17 +1,21 @@
 import { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
-import { PrimaryButton } from '../../../shared/ui/hissa/PrimaryButton';
+import { Pill } from '../../../shared/ui/hissa/Pill';
 import { Card } from '../../feel/components/Card';
 import { searchPeople, sendRequest, type FriendsOverview, type PersonCard } from '../api/friends';
 import { socialContent as c } from '../content';
 import { personName } from '../social-view';
+import { Avatar } from './Avatar';
 import { TextField } from './TextField';
 
 function Person({ p, children }: { p: PersonCard; children?: React.ReactNode }) {
   return (
-    <View style={{ gap: 8 }}>
-      <HissaText variant="label">{personName(p)}</HissaText>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+      <Avatar name={personName(p)} />
+      <HissaText variant="label" numberOfLines={1} style={{ flex: 1, minWidth: 100 }}>
+        {personName(p)}
+      </HissaText>
       {children}
     </View>
   );
@@ -70,8 +74,8 @@ export function AddFriend({
           <HissaText variant="label">{c.add.incoming}</HissaText>
           {overview.incoming.map((p) => (
             <Person key={p.userId} p={p}>
-              <PrimaryButton disabled={off} label={c.add.accept} onPress={() => onRespond(p.userId, 'accept')} />
-              <PrimaryButton outline disabled={off} label={c.add.decline} onPress={() => onRespond(p.userId, 'decline')} />
+              <Pill variant="filled" disabled={off} label={c.add.accept} onPress={() => onRespond(p.userId, 'accept')} />
+              <Pill variant="quiet" disabled={off} label={c.add.decline} onPress={() => onRespond(p.userId, 'decline')} />
             </Person>
           ))}
         </Card>
@@ -80,13 +84,17 @@ export function AddFriend({
         <HissaText variant="label" accessibilityRole="header">
           {c.add.title}
         </HissaText>
-        <TextField accessibilityLabel={c.add.label} placeholder={c.add.label} value={text} onChangeText={setText} onSubmitEditing={() => void search()} />
-        <PrimaryButton outline label={c.add.search} onPress={() => void search()} />
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <TextField accessibilityLabel={c.add.label} placeholder={c.add.label} value={text} onChangeText={setText} onSubmitEditing={() => void search()} />
+          </View>
+          <Pill variant="filled" label={c.add.search} onPress={() => void search()} />
+        </View>
         {message && <HissaText accessibilityRole="alert">{message}</HissaText>}
         {results?.length === 0 && <HissaText muted>{c.add.none}</HissaText>}
         {results?.map((p) => (
           <Person key={p.userId} p={p}>
-            <PrimaryButton disabled={off} label={c.add.send} onPress={() => void send(p)} />
+            <Pill variant="filled" disabled={off} label={c.add.send} onPress={() => void send(p)} />
           </Person>
         ))}
       </Card>
@@ -94,7 +102,7 @@ export function AddFriend({
         <Card>
           <HissaText variant="label">{c.add.outgoing}</HissaText>
           {overview.outgoing.map((p) => (
-            <HissaText key={p.userId}>{personName(p)}</HissaText>
+            <Person key={p.userId} p={p} />
           ))}
         </Card>
       )}
