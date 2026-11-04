@@ -17,13 +17,37 @@ const row = (over: Partial<GoalRow> = {}): GoalRow => ({
   ...over,
 });
 
-function setup(opts: { active?: GoalRow | null; logged?: string[]; friends?: string[] } = {}) {
+function setup(
+  opts: {
+    active?: GoalRow | null;
+    logged?: string[];
+    friends?: string[];
+    friendsOf?: Record<string, string[]>;
+  } = {},
+) {
   const repository = {
     findActive: vi.fn(async () => opts.active ?? null),
     findReachedBetween: vi.fn(async () => null as GoalRow | null),
     findById: vi.fn(async () => null as GoalRow | null),
-    insert: vi.fn(async (userId: string, g: { startDay: string }) =>
-      row({ user_id: userId, start_day: g.startDay }),
+    insert: vi.fn(
+      async (
+        userId: string,
+        g: {
+          type: 'streak' | 'window';
+          target: number;
+          windowDays: number | null;
+          startDay: string;
+          shared: boolean;
+        },
+      ) =>
+        row({
+          user_id: userId,
+          type: g.type,
+          target: g.target,
+          window_days: g.windowDays,
+          start_day: g.startDay,
+          shared: g.shared,
+        }),
     ),
     markReached: vi.fn(async () => true),
     markExpired: vi.fn(async () => {}),
@@ -34,7 +58,9 @@ function setup(opts: { active?: GoalRow | null; logged?: string[]; friends?: str
   };
   const streaks = { loggedDays: vi.fn(async () => opts.logged ?? []) };
   const friends = {
-    friendIds: vi.fn(async () => opts.friends ?? []),
+    friendIds: vi.fn(async (id: string) =>
+      id === 'me' ? (opts.friends ?? []) : (opts.friendsOf?.[id] ?? []),
+    ),
     areFriends: vi.fn(async (_a: string, b: string) => (opts.friends ?? []).includes(b)),
   };
   const notifications = { notify: vi.fn(async () => {}) };
@@ -74,7 +100,34 @@ describe('GoalsService.create', () => {
       startDay: '2026-11-04',
       shared: false,
     });
-    expect(g).toMatchObject({ progress: 0, status: 'active', title: 'Log 2 days in a row' });
+    expect(g).toMatchObject({ progress: 0, status: 'active', title: 'Log 3 days in a row' });
+  });
+
+  it('returns the real progress when today is already logged', async () => {
+    const { service, repository } = setup({ logged: ['2026-11-04'] });
+    const g = await service.create('me', { type: 'streak', target: 3, shared: false }, NOW);
+    expect(g).toMatchObject({ progress: 1, status: 'active' });
+    expect(repository.markReached).not.toHaveBeenCalled();
+  });
+
+  it('marks a goal reached at creation and notifies friends if shared', async () => {
+    const { service, repository, notifications } = setup({
+      logged: ['2026-11-04'],
+      friends: ['a'],
+    });
+    const g = await service.create(
+      'me',
+      { type: 'window', target: 1, windowDays: 3, shared: true },
+      NOW,
+    );
+    expect(g).toMatchObject({ progress: 1, status: 'reached' });
+    expect(repository.markReached).toHaveBeenCalledTimes(1);
+    expect(notifications.notify).toHaveBeenCalledWith({
+      userId: 'a',
+      kind: 'goal_reached',
+      actorId: 'me',
+      goalId: 'g1',
+    });
   });
 
   it('maps the unique-index race to a conflict', async () => {
@@ -100,6 +153,32 @@ describe('GoalsService.getMine', () => {
       row({ status: 'reached', reached_at: NOW.toISOString() }),
     );
     expect(await service.getMine('me', NOW)).toMatchObject({ status: 'reached', progress: 2 });
+  });
+});
+
+describe('self-healing a met goal that was never marked reached', () => {
+  const met = () => setup({ active: row(), logged: ['2026-11-04', '2026-11-05'], friends: ['a'] });
+  const later = new Date('2026-11-05T10:00:00Z');
+
+  it('getMine settles it to reached and notifies once', async () => {
+    const { service, repository, notifications } = met();
+    expect(await service.getMine('me', later)).toMatchObject({ status: 'reached', progress: 2 });
+    expect(repository.markReached).toHaveBeenCalledTimes(1);
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
+  });
+
+  it('create succeeds instead of conflicting', async () => {
+    const { service, repository } = met();
+    await service.create('me', { type: 'streak', target: 3, shared: false }, later);
+    expect(repository.markReached).toHaveBeenCalledTimes(1);
+    expect(repository.insert).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not notify when another request already marked it', async () => {
+    const { service, repository, notifications } = met();
+    repository.markReached.mockResolvedValueOnce(false);
+    await service.getMine('me', later);
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 });
 
@@ -165,16 +244,17 @@ describe('GoalsService.onMealSaved', () => {
 });
 
 describe('GoalsService.celebrations', () => {
+  const reached = row({
+    id: 'g9',
+    user_id: 'a',
+    status: 'reached',
+    reached_at: '2026-11-03T08:00:00Z',
+  });
+
   it('covers only current friends shared goals reached in the last 48h', async () => {
-    const { service, repository } = setup({ friends: ['a'] });
-    repository.reachedSharedSince.mockResolvedValueOnce([
-      row({ id: 'g9', user_id: 'a', status: 'reached', reached_at: '2026-11-03T08:00:00Z' }),
-    ]);
-    repository.cheersFor.mockResolvedValueOnce([
-      { goal_id: 'g9', user_id: 'me' },
-      { goal_id: 'g9', user_id: 'a' },
-      { goal_id: 'g9', user_id: 'gone' },
-    ]);
+    const { service, repository } = setup({ friends: ['a'], friendsOf: { a: ['me', 'x'] } });
+    repository.reachedSharedSince.mockResolvedValueOnce([reached]);
+    repository.cheersFor.mockResolvedValueOnce([{ goal_id: 'g9', user_id: 'me' }]);
     const list = await service.celebrations('me', NOW);
     expect(repository.reachedSharedSince).toHaveBeenCalledWith(['a'], '2026-11-02T10:00:00.000Z');
     expect(list).toEqual([
@@ -183,10 +263,28 @@ describe('GoalsService.celebrations', () => {
         actor: { userId: 'a', username: 'n_a', displayName: 'a' },
         title: 'Log 2 days in a row',
         reachedAt: '2026-11-03T08:00:00Z',
-        cheers: 2, // 'gone' is no longer a friend of the viewer
+        cheers: 1,
         cheeredByMe: true,
       },
     ]);
+  });
+
+  it('drops a cheer once the cheerer is no longer friends with the achiever', async () => {
+    // y is still the viewer's friend, but the friendship with achiever a ended.
+    const { service, repository } = setup({ friends: ['a', 'y'], friendsOf: { a: [] } });
+    repository.reachedSharedSince.mockResolvedValueOnce([reached]);
+    repository.cheersFor.mockResolvedValueOnce([{ goal_id: 'g9', user_id: 'y' }]);
+    expect((await service.celebrations('me', NOW))[0]).toMatchObject({ cheers: 0 });
+  });
+
+  it('counts a cheer from the achievers friend even if not the viewers friend', async () => {
+    const { service, repository, friends } = setup({ friends: ['a'], friendsOf: { a: ['x'] } });
+    repository.reachedSharedSince.mockResolvedValueOnce([reached, { ...reached, id: 'g10' }]);
+    repository.cheersFor.mockResolvedValueOnce([{ goal_id: 'g9', user_id: 'x' }]);
+    const list = await service.celebrations('me', NOW);
+    expect(list[0]).toMatchObject({ cheers: 1, cheeredByMe: false });
+    // one friendIds call per distinct goal owner, plus the viewer's own
+    expect(friends.friendIds).toHaveBeenCalledTimes(2);
   });
 
   it('is empty with no friends, without querying goals', async () => {
