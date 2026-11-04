@@ -79,7 +79,7 @@ curl -i "$API/api/health"          # expect 200 and {"status":"ok"}
 
 The health response is covered by `backend/src/__tests__/app.test.ts`. It has not been run against any deployed URL.
 
-There is **no authenticated smoke script for a remote API**. `database/scripts/smoke-v2-local.mjs` (friends, streak, nudge, goal, notification and check-in checks) deliberately refuses any host other than `localhost` or `127.0.0.1` and creates throwaway users with the service-role key, so do not point it at production. After deploy, verify by hand with two real Google accounts on the test-user list: sign in on both, add each other by username, scan a plate, save the meal, and confirm the streak, a nudge, and a check-in.
+There is **no authenticated smoke script for a remote API**. `database/scripts/smoke-v2-local.mjs` and `smoke-v3-local.mjs` (avoids, recipes, not-for-me; local only) (friends, streak, nudge, goal, notification and check-in checks) deliberately refuses any host other than `localhost` or `127.0.0.1` and creates throwaway users with the service-role key, so do not point it at production. After deploy, verify by hand with two real Google accounts on the test-user list: sign in on both, add each other by username, scan a plate, save the meal, and confirm the streak, a nudge, and a check-in.
 
 ## 4. Build the Android APK (after the gate is lifted)
 
