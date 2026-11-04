@@ -16,6 +16,13 @@ export type Goal = {
   progress: number;
   title: string;
 };
+export type FriendGoal = {
+  userId: string;
+  goalId: string;
+  title: string;
+  progress: number;
+  target: number;
+};
 export type Celebration = {
   goalId: string;
   actor: PersonCard;

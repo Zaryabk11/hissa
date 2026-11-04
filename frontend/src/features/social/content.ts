@@ -33,6 +33,7 @@ export const socialContent = {
   removeKeep: 'Keep',
   noFriends: 'No friends yet. Add one by username below.',
   celebration: (who: string, title: string) => `${who} reached a goal: ${title}`,
+  friendGoal: (title: string, progress: number, target: number) => `Goal: ${title} (${progress}/${target})`,
   cheer: 'Cheer',
   cheered: 'Cheered',
   cheers: (n: number) => `${n} ${n === 1 ? 'cheer' : 'cheers'}`,

@@ -2,14 +2,14 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getProfile } from '../core/api';
 import { getOverview, type FriendsOverview } from './api/friends';
-import { getCelebrations, getMyGoal, type Celebration, type Goal } from './api/goals';
+import { getCelebrations, getFriendGoals, getMyGoal, type Celebration, type FriendGoal, type Goal } from './api/goals';
 import { getInbox } from './api/notifications';
 import { latestGuard } from './social-view';
 
 const POLL_MS = 20_000;
 const UNREAD_POLL_MS = 30_000;
 
-type Data = { username: string | null; overview: FriendsOverview | null; goal: Goal | null; celebrations: Celebration[] };
+type Data = { username: string | null; overview: FriendsOverview | null; goal: Goal | null; celebrations: Celebration[]; friendGoals: FriendGoal[] };
 
 /** Social tab data. Refreshes on focus and every 20 s while focused; `username === null` means the prompt is due. */
 export function useSocialData() {
@@ -22,9 +22,9 @@ export function useSocialData() {
     const isLatest = begin();
     try {
       const { username } = await getProfile();
-      const next: Data = { username, overview: null, goal: null, celebrations: [] };
+      const next: Data = { username, overview: null, goal: null, celebrations: [], friendGoals: [] };
       if (username) {
-        [next.overview, next.goal, next.celebrations] = await Promise.all([getOverview(), getMyGoal(), getCelebrations()]);
+        [next.overview, next.goal, next.celebrations, next.friendGoals] = await Promise.all([getOverview(), getMyGoal(), getCelebrations(), getFriendGoals()]);
       }
       if (!alive.current || !isLatest()) return;
       setData(next);

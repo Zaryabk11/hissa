@@ -91,6 +91,7 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 | POST   | `/api/goals`                         | Create the one active goal: 201                   |
 | PATCH  | `/api/goals/mine`                    | Share or unshare it, or abandon it                |
 | GET    | `/api/goals/celebrations`            | Friends' reached goals with cheer counts          |
+| GET    | `/api/goals/friends`                 | Friends' shared active goals with progress        |
 | POST   | `/api/goals/:id/cheer`               | Cheer a friend's reached goal: 204                |
 | GET    | `/api/notifications`                 | Inbox `{ items, unread }` (no push)               |
 | POST   | `/api/notifications/read`            | Mark the inbox read: 204                          |

@@ -3,11 +3,12 @@ import { View } from 'react-native';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import { Pill } from '../../../shared/ui/hissa/Pill';
 import type { FriendRow as Row } from '../api/friends';
+import type { FriendGoal } from '../api/goals';
 import { socialContent as c } from '../content';
 import { canNudge, friendStatus, personName } from '../social-view';
 import { Avatar, StreakPill } from './Avatar';
 
-export function FriendRow({ row, busy, onNudge, onRemove }: { row: Row; busy: boolean; onNudge: () => void; onRemove: () => void }) {
+export function FriendRow({ row, goal, busy, onNudge, onRemove }: { row: Row; goal?: FriendGoal; busy: boolean; onNudge: () => void; onRemove: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const status = friendStatus(row);
   const name = personName(row);
@@ -23,6 +24,7 @@ export function FriendRow({ row, busy, onNudge, onRemove }: { row: Row; busy: bo
         </View>
         <StreakPill days={row.streak} label={c.streak(row.streak)} />
       </View>
+      {goal && <HissaText variant="caption">{c.friendGoal(goal.title, goal.progress, goal.target)}</HissaText>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>
         {canNudge(row) && <Pill variant="filled" disabled={busy} label={c.nudge} onPress={onNudge} />}
         {confirm ? (

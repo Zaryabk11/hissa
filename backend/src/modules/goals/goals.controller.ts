@@ -23,6 +23,9 @@ export function createGoalsController(service: GoalsService) {
     async celebrations(req: Request, res: Response): Promise<void> {
       res.json(await service.celebrations(uid(req)));
     },
+    async friends(req: Request, res: Response): Promise<void> {
+      res.json(await service.friendGoals(uid(req)));
+    },
     async cheer(req: Request, res: Response): Promise<void> {
       await service.cheer(uid(req), req.params.id as string);
       res.status(204).end();

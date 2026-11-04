@@ -53,6 +53,7 @@ function setup(
     markExpired: vi.fn(async () => {}),
     updateActive: vi.fn(async () => {}),
     reachedSharedSince: vi.fn(async () => [] as GoalRow[]),
+    activeSharedFor: vi.fn(async () => [] as GoalRow[]),
     cheersFor: vi.fn(async () => [] as { goal_id: string; user_id: string }[]),
     insertCheer: vi.fn(async () => true),
   };
@@ -291,6 +292,28 @@ describe('GoalsService.celebrations', () => {
     const { service, repository } = setup();
     expect(await service.celebrations('me', NOW)).toEqual([]);
     expect(repository.reachedSharedSince).not.toHaveBeenCalled();
+  });
+});
+
+describe('GoalsService.friendGoals', () => {
+  it('returns progress for active shared goals and skips expired or reached ones', async () => {
+    const win = { type: 'window' as const, window_days: 3, target: 3 };
+    const { service, repository } = setup({ friends: ['a', 'b', 'c'], logged: ['2026-11-04'] });
+    repository.activeSharedFor.mockResolvedValueOnce([
+      row({ id: 'g1', user_id: 'a', target: 3 }),
+      row({ id: 'g2', user_id: 'b', ...win, start_day: '2026-10-01' }),
+      row({ id: 'g3', user_id: 'c', target: 1 }),
+    ]);
+    expect(await service.friendGoals('me', NOW)).toEqual([
+      { userId: 'a', goalId: 'g1', title: 'Log 3 days in a row', progress: 1, target: 3 },
+    ]);
+    expect(repository.activeSharedFor).toHaveBeenCalledWith(['a', 'b', 'c']);
+  });
+
+  it('is empty with no friends, without querying goals', async () => {
+    const { service, repository } = setup();
+    expect(await service.friendGoals('me', NOW)).toEqual([]);
+    expect(repository.activeSharedFor).not.toHaveBeenCalled();
   });
 });
 

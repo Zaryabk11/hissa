@@ -93,7 +93,7 @@ export function SocialScreen() {
       </HissaScreen>
     );
 
-  const { overview, goal, celebrations = [] } = d;
+  const { overview, goal, celebrations = [], friendGoals = [] } = d;
   const line = groupLine(overview.loggedCount, overview.friends.length);
 
   return (
@@ -141,7 +141,7 @@ export function SocialScreen() {
           )}
           {overview.friends.map((row, i) => (
             <View key={row.userId} style={i > 0 ? { borderTopWidth: 1, borderTopColor: t.hair } : { marginTop: 4 }}>
-              <FriendRow row={row} busy={busy} onNudge={act(() => nudgeFriend(row.userId))} onRemove={act(() => removeFriend(row.userId))} />
+              <FriendRow row={row} goal={friendGoals.find((g) => g.userId === row.userId)} busy={busy} onNudge={act(() => nudgeFriend(row.userId))} onRemove={act(() => removeFriend(row.userId))} />
             </View>
           ))}
         </Card>
