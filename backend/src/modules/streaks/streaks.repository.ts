@@ -1,36 +1,11 @@
 import type { Db } from '../../shared/db';
-import type { InvitationPreview, InviteDecision } from './streaks.types';
 
-export type BuddySnapshot = {
-  pairStatus: 'none' | 'pending' | 'active';
-  pendingInviteCode: string | null;
-  acceptedAt: string | null;
-  ownDays: string[];
-  buddyDays: string[];
-  unreadNudge: boolean;
-  nudgedToday: boolean;
-};
-// The RPC scopes every operation to the authenticated actor. Code lookup is a
-// capability lookup, returning only the approved minimal preview.
+const WINDOW_DAYS = 400;
+function minusDays(day: string, n: number): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10);
+}
+
 export function createStreaksRepository(db: Db) {
-  async function operation(userId: string, action: string, code: string | null = null) {
-    const { data, error } = await db.rpc('buddy_invite_operation', {
-      actor_id: userId,
-      operation: action,
-      code,
-    });
-    if (error) throw error;
-    return data;
-  }
-  async function buddyOperation(userId: string, action: string, day: string | null = null) {
-    const { data, error } = await db.rpc('buddy_status_operation', {
-      actor_id: userId,
-      operation: action,
-      target_day: day,
-    });
-    if (error) throw error;
-    return data;
-  }
   return {
     async markDay(userId: string, day: string): Promise<void> {
       const { error } = await db
@@ -38,26 +13,29 @@ export function createStreaksRepository(db: Db) {
         .upsert({ user_id: userId, day }, { onConflict: 'user_id,day' });
       if (error) throw error;
     },
-    async status(userId: string, day: string): Promise<BuddySnapshot> {
-      return (await buddyOperation(userId, 'status', day)) as BuddySnapshot;
+    // One query for all users, limited to the last 400 days (a streak longer than that reads as 400).
+    async daysFor(userIds: string[], toDay: string): Promise<Record<string, string[]>> {
+      const { data, error } = await db
+        .from('streak_days')
+        .select('user_id, day')
+        .in('user_id', userIds)
+        .gte('day', minusDays(toDay, WINDOW_DAYS))
+        .lte('day', toDay);
+      if (error) throw error;
+      const out: Record<string, string[]> = {};
+      for (const row of data ?? []) (out[row.user_id as string] ??= []).push(row.day as string);
+      return out;
     },
-    async nudge(userId: string, day: string): Promise<void> {
-      await buddyOperation(userId, 'nudge', day);
-    },
-    async ackNudge(userId: string): Promise<void> {
-      await buddyOperation(userId, 'ack');
-    },
-    async createInvite(userId: string, code: string): Promise<void> {
-      await operation(userId, 'create', code);
-    },
-    async previewInvite(userId: string, code: string): Promise<InvitationPreview> {
-      return (await operation(userId, 'preview', code)) as InvitationPreview;
-    },
-    async respondInvite(userId: string, code: string, decision: InviteDecision): Promise<void> {
-      await operation(userId, decision, code);
-    },
-    async endPair(userId: string): Promise<void> {
-      await operation(userId, 'end');
+    async loggedDays(userId: string, fromDay: string, toDay: string): Promise<string[]> {
+      const { data, error } = await db
+        .from('streak_days')
+        .select('day')
+        .eq('user_id', userId)
+        .gte('day', fromDay)
+        .lte('day', toDay)
+        .order('day');
+      if (error) throw error;
+      return (data ?? []).map((r) => r.day as string);
     },
   };
 }
