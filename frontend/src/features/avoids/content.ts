@@ -8,7 +8,6 @@ export const avoidsContent = {
   proteins: 'Meat and more',
   dishes: 'Dishes',
   search: 'Search dishes',
-  selected: 'Selected',
   profileTitle: 'Foods I avoid',
   save: 'Save',
   saving: 'Saving…',
@@ -23,7 +22,7 @@ export const PROTEINS: { id: ProteinType; label: string }[] = [
   { id: 'chicken', label: 'Chicken' },
   { id: 'fish', label: 'Fish' },
   { id: 'egg', label: 'Egg' },
-  { id: 'veg', label: 'Vegetarian' },
+  { id: 'veg', label: 'Sabzi and daal' },
 ];
 
 // The catalog endpoint needs sign-in, so onboarding uses this fixed list.

@@ -19,6 +19,7 @@ export function RecipeDetailScreen() {
   const [retry, setRetry] = useState(0);
   const [marked, setMarked] = useState(false); // just marked: the undo window is open
   const [failed, setFailed] = useState(false);
+  const busy = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
@@ -37,13 +38,18 @@ export function RecipeDetailScreen() {
   const header = <BackHeader onPress={toList} />;
 
   const mark = async () => {
+    if (busy.current || marked) return;
+    busy.current = true;
     setFailed(false);
     try {
       await markNotForMe(id);
       setMarked(true);
+      clearTimeout(timer.current);
       timer.current = setTimeout(toList, 5000);
     } catch {
       setFailed(true);
+    } finally {
+      busy.current = false;
     }
   };
   const undo = async () => {
@@ -55,7 +61,10 @@ export function RecipeDetailScreen() {
       setRecipe((r) => r && { ...r, notForMe: false });
     } catch {
       setFailed(true);
-      if (marked) timer.current = setTimeout(toList, 5000);
+      if (marked) {
+        clearTimeout(timer.current);
+        timer.current = setTimeout(toList, 5000);
+      }
     }
   };
 
@@ -108,6 +117,7 @@ export function RecipeDetailScreen() {
         {cardLine(recipe)}
       </HissaText>
       <HissaText variant="caption">{[tag, c.estimate].filter(Boolean).join(' · ')}</HissaText>
+      {recipe.avoided && <HissaText variant="caption">{c.detail.avoided}</HissaText>}
 
       <HissaText variant="label" accessibilityRole="header" style={{ marginTop: 24 }}>
         {c.detail.ingredients}

@@ -268,7 +268,7 @@ export function TodayScreen() {
         <WeekCard budget={profile.dailyCalorieBudget} refreshKey={weekKey} />
       </View>
 
-      <TodayRecipes />
+      <TodayRecipes refreshKey={weekKey} />
 
       {card && (
         <View style={{ marginTop: 20, gap: 8 }}>

@@ -1,7 +1,6 @@
 import { apiAuthed } from '../../../shared/api/client';
+import type { ProteinType } from '../../core/api';
 import type { Unit } from '../../nutrition/catalog';
-
-export type ProteinType = 'beef' | 'mutton' | 'chicken' | 'fish' | 'egg' | 'veg';
 export type RecipeCard = {
   id: string;
   slug: string;

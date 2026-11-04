@@ -197,7 +197,7 @@ export function BudgetScreen() {
     try {
       const name = session.user.user_metadata?.full_name as string | undefined;
       const profile = await putProfile(profilePayload(answers, name));
-      if (answers.avoids.proteins.length || answers.avoids.dishes.length) await putAvoids(answers.avoids);
+      await putAvoids(answers.avoids);
       setSavedBudget(profile.dailyCalorieBudget);
       finishOnboarding(session.user.id);
     } catch {

@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
@@ -18,16 +18,19 @@ export function RecipesScreen() {
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
 
-  useEffect(() => {
-    void retry;
-    let live = true;
-    getRecipes()
-      .then((res) => live && setRecipes(res.recipes))
-      .catch(() => live && setError(true));
-    return () => {
-      live = false;
-    };
-  }, [retry]);
+  // Refetch on focus so a recipe marked Not for me is gone when you come back.
+  useFocusEffect(
+    useCallback(() => {
+      void retry;
+      let live = true;
+      getRecipes()
+        .then((res) => live && setRecipes(res.recipes))
+        .catch(() => live && setError(true));
+      return () => {
+        live = false;
+      };
+    }, [retry]),
+  );
 
   const back = () => (router.canGoBack() ? router.back() : router.navigate('/(tabs)/today'));
   const header = (
