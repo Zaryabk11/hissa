@@ -15,6 +15,12 @@ export function createProfilesController(service: ProfilesService) {
       if (!req.userId) throw new UnauthorizedError();
       res.json(await service.upsertProfile(req.userId, req.body as ProfileBody));
     },
+
+    async putUsername(req: Request, res: Response): Promise<void> {
+      if (!req.userId) throw new UnauthorizedError();
+      await service.setUsername(req.userId, (req.body as { username: string }).username);
+      res.status(204).end();
+    },
   };
 }
 

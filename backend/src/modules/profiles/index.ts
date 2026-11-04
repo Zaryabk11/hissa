@@ -6,6 +6,7 @@ import { createProfilesRouter } from './profiles.routes';
 import { createProfilesService, type ProfilesService } from './profiles.service';
 
 export type { ProfilesService };
+export type { PersonCard } from './profiles.types';
 
 // The only file other modules may import.
 export function createProfilesModule({ db }: { db: Db }): {
