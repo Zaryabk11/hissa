@@ -16,7 +16,11 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
   const auth = createAuthModule(deps);
   const profiles = createProfilesModule(deps);
   const nutrition = createNutritionModule(deps);
-  const scan = createScanModule({ ...deps, nutrition: nutrition.service });
+  const scan = createScanModule({
+    ...deps,
+    nutrition: nutrition.service,
+    profiles: profiles.service,
+  });
   const streaks = createStreaksModule(deps);
   const meals = createMealsModule({
     ...deps,
