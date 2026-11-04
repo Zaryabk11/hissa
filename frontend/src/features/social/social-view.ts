@@ -1,0 +1,51 @@
+import type { FriendRow, PersonCard } from './api/friends';
+import type { Goal, GoalInput, GoalType } from './api/goals';
+import type { NotificationItem } from './api/notifications';
+import { socialContent } from './content';
+
+export type RowStatus = 'logged' | 'not_yet' | 'lost';
+
+export function friendStatus(row: FriendRow): RowStatus {
+  if (row.loggedToday) return 'logged';
+  return row.streak === 0 ? 'lost' : 'not_yet';
+}
+
+export const canNudge = (row: FriendRow) => friendStatus(row) !== 'logged' && !row.nudgedToday;
+
+export const groupLine = (loggedCount: number, total: number) =>
+  total === 0 ? null : `${loggedCount} of ${total} ${total === 1 ? 'friend' : 'friends'} logged today`;
+
+export const goalProgressLine = (g: Goal) =>
+  `${g.progress} of ${g.target}${g.type === 'streak' ? ' days' : ''}`;
+
+/** Each call supersedes the earlier ones: only the latest in-flight load may apply its result. */
+export function latestGuard() {
+  let n = 0;
+  return () => {
+    const id = ++n;
+    return () => id === n;
+  };
+}
+
+export function validUsername(input: string): string | null {
+  const name = input.trim().toLowerCase();
+  return /^[a-z0-9_]{3,20}$/.test(name) ? name : null;
+}
+
+export function notificationLine(n: NotificationItem): string {
+  const who = n.actor.username ?? n.actor.displayName ?? socialContent.someone;
+  const goal = n.kind === 'goal_reached' && n.goalTitle ? `: ${n.goalTitle}` : '';
+  return `${who} ${socialContent.notification[n.kind]}${goal}`;
+}
+
+export const personName = (p: PersonCard) => p.username ?? p.displayName ?? socialContent.someone;
+
+const whole = (text: string) => (/^\d+$/.test(text.trim()) ? Number(text) : NaN);
+
+/** Mirrors the API limits: streak target 2-365; window days 2-90 and target 1..days. Null when invalid. */
+export function goalInput(type: GoalType, target: string, windowDays: string, shared: boolean): GoalInput | null {
+  const t = whole(target);
+  if (type === 'streak') return t >= 2 && t <= 365 ? { type, target: t, shared } : null;
+  const d = whole(windowDays);
+  return d >= 2 && d <= 90 && t >= 1 && t <= d ? { type, target: t, windowDays: d, shared } : null;
+}

@@ -7,7 +7,7 @@ export const scanContent = {
     gallery: 'Choose from gallery',
     asking: {
       title: 'Hissa needs your camera',
-      body: 'It only looks at your plate. Nothing is shared with your buddy.',
+      body: 'It only looks at your plate. Nothing is shared with your friends.',
       allow: 'Allow camera',
     },
     denied: {

@@ -11,4 +11,9 @@ export const profileBodySchema = z.object({
   activityLevel: z.enum(['sedentary', 'light', 'moderate', 'active']),
 });
 
+export const usernameSchema = z
+  .string()
+  .regex(/^[a-z0-9_]{3,20}$/, 'Username must be 3-20 lowercase letters, digits or underscores');
+export const usernameBodySchema = z.object({ username: usernameSchema });
+
 export type ProfileBody = z.infer<typeof profileBodySchema>;

@@ -1,6 +1,7 @@
 import { NotFoundError, ValidationError } from '../../shared/errors';
 import { logger } from '../../shared/logger';
 import { pktDay, pktDayBounds } from '../../shared/time/pkt';
+import type { GoalsService } from '../goals';
 import type { StreaksService } from '../streaks';
 import type { NutritionService } from '../nutrition';
 import type { MealsRepository } from './meals.repository';
@@ -10,6 +11,7 @@ interface MealsDeps {
   repository: MealsRepository;
   nutrition: Pick<NutritionService, 'getDish' | 'portionNutrition'>;
   streaks: Pick<StreaksService, 'markMealSaved'>;
+  goals: Pick<GoalsService, 'onMealSaved'>;
   now?: () => Date;
 }
 
@@ -21,6 +23,7 @@ export function createMealsService({
   repository,
   nutrition,
   streaks,
+  goals,
   now = () => new Date(),
 }: MealsDeps) {
   async function dishId(slug: string | null): Promise<string | null> {
@@ -104,8 +107,14 @@ export function createMealsService({
       try {
         await streaks.markMealSaved(userId, eatenAt);
       } catch {
-        // A status read repairs from complete saved meals; do not encourage duplicate saves.
+        // The meal is saved. This day's streak mark is not retried automatically (the migration backfill ran
+        // once), so log it and do not fail the save.
         logger.warn('Saved meal streak mark failed', { mealId: id });
+      }
+      try {
+        await goals.onMealSaved(userId);
+      } catch {
+        logger.warn('Goal check failed', { mealId: id });
       }
       return { id, eatenAt, totalCalories, items: input.items };
     },

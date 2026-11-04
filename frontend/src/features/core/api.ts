@@ -10,6 +10,7 @@ export type ApiDish = {
 export type Profile = {
   id: string;
   displayName: string | null;
+  username: string | null;
   goal: 'lose' | 'maintain';
   sex: 'male' | 'female';
   age: number;
