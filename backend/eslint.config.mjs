@@ -15,6 +15,7 @@ const modules = [
   'notifications',
   'friends',
   'goals',
+  'recipes',
 ];
 
 // Layer rule: routes -> controller -> service -> repository. Each layer lists what it must not import.

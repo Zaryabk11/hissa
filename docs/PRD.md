@@ -23,7 +23,7 @@ Trackers record what you already ate. In most Pakistani homes the household cook
 
 Status (2026-11-03): Module 1 is built and connected to the Expo app. Module 2 (friends, goals and an in-app notification inbox, replacing the one-buddy Duo Streaks) is built end to end (API, database, Social tab and inbox in the app); its local smoke script (`database/scripts/smoke-v2-local.mjs`) covers the friends flow but has not been run since the rewrite. Module 3 has the 90-minute check-in and a per-user evidence model; the Gemini-worded follow-up question is built (API only); the weekly pattern card is available from the API (`GET /api/feel/pattern`) but has no app screen yet; the private experiment is not built. Live status: `docs/superpowers/plans/2026-11-02-v2-status.md`.
 
-v3 (2026-11-04, built on a branch, not run on a phone, migration not applied to the hosted project): an avoid list (beef, mutton, chicken, fish, egg, veg, or single dishes) chosen at onboarding or in Profile flags dishes at scan review ("You avoid this") and removes them from recipes. A "Recipes for you" list ranks reviewed recipes by the remaining budget, the weekly pattern and what the user eats often, with a one-tap "Not for me". Recipes are drafted once offline by Gemini and served only after a human marks them reviewed; none is reviewed yet, so none is served.
+v3 (2026-11-04, merged to main, not run on a phone, migration not applied to any Postgres or the hosted project): an avoid list (beef, mutton, chicken, fish, egg, veg, or single dishes) chosen at onboarding or in Profile flags dishes at scan review ("You avoid this") and removes them from recipes. A "Recipes for you" list ranks reviewed recipes by the remaining budget, the weekly pattern and what the user eats often, with a one-tap "Not for me". Recipes are drafted once offline by Gemini and served only after a human marks them reviewed; none is reviewed yet, so none is served.
 
 ```mermaid
 flowchart TD
@@ -31,7 +31,7 @@ flowchart TD
   gemini --> confirm["User confirms or corrects"]
   confirm --> plan["Plan fits portions to the daily budget"]
   plan --> save["Save meal"]
-  save --> streak["Shared streak with one buddy"]
+  save --> streak["Personal streak, friends see logged today"]
   save --> checkin["Check-in 90 min later"]
   checkin --> pattern["Weekly pattern card"]
   avoid["Avoid list"] -.->|flags| confirm
@@ -41,7 +41,7 @@ flowchart TD
   often["Dishes eaten often"] --> rank
   rank --> recipes["Recipes for you"]
   recipes --> nfm["Not for me hides a recipe"]
-  streak --> buddy["Buddy sees logged today and streak only"]
+  streak --> friends["Friends see logged today, streak and shared goal only"]
   draft["Offline Gemini recipe drafts"] --> review["Human review"]
   review --> recipes
 ```
@@ -77,7 +77,7 @@ Friends are added by username. A day counts when a person saves at least one mea
 
 ## Out of scope for v1
 
-Training our own vision model, barcode or packaged food, workouts and wearables, squads or named groups, feeds, leaderboards, chat, meal plans and recipes, Urdu UI, medical or allergy modes, payments.
+Training our own vision model, barcode or packaged food, workouts and wearables, squads or named groups, feeds, leaderboards, chat, meal plans, user-written recipes, Urdu UI, medical or allergy modes, payments.
 
 ## Trial success metrics
 

@@ -45,7 +45,7 @@ v1 tells you how much to eat, v2 learns how you feel. v3 makes the app respect w
 
 ## 5. Design
 
-### 5.1 Data (one migration `20261104000000_v3_avoids_recipes.sql`)
+### 5.1 Data (one migration `20261104000100_v3_avoids_recipes.sql`)
 
 | Table / column | Shape |
 | --- | --- |

@@ -2,7 +2,14 @@ import { ConflictError, NotFoundError, ValidationError } from '../../shared/erro
 import { computeDailyBudget } from './budget';
 import type { ProfilesRepository } from './profiles.repository';
 import { usernameSchema } from './profiles.schemas';
-import type { CardRow, PersonCard, Profile, ProfileInput, ProfileRow } from './profiles.types';
+import type {
+  Avoids,
+  CardRow,
+  PersonCard,
+  Profile,
+  ProfileInput,
+  ProfileRow,
+} from './profiles.types';
 
 interface ProfilesDeps {
   repository: ProfilesRepository;
@@ -78,6 +85,30 @@ export function createProfilesService({ repository }: ProfilesDeps) {
 
     async getCards(userIds: string[]): Promise<PersonCard[]> {
       return userIds.length ? (await repository.findCards(userIds)).map(toCard) : [];
+    },
+
+    async getAvoids(userId: string): Promise<Avoids> {
+      const rows = await repository.listAvoids(userId);
+      return {
+        proteins: rows.flatMap((r) => (r.protein ? [r.protein] : [])).sort(),
+        dishes: rows.flatMap((r) => (r.dishes ? [r.dishes.slug] : [])).sort(),
+      };
+    },
+
+    async replaceAvoids(userId: string, input: Avoids): Promise<Avoids> {
+      const proteins = [...new Set(input.proteins)].sort();
+      const dishes = [...new Set(input.dishes)].sort();
+      const ids = await repository.dishIdsBySlug(dishes);
+      const dishRows = dishes.map((slug) => {
+        const id = ids.get(slug);
+        if (!id) throw new ValidationError(`Unknown dish: ${slug}`);
+        return { kind: 'dish' as const, protein: null, dish_id: id };
+      });
+      await repository.replaceAvoids(userId, [
+        ...proteins.map((p) => ({ kind: 'protein' as const, protein: p, dish_id: null })),
+        ...dishRows,
+      ]);
+      return { proteins, dishes };
     },
 
     async getDailyBudget(userId: string): Promise<number> {
