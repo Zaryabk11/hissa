@@ -13,6 +13,7 @@ import { dishById, setCatalog } from '../nutrition/catalog';
 import { portionText } from '../nutrition/engine';
 import { BudgetRing } from './components/BudgetRing';
 import { WeekCard } from './components/WeekCard';
+import { TodayRecipes } from '../recipes/components/TodayRecipes';
 import { TodaySkeleton } from './components/Skeleton';
 import { todayContent as c } from './content';
 import { dayLabel } from './format';
@@ -266,6 +267,8 @@ export function TodayScreen() {
       <View style={{ marginTop: 20 }}>
         <WeekCard budget={profile.dailyCalorieBudget} refreshKey={weekKey} />
       </View>
+
+      <TodayRecipes />
 
       {card && (
         <View style={{ marginTop: 20, gap: 8 }}>

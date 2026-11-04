@@ -1,0 +1,25 @@
+// Recipe copy. Every number is an estimate; recipes are suggestions, never advice.
+export const recipesContent = {
+  back: 'Back',
+  title: 'Recipes for you',
+  seeAll: 'See all',
+  loading: 'Loading recipes',
+  loadError: 'Could not load recipes. Check your connection and try again.',
+  retry: 'Try again',
+  empty: 'No recipes yet. Check back soon.',
+  open: (label: string) => `Open recipe: ${label}`,
+  estimate: 'Estimate',
+  detail: {
+    loading: 'Loading this recipe',
+    loadError: 'Could not load this recipe. Check your connection and try again.',
+    gone: 'This recipe is no longer here',
+    backToRecipes: 'Back to recipes',
+    ingredients: 'Ingredients',
+    steps: 'Steps',
+    notForMe: 'Not for me',
+    undoneNotForMe: 'Undo not for me',
+    gotIt: "Got it. We'll show this less.",
+    undo: 'Undo',
+    actionError: 'Could not save that. Try again.',
+  },
+} as const;
