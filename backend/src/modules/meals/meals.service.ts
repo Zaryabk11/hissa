@@ -107,7 +107,8 @@ export function createMealsService({
       try {
         await streaks.markMealSaved(userId, eatenAt);
       } catch {
-        // A status read repairs from complete saved meals; do not encourage duplicate saves.
+        // The meal is saved. This day's streak mark is not retried automatically (the migration backfill ran
+        // once), so log it and do not fail the save.
         logger.warn('Saved meal streak mark failed', { mealId: id });
       }
       try {
