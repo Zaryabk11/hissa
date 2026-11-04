@@ -36,7 +36,7 @@
 ### Task 1: Schema, protein types and seed
 
 **Files:**
-- Create: `database/supabase/migrations/20261104000000_v3_avoids_recipes.sql`
+- Create: `database/supabase/migrations/20261104000100_v3_avoids_recipes.sql`
 - Modify: `database/data/catalog.csv` (add trailing `protein_type` column), `database/scripts/build-seed.mjs`, `database/scripts/build-seed.test.mjs`, regenerate `database/supabase/seed.sql`
 
 **Interfaces:**

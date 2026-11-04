@@ -1,5 +1,11 @@
 import type { Db } from '../../shared/db';
-import type { CardRow, ProfileRow, ProfileUpsertRow } from './profiles.types';
+import type {
+  AvoidListRow,
+  AvoidRow,
+  CardRow,
+  ProfileRow,
+  ProfileUpsertRow,
+} from './profiles.types';
 
 const COLUMNS =
   'id, username, display_name, goal, sex, age, height_cm, weight_kg, activity_level, daily_calorie_budget';
@@ -54,6 +60,30 @@ export function createProfilesRepository(db: Db) {
       const { data, error } = await db.from('profiles').select(CARD_COLUMNS).in('id', userIds);
       if (error) throw error;
       return data as CardRow[];
+    },
+
+    async listAvoids(userId: string): Promise<AvoidListRow[]> {
+      const { data, error } = await db
+        .from('user_avoids')
+        .select('kind, protein, dishes(slug)')
+        .eq('user_id', userId);
+      if (error) throw error;
+      return data as unknown as AvoidListRow[];
+    },
+
+    async dishIdsBySlug(slugs: string[]): Promise<Map<string, string>> {
+      if (slugs.length === 0) return new Map();
+      const { data, error } = await db.from('dishes').select('id, slug').in('slug', slugs);
+      if (error) throw error;
+      return new Map((data as { id: string; slug: string }[]).map((d) => [d.slug, d.id]));
+    },
+
+    async replaceAvoids(userId: string, rows: AvoidRow[]): Promise<void> {
+      const del = await db.from('user_avoids').delete().eq('user_id', userId);
+      if (del.error) throw del.error;
+      if (rows.length === 0) return;
+      const ins = await db.from('user_avoids').insert(rows.map((r) => ({ ...r, user_id: userId })));
+      if (ins.error) throw ins.error;
     },
   };
 }

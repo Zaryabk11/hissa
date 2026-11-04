@@ -16,7 +16,7 @@ Everything below is the prepared plan. Steps marked **owner** need an account or
 - [ ] **Expo/EAS account access (owner).** An Expo account that owns or can create the `hissa` project. The EAS project id is written into `frontend/app.json` by `eas init`; it does not exist yet.
 - [ ] **Android package id.** `com.hissa.app` is set in `frontend/app.json` (`android.package`, and the same value for `ios.bundleIdentifier`). It was chosen here, not registered anywhere. Confirm it, or change it before the first build: the id cannot change after the app is installed on devices or published to a store.
 - [ ] **Google sign-in return addresses.** In Supabase Auth, URL Configuration, the redirect allow-list must contain `hissa://**` (a build with the `hissa` scheme returns to `hissa://...`; the iOS code returns to `hissa://auth-callback`) and, for Expo Go development, `exp://**`. The Google "Web application" OAuth client keeps its single authorized redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`. **Site URL caveat ([decision 0004](decisions/0004-google-sign-in-return-address.md)):** the site URL is currently `http://localhost:3000`. Supabase falls back to it whenever it rejects a return address, so a failed sign-in on a phone shows "can't open the page". Set the site URL to the landing page's real address when it exists. Google accounts must be on the consent screen's test-user list while the app is in Testing mode.
-- [ ] **Supabase migrations, applied in order by an authorized owner.** Hosted project `zvhwzekbgmuaaiepkcwn` is recorded in the status doc as having the first seven applied. The eighth is being added on another branch and is **not applied anywhere yet**.
+- [ ] **Supabase migrations, applied in order by an authorized owner.** Hosted project `zvhwzekbgmuaaiepkcwn` has every migration below applied, row 11 (`20261104000100_v3_avoids_recipes.sql`) on 2026-11-04 (rows 1 to 7 verified 2026-11-02; rows 8 to 10 applied after a remote history repair and verified 2026-11-04).
 
   | #   | File                                                | State                                                                                                   |
   | --- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -27,7 +27,10 @@ Everything below is the prepared plan. Steps marked **owner** need an account or
   | 5   | `20261102000200_buddy_invites_and_privacy.sql`      | applied per status doc                                                                                  |
   | 6   | `20261102000300_buddy_nudges.sql`                   | applied per status doc                                                                                  |
   | 7   | `20261102000400_feel_learning.sql`                  | applied per status doc                                                                                  |
-  | 8   | `20261102000500_user_experiments.sql`               | to be applied by an authorized owner (file lands with Task 9; check it exists on the branch you deploy) |
+  | 8   | `20261102000500_user_experiments.sql`               | applied (verified 2026-11-04)                                                                       |
+  | 9   | `20261103000100_meal_delete.sql`                    | applied (verified 2026-11-04)                                                                           |
+  | 10  | `20261104000000_friends_goals_notifications.sql`    | applied (verified 2026-11-04; replaces the buddy tables, migrates active buddies to friends)             |
+  | 11  | `20261104000100_v3_avoids_recipes.sql`              | applied 2026-11-04 (avoid list and recipes; no recipe is served until reviewed)                    |
 
   Apply with `supabase db push` from `database/` against the linked hosted project, only after the gate is lifted. Re-check with the Supabase dashboard (Database, Migrations) before and after.
 
@@ -76,7 +79,7 @@ curl -i "$API/api/health"          # expect 200 and {"status":"ok"}
 
 The health response is covered by `backend/src/__tests__/app.test.ts`. It has not been run against any deployed URL.
 
-There is **no authenticated smoke script for a remote API**. `database/scripts/smoke-v2-local.mjs` (friends, streak, nudge, goal, notification and check-in checks) deliberately refuses any host other than `localhost` or `127.0.0.1` and creates throwaway users with the service-role key, so do not point it at production. After deploy, verify by hand with two real Google accounts on the test-user list: sign in on both, add each other by username, scan a plate, save the meal, and confirm the streak, a nudge, and a check-in.
+There is **no authenticated smoke script for a remote API**. `database/scripts/smoke-v2-local.mjs` and `smoke-v3-local.mjs` (avoids, recipes, not-for-me; local only) (friends, streak, nudge, goal, notification and check-in checks) deliberately refuses any host other than `localhost` or `127.0.0.1` and creates throwaway users with the service-role key, so do not point it at production. After deploy, verify by hand with two real Google accounts on the test-user list: sign in on both, add each other by username, scan a plate, save the meal, and confirm the streak, a nudge, and a check-in.
 
 ## 4. Build the Android APK (after the gate is lifted)
 

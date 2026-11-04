@@ -8,12 +8,10 @@ A portion coach for desi households: photograph the meal, get a plan in roti, ka
 
 ## Status
 
-Updated 2026-11-03. **Start with [docs/superpowers/plans/2026-11-02-v2-status.md](docs/superpowers/plans/2026-11-02-v2-status.md)**: it is the live status, the task board and the handoff.
+Updated 2026-11-04. **Start with [docs/superpowers/plans/2026-11-02-v2-status.md](docs/superpowers/plans/2026-11-02-v2-status.md)**: it is the live status, the task board and the handoff.
 
 - **Built:** the v1 portion coach (scan, plan, saved meals, today's log), Google sign-in, friends, goals and an in-app notification inbox (usernames, streaks, nudges, cheers) and the Food and Feel check-in, with a per-user evidence model and a synthetic-data question ranker behind it. The Expo app (landing, onboarding, Today, Scan, plan, Social, Food and Feel) is connected to the API.
-- **Done on branch `feature/v2-questions-claude`, pending review and merge:** v2 Task 7 (backend: Gemini words the follow-up check-in question, validated, with a fixed fallback; `GET /api/feel/question/:mealId`; no app screen uses it yet).
-- **Task 8 backend done on branch `feature/v2-pattern-wiring`, pending review and merge:** `GET /api/feel/pattern` (the weekly pattern card rule and endpoint); the app card is not built.
-- **Next:** Task 9 (private "try next time" experiment and demo account), Task 10 (release prep).
+- **v3 (2026-11-04, on main, not run on a phone):** avoid list (onboarding and Profile), dish protein types, ranked recipes with one-tap "not for me", scan "You avoid this" flag, Today "Recipes for you". Recipes are served only after a human marks them reviewed; none is yet. The v3 migration is not applied to any database.
 - **Held by the user:** API deployment (Railway) and the evaluator Android build. Nothing is deployed.
 - **Not verified:** a full Google sign-in plus scan flow on a physical phone, and anything on Android.
 

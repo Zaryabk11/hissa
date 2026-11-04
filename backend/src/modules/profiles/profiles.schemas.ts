@@ -16,4 +16,17 @@ export const usernameSchema = z
   .regex(/^[a-z0-9_]{3,20}$/, 'Username must be 3-20 lowercase letters, digits or underscores');
 export const usernameBodySchema = z.object({ username: usernameSchema });
 
+export const avoidsBodySchema = z.object({
+  proteins: z.array(z.enum(['beef', 'mutton', 'chicken', 'fish', 'egg', 'veg'])).max(6),
+  dishes: z
+    .array(
+      z
+        .string()
+        .regex(/^[a-z0-9-]+$/)
+        .max(80),
+    )
+    .max(100),
+});
+
+export type AvoidsBody = z.infer<typeof avoidsBodySchema>;
 export type ProfileBody = z.infer<typeof profileBodySchema>;

@@ -289,7 +289,8 @@ Response 200, detected:
       "unit": "katori",
       "portion": 1,
       "confidence": 0.98,
-      "needsConfirmation": false
+      "needsConfirmation": false,
+      "avoided": false
     }
   ]
 }
