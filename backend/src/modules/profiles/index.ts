@@ -8,6 +8,7 @@ import { createProfilesService, type ProfilesService } from './profiles.service'
 export { isAvoided } from './avoids';
 export type { Avoids } from './profiles.types';
 export type { ProfilesService };
+export type { PersonCard } from './profiles.types';
 
 // The only file other modules may import.
 export function createProfilesModule({ db }: { db: Db }): {

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { NotFoundError } from '../../../shared/errors';
 import type { ProfilesRepository } from '../profiles.repository';
 import { createProfilesService } from '../profiles.service';
-import type { ProfileInput, ProfileRow } from '../profiles.types';
+import type { ProfileInput, ProfileRow, ProfileUpsertRow } from '../profiles.types';
 
 const input: ProfileInput = {
   displayName: 'Ayesha',
@@ -14,7 +14,7 @@ const input: ProfileInput = {
   activityLevel: 'sedentary',
 };
 
-const row: ProfileRow = {
+const row: ProfileUpsertRow = {
   id: 'u1',
   display_name: 'Ayesha',
   goal: 'maintain',
@@ -28,8 +28,11 @@ const row: ProfileRow = {
 
 function setup(found: ProfileRow | null = null) {
   const repository = {
-    upsertProfile: vi.fn(async (r: ProfileRow) => r),
+    upsertProfile: vi.fn(async (r: ProfileUpsertRow) => ({ ...r, username: null })),
     findProfile: vi.fn(async (_userId: string) => found),
+    setUsername: vi.fn(async () => true),
+    searchUsernames: vi.fn(async () => []),
+    findCards: vi.fn(async () => []),
   };
   return {
     repository,
@@ -44,6 +47,7 @@ describe('profiles service', () => {
     expect(repository.upsertProfile).toHaveBeenCalledWith(row);
     expect(profile).toEqual({
       id: 'u1',
+      username: null,
       displayName: 'Ayesha',
       goal: 'maintain',
       sex: 'female',
@@ -72,7 +76,7 @@ describe('profiles service', () => {
   });
 
   it('getProfile returns the stored profile scoped to userId', async () => {
-    const { repository, service } = setup(row);
+    const { repository, service } = setup({ ...row, username: null });
     expect((await service.getProfile('u1')).dailyCalorieBudget).toBe(1577);
     expect(repository.findProfile).toHaveBeenCalledWith('u1');
   });
@@ -82,7 +86,7 @@ describe('profiles service', () => {
   });
 
   it('getDailyBudget returns the stored budget', async () => {
-    expect(await setup(row).service.getDailyBudget('u1')).toBe(1577);
+    expect(await setup({ ...row, username: null }).service.getDailyBudget('u1')).toBe(1577);
   });
 
   it('getDailyBudget rejects with "Set up your profile first" when profile or budget is missing', async () => {
@@ -90,7 +94,7 @@ describe('profiles service', () => {
     await expect(setup().service.getDailyBudget('u1')).rejects.toThrow(msg);
     await expect(setup().service.getDailyBudget('u1')).rejects.toBeInstanceOf(NotFoundError);
     await expect(
-      setup({ ...row, daily_calorie_budget: null }).service.getDailyBudget('u1'),
+      setup({ ...row, username: null, daily_calorie_budget: null }).service.getDailyBudget('u1'),
     ).rejects.toThrow(msg);
   });
 });

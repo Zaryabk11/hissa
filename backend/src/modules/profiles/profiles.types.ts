@@ -16,6 +16,7 @@ export interface ProfileInput {
 
 export interface Profile {
   id: string;
+  username: string | null;
   displayName: string | null;
   goal: Goal;
   sex: Sex;
@@ -29,6 +30,7 @@ export interface Profile {
 // A row of public.profiles as the repository reads and writes it.
 export interface ProfileRow {
   id: string;
+  username: string | null;
   display_name: string | null;
   goal: Goal;
   sex: Sex;
@@ -39,20 +41,9 @@ export interface ProfileRow {
   daily_calorie_budget: number | null;
 }
 
-export interface Avoids {
-  proteins: ProteinType[];
-  dishes: string[];
-}
+export type CardRow = Pick<ProfileRow, 'id' | 'username' | 'display_name'>;
 
-// A row of public.user_avoids as written; listAvoids joins the dish slug.
-export interface AvoidRow {
-  kind: 'dish' | 'protein';
-  protein: ProteinType | null;
-  dish_id: string | null;
-}
+export type ProfileUpsertRow = Omit<ProfileRow, 'username'>;
 
-export interface AvoidListRow {
-  kind: 'dish' | 'protein';
-  protein: ProteinType | null;
-  dishes: { slug: string } | null;
-}
+// What other modules (friends, notifications) may show about a person.
+export type PersonCard = { userId: string; username: string | null; displayName: string | null };

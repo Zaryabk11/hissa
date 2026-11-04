@@ -16,14 +16,10 @@ export function createProfilesController(service: ProfilesService) {
       res.json(await service.upsertProfile(req.userId, req.body as ProfileBody));
     },
 
-    async getAvoids(req: Request, res: Response): Promise<void> {
+    async putUsername(req: Request, res: Response): Promise<void> {
       if (!req.userId) throw new UnauthorizedError();
-      res.json(await service.getAvoids(req.userId));
-    },
-
-    async putAvoids(req: Request, res: Response): Promise<void> {
-      if (!req.userId) throw new UnauthorizedError();
-      res.json(await service.replaceAvoids(req.userId, req.body as AvoidsBody));
+      await service.setUsername(req.userId, (req.body as { username: string }).username);
+      res.status(204).end();
     },
   };
 }

@@ -6,9 +6,9 @@ import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
-import { getBuddyStatus, sendNudge, type BuddyStatus } from '../buddy/api/buddy';
 import { getCatalog, getProfile, getToday, type Profile, type Today } from '../core/api';
 import { getDueCheckin, type DueCheckin } from '../feel/api/feel';
+import { getMyStreak } from '../social/api/profile';
 import { dishById, setCatalog } from '../nutrition/catalog';
 import { portionText } from '../nutrition/engine';
 import { BudgetRing } from './components/BudgetRing';
@@ -17,16 +17,16 @@ import { TodayRecipes } from '../recipes/components/TodayRecipes';
 import { TodaySkeleton } from './components/Skeleton';
 import { todayContent as c } from './content';
 import { dayLabel } from './format';
-import { buddyCard, ringView } from './today-view';
+import { ringView, streakCard, type StreakStatus } from './today-view';
 
-type Loaded = { profile: Profile; today: Today; buddy: BuddyStatus | null; due: DueCheckin };
+type Loaded = { profile: Profile; today: Today; streak: StreakStatus | null; due: DueCheckin };
 
 const fetchAll = () =>
   Promise.all([
     getProfile(),
     getCatalog(),
     getToday(),
-    getBuddyStatus().catch(() => null),
+    getMyStreak().catch(() => null),
     getDueCheckin().catch(() => null),
   ]);
 
@@ -76,11 +76,11 @@ export function TodayScreen() {
   const load = useCallback(
     (live: () => boolean) =>
       fetchAll()
-        .then(([profile, catalog, today, buddy, due]) => {
+        .then(([profile, catalog, today, streak, due]) => {
           if (!live()) return;
           setCatalog(catalog.dishes);
           hasData.current = true;
-          setLoaded({ profile, today, buddy, due });
+          setLoaded({ profile, today, streak, due });
           setNotice(null);
         })
         .catch((cause) => {
@@ -116,14 +116,6 @@ export function TodayScreen() {
     void load(() => true).finally(() => setRefreshing(false));
   };
 
-  const nudge = () => {
-    sendNudge()
-      .then(() =>
-        setLoaded((l) => l && l.buddy && { ...l, buddy: { ...l.buddy, nudgedToday: true } }),
-      )
-      .catch(() => setNotice(c.streak.nudgeError));
-  };
-
   if (error)
     return (
       <HissaScreen>
@@ -141,11 +133,10 @@ export function TodayScreen() {
     );
   if (!loaded) return <TodaySkeleton />;
 
-  const { profile, today, buddy, due } = loaded;
+  const { profile, today, streak, due } = loaded;
   const empty = today.meals.length === 0;
   const ring = ringView(profile.dailyCalorieBudget, today.totalCalories, empty);
-  const card = buddyCard(buddy);
-  const buddyName = c.streak.buddyFallback;
+  const card = streakCard(streak);
 
   return (
     <HissaScreen onRefresh={refresh} refreshing={refreshing}>
@@ -268,34 +259,12 @@ export function TodayScreen() {
         <WeekCard budget={profile.dailyCalorieBudget} refreshKey={weekKey} />
       </View>
 
-      <TodayRecipes refreshKey={weekKey} />
-
-      {card && (
-        <View style={{ marginTop: 20, gap: 8 }}>
-          {card.kind === 'active' ? (
-            <Card onPress={() => router.push('/(tabs)/buddy')} label={c.streak.open}>
-              <HissaText variant="label">{c.streak.days(card.streak)}</HissaText>
-              <HissaText variant="caption">{card.line}</HissaText>
-            </Card>
-          ) : (
-            <Card
-              onPress={() => router.push('/(tabs)/buddy')}
-              label={card.kind === 'invite' ? c.streak.invite.cta : c.streak.pendingInvite.cta}
-            >
-              <HissaText variant="label">
-                {card.kind === 'invite' ? c.streak.invite.title : c.streak.pendingInvite.title}
-              </HissaText>
-              <HissaText variant="caption">
-                {card.kind === 'invite' ? c.streak.invite.body : c.streak.pendingInvite.body}
-              </HissaText>
-            </Card>
-          )}
-          {card.kind === 'active' && card.canNudge && (
-            <PrimaryButton outline label={c.streak.nudgeLabel(buddyName)} onPress={nudge} />
-          )}
-          {card.kind === 'active' && card.nudged && (
-            <HissaText variant="caption">{c.streak.nudged}</HissaText>
-          )}
+      {card.kind === 'streak' && (
+        <View style={{ marginTop: 20 }}>
+          <Card onPress={() => router.push('/(tabs)/social')} label={c.streak.open}>
+            <HissaText variant="label">{c.streak.days(card.streak)}</HissaText>
+            <HissaText variant="caption">{card.loggedToday ? c.streak.logged : c.streak.notYet}</HissaText>
+          </Card>
         </View>
       )}
     </HissaScreen>

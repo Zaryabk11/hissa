@@ -78,14 +78,22 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 | PATCH  | `/api/meals/:id`                     | Replace a meal's items (totals recomputed)        |
 | DELETE | `/api/meals/:id`                     | Delete a meal: 204                                |
 | GET    | `/api/auth`                          | The authenticated user: `{ "id": "<user id>" }`   |
-| GET    | `/api/streaks`                       | Buddy status (see below)                          |
-| POST   | `/api/streaks/invites`               | Create an invite: 201 `{ code, linkPath }`        |
-| GET    | `/api/streaks/invites/:code`         | Preview an invite: `{ code, status: "pending" }`  |
-| POST   | `/api/streaks/invites/:code/accept`  | Accept it: 204                                    |
-| POST   | `/api/streaks/invites/:code/decline` | Decline it: 204                                   |
-| POST   | `/api/streaks/end`                   | End the caller's pair or cancel their invite: 204 |
-| POST   | `/api/streaks/nudge`                 | Nudge the buddy (once per day): 204               |
-| POST   | `/api/streaks/nudge/ack`             | Mark received nudges as seen: 204                 |
+| GET    | `/api/streaks`                       | Caller's own `{ streak, loggedToday }`            |
+| PUT    | `/api/profiles/me/username`          | Set the caller's username (3-20 of `a-z0-9_`)     |
+| GET    | `/api/friends/overview`              | Friends, logged count, incoming and outgoing requests |
+| GET    | `/api/friends/search?q=`             | Find users by username (3+ characters)            |
+| POST   | `/api/friends/requests`              | Request a friend `{ username }`: 204              |
+| POST   | `/api/friends/requests/:userId/accept`  | Accept a request: 204                          |
+| POST   | `/api/friends/requests/:userId/decline` | Decline a request: 204                         |
+| DELETE | `/api/friends/:userId`               | Remove a friend: 204                              |
+| POST   | `/api/friends/:userId/nudge`         | Nudge a friend who has not logged (once per day): 204 |
+| GET    | `/api/goals/mine`                    | The caller's goal, or `null`                      |
+| POST   | `/api/goals`                         | Create the one active goal: 201                   |
+| PATCH  | `/api/goals/mine`                    | Share or unshare it, or abandon it                |
+| GET    | `/api/goals/celebrations`            | Friends' reached goals with cheer counts          |
+| POST   | `/api/goals/:id/cheer`               | Cheer a friend's reached goal: 204                |
+| GET    | `/api/notifications`                 | Inbox `{ items, unread }` (no push)               |
+| POST   | `/api/notifications/read`            | Mark the inbox read: 204                          |
 | GET    | `/api/feel/due`                      | The meal waiting for a check-in, or `null`        |
 | GET    | `/api/feel/question/:mealId`         | The follow-up question for a due meal             |
 | GET    | `/api/feel/pattern`                  | The caller's weekly pattern card                  |
@@ -100,23 +108,15 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 | POST   | `/api/recipes/:id/not-for-me`        | Hide a recipe from the caller: 204                |
 | DELETE | `/api/recipes/:id/not-for-me`        | Undo it: 204                                      |
 
-### Duo Streaks
+### Friends, goals and notifications
 
-`GET /api/streaks` returns exactly these keys and nothing about the buddy's meals, photos, calories or feelings:
+`GET /api/streaks` returns exactly `{ "streak": 0, "loggedToday": false }` for the caller. A day counts when a person saved a meal (the meal save marks it); the streak is the run of consecutive PKT days ending today, or yesterday while today is still in progress.
 
-```json
-{
-  "pairStatus": "none | pending | active",
-  "pendingInviteCode": "ABC123 or null (the caller's own pending code)",
-  "streak": 0,
-  "ownLoggedToday": false,
-  "buddyLoggedToday": "true | false | null (null unless active)",
-  "unreadNudge": false,
-  "nudgedToday": false
-}
-```
+`GET /api/friends/overview` returns `{ friends, loggedCount, incoming, outgoing }`. Each friend is exactly `userId`, `username`, `displayName`, `streak`, `loggedToday` and `nudgedToday`; nothing about meals, photos, calories or feelings. Requests, accepting a request that is not yours, adding yourself, a repeated request, nudging a friend who already logged (or nudging twice in a day) and exceeding the friend cap return 400 or 404 in the usual error shape.
 
-Codes are six characters `A-Z0-9`. The app builds the share link with `Linking.createURL('/invite/<code>')` from `linkPath`. Self-invites, unknown or already-used codes, a second pair, a repeated accept, and nudging a buddy who already logged (or nudging twice in a day) return 400. A day counts when a person saved a meal (the meal save marks it); the shared streak counts consecutive PKT days on which both did, starting from the pair's acceptance day.
+One goal is active per user: `{ "type": "streak", "target": 7, "shared": true }` or `{ "type": "window", "windowDays": 14, "target": 10, "shared": false }`. A friend sees a goal only while its owner has shared it. A meal save checks the goal after the streak mark; a failed check never fails the save.
+
+Notifications are inbox-only (kinds `friend_request`, `request_accepted`, `nudge`, `goal_reached`, `cheer`); there is no push.
 
 ### Food and Feel
 
@@ -138,7 +138,7 @@ Codes are six characters `A-Z0-9`. The app builds the share link with `Linking.c
   }
   ```
 
-  `intent` is `symptom_detail` (options `bloated|upset|other|not_sure`) unless the query is `?stomach=heavy&after=symptom_detail` (the app has a heavy stomach and the symptom step answered). Then `intent` is `pre_existing` (options `yes|no|not_sure`, text "Did you already feel this way before this meal?", `source: fallback`, never sent to Gemini) if the caller has no stored `pre_existing` answer from the last 14 days, else `symptom_detail` as usual. Options, labels and their order always come from the server, never from Gemini. `source` is `gemini` when Gemini's wording passed the checks, else `fallback` (timeout, invalid JSON, wrong option ids, a word outside the allowed vocabulary, or the history could not be read) and `text` is the fixed question. The wording guard is an allowlist of words; it checks vocabulary and shape, not meaning. Gemini is sent only the intent, the allowed ids and an aggregate summary of the caller's own check-ins (the check-in count, and whether a dish repeats with its exposed and comparison meal counts; no dish names, meal history or buddy data). The client makes at most 2 attempts inside an 8 s overall deadline, so a request waits at most about 8 s (normally 1 to 3 s). The answer for a user and meal is cached for 10 minutes in the API process (at most 500 entries), so repeating the request does not call Gemini again. 400 for a malformed meal id or a meal that is not due or already answered; 404 for a meal that is not the caller's. The answer is submitted with `POST /api/feel/checkins` (`symptom` accepts the `symptom_detail` ids; the `pre_existing` answer goes in `questionType` and `answerId`).
+  `intent` is `symptom_detail` (options `bloated|upset|other|not_sure`) unless the query is `?stomach=heavy&after=symptom_detail` (the app has a heavy stomach and the symptom step answered). Then `intent` is `pre_existing` (options `yes|no|not_sure`, text "Did you already feel this way before this meal?", `source: fallback`, never sent to Gemini) if the caller has no stored `pre_existing` answer from the last 14 days, else `symptom_detail` as usual. Options, labels and their order always come from the server, never from Gemini. `source` is `gemini` when Gemini's wording passed the checks, else `fallback` (timeout, invalid JSON, wrong option ids, a word outside the allowed vocabulary, or the history could not be read) and `text` is the fixed question. The wording guard is an allowlist of words; it checks vocabulary and shape, not meaning. Gemini is sent only the intent, the allowed ids and an aggregate summary of the caller's own check-ins (the check-in count, and whether a dish repeats with its exposed and comparison meal counts; no dish names, meal history or friend data). The client makes at most 2 attempts inside an 8 s overall deadline, so a request waits at most about 8 s (normally 1 to 3 s). The answer for a user and meal is cached for 10 minutes in the API process (at most 500 entries), so repeating the request does not call Gemini again. 400 for a malformed meal id or a meal that is not due or already answered; 404 for a meal that is not the caller's. The answer is submitted with `POST /api/feel/checkins` (`symptom` accepts the `symptom_detail` ids; the `pre_existing` answer goes in `questionType` and `answerId`).
 
 - `GET /api/feel/pattern` returns the caller's private weekly card for the last 7 PKT days (today and the 6 days before). It takes no parameters; the user is always the token's user, and a `userId` in the request is ignored. The week is keyed on when each **meal was eaten** (`eatenAt`), not when it was checked in, and check-ins made over 24 hours after their meal do not count. Response (always 200):
 
@@ -164,9 +164,9 @@ Codes are six characters `A-Z0-9`. The app builds the share link with `Linking.c
 
   `pattern` is `null` unless `state` is `pattern` or `question`. `comparison` is `{ "matching", "total" }` (meals without the dish) for `kind: "dish"` and `null` for a category. `state` rules: fewer than 7 check-ins in the window gives `insufficient_data` (progress text in `label`); a category needs at least 3 relevant meals with the outcome in 60% or more; a dish also needs at least 3 meals without it and a gap of 25 points or more, otherwise a consistent-looking dish is a `question`; `no_pattern` means 7 or more check-ins and nothing consistent. `isSample` is `true` only for the user whose id equals the backend's optional `DEMO_USER_ID`; every other user always gets `false`. `label` states what the logs show; it never claims a cause.
 
-- `POST /api/feel/checkins` body: `{ "mealId": "<uuid>", "energy": "low|okay|good", "stomach": "heavy|fine|light", "symptom": "bloated|upset|other|not_sure" }` (`symptom` optional; the app offers it after a heavy stomach). It may also carry `"questionType": "pre_existing"` with `"answerId": "yes|no|not_sure"`: both or neither, nothing else is accepted (400). They are stored in `question_type`, `answer_id` and `question_source` (`fallback`). A meal answered `yes` is left out of the weekly pattern and the per-user model (`no` and `not_sure` change nothing); the answer is private to its owner (never in buddy data or logs). The body is strict: unknown fields give 400. 400 also for a meal that is not due, already answered, or not the caller's (404). Skipping a check-in writes nothing.
+- `POST /api/feel/checkins` body: `{ "mealId": "<uuid>", "energy": "low|okay|good", "stomach": "heavy|fine|light", "symptom": "bloated|upset|other|not_sure" }` (`symptom` optional; the app offers it after a heavy stomach). It may also carry `"questionType": "pre_existing"` with `"answerId": "yes|no|not_sure"`: both or neither, nothing else is accepted (400). They are stored in `question_type`, `answer_id` and `question_source` (`fallback`). A meal answered `yes` is left out of the weekly pattern and the per-user model (`no` and `not_sure` change nothing); the answer is private to its owner (never in friend data or logs). The body is strict: unknown fields give 400. 400 also for a meal that is not due, already answered, or not the caller's (404). Skipping a check-in writes nothing.
 
-- **Try next time (experiments).** One private choice per user, saved from the caller's own weekly card. Nothing here is shown to a buddy, and it never claims a cause. Every endpoint uses the token's user only. Errors use the usual `{ "error": { "code", "message" } }` shape. Experiment shape:
+- **Try next time (experiments).** One private choice per user, saved from the caller's own weekly card. Nothing here is shown to a friend, and it never claims a cause. Every endpoint uses the token's user only. Errors use the usual `{ "error": { "code", "message" } }` shape. Experiment shape:
 
   ```json
   {
@@ -492,7 +492,7 @@ Every number is an estimate. Plan responses and nutrition carry `isEstimate: tru
 
 ### Privacy note
 
-Buddies see only "logged today", the streak and nudge state, never meals, photos, calories or feelings. The shape above is the whole contract; direct database access to buddy tables is closed, and clients must not write meals or check-ins to Supabase themselves.
+A friend sees only username, display name, "logged today", the streak, nudge state and a goal the user chose to share, never meals, photos, calories or feelings. The shapes above are the whole contract; direct database access to the friend, goal and notification tables is closed, and clients must not write meals or check-ins to Supabase themselves.
 
 ## How a scan becomes a saved meal
 

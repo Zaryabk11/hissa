@@ -37,8 +37,9 @@ function setup(listed: Meal[] = []) {
     ),
   };
   const streaks = { markMealSaved: vi.fn(async () => {}) };
-  const service = createMealsService({ repository, nutrition, streaks, now: () => NOW });
-  return { service, repository, nutrition, streaks };
+  const goals = { onMealSaved: vi.fn(async () => {}) };
+  const service = createMealsService({ repository, nutrition, streaks, goals, now: () => NOW });
+  return { service, repository, nutrition, streaks, goals };
 }
 
 describe('meals service', () => {

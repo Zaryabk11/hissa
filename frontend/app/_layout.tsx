@@ -26,7 +26,6 @@ function Routes() {
       <Stack.Screen name="index" />
       <Stack.Screen name="landing" />
       <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="invite/[code]" />
       <Stack.Protected guard={!session}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
@@ -35,7 +34,7 @@ function Routes() {
         <Stack.Screen name="(scan)" />
         <Stack.Screen name="(account)" />
         <Stack.Screen name="meals" />
-        <Stack.Screen name="recipes" />
+        <Stack.Screen name="inbox" />
       </Stack.Protected>
     </Stack>
   );
