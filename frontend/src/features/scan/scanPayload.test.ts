@@ -14,6 +14,14 @@ describe('scan to saved meal', () => {
     expect(result.items).toEqual([{ predictedDish: 'daal', predictedPortion: 1, confirmedDish: 'haleem', confirmedPortion: 0.5, confidence: 0.4 }]);
   });
 
+  it('scan items keep avoided flag into review items', () => {
+    const items = reviewItemsFromScan([
+      { dish: 'nihari', name: 'Nihari', unit: 'katori', portion: 1, confidence: 0.9, needsConfirmation: false, avoided: true },
+      { dish: 'roti', name: 'Roti', unit: 'roti', portion: 1, confidence: 0.9, needsConfirmation: false, avoided: false },
+    ]);
+    expect(items.map((i) => i.avoided)).toEqual([true, false]);
+  });
+
   it('keeps removed predictions and skips an unknown item until it has a catalog dish', () => {
     const items = reviewItemsFromScan([{ dish: 'roti', name: 'Roti', unit: 'roti', portion: 2, confidence: 0.9, needsConfirmation: false, avoided: false }]);
     items[0]!.removed = true;

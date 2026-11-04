@@ -18,6 +18,7 @@ export function reviewItemsFromScan(found: ScanItem[]): ReviewItem[] {
     ask: item.needsConfirmation ? (item.dish === 'unknown' ? [] : [item.dish]) : undefined,
     confirmed: false,
     removed: false,
+    avoided: item.avoided,
     predictedDish: item.dish === 'unknown' ? null : item.dish,
     predictedPortion: item.portion > 0 ? item.portion : null,
     confidence: item.confidence,
