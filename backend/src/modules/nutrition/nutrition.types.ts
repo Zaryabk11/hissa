@@ -1,5 +1,7 @@
 export type Unit = 'roti' | 'katori' | 'plate' | 'piece' | 'glass' | 'bowl';
 
+export type ProteinType = 'beef' | 'mutton' | 'chicken' | 'fish' | 'egg' | 'veg';
+
 export interface Dish {
   id: string;
   slug: string;
@@ -14,6 +16,7 @@ export interface Dish {
   source: 'khan2019' | 'farooq2026' | 'indb';
   basis: 'lab' | 'calculated';
   unitBasis: 'derived' | 'assumed';
+  proteinType: ProteinType | null;
 }
 
 export interface PortionNutrition {

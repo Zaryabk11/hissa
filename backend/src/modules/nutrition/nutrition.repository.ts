@@ -2,7 +2,7 @@ import type { Db } from '../../shared/db';
 import type { Dish } from './nutrition.types';
 
 const COLUMNS =
-  'id, slug, name, category, unit, grams_per_unit, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, basis, unit_basis';
+  'id, slug, name, category, unit, grams_per_unit, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, basis, unit_basis, protein_type';
 
 interface DishRow {
   id: string;
@@ -18,6 +18,7 @@ interface DishRow {
   source: Dish['source'];
   basis: Dish['basis'];
   unit_basis: Dish['unitBasis'];
+  protein_type: Dish['proteinType'];
 }
 
 const toDish = (r: DishRow): Dish => ({
@@ -34,6 +35,7 @@ const toDish = (r: DishRow): Dish => ({
   source: r.source,
   basis: r.basis,
   unitBasis: r.unit_basis,
+  proteinType: r.protein_type,
 });
 
 // Supabase data access for the dish catalog (shared reference data, not user-owned). No business rules here.

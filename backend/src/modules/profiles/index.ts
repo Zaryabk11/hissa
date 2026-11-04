@@ -5,6 +5,8 @@ import { createProfilesRepository } from './profiles.repository';
 import { createProfilesRouter } from './profiles.routes';
 import { createProfilesService, type ProfilesService } from './profiles.service';
 
+export { isAvoided } from './avoids';
+export type { Avoids } from './profiles.types';
 export type { ProfilesService };
 
 // The only file other modules may import.
