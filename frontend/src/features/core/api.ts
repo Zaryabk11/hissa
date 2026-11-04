@@ -18,6 +18,8 @@ export type Profile = {
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'active';
   dailyCalorieBudget: number;
 };
+export type ProteinType = 'beef' | 'mutton' | 'chicken' | 'fish' | 'egg' | 'veg';
+export type Avoids = { proteins: ProteinType[]; dishes: string[] };
 export type ScanItem = {
   dish: string;
   name: string | null;
@@ -25,6 +27,7 @@ export type ScanItem = {
   portion: number;
   confidence: number;
   needsConfirmation: boolean;
+  avoided: boolean;
 };
 export type ScanResult =
   | { mode: 'detected'; items: ScanItem[] }
@@ -55,6 +58,9 @@ const json = (body: unknown) => ({
 export const getProfile = () => apiAuthed<Profile>('/api/profiles/me');
 export const putProfile = (body: unknown) =>
   apiAuthed<Profile>('/api/profiles/me', { ...json(body), method: 'PUT' });
+export const getAvoids = () => apiAuthed<Avoids>('/api/profiles/me/avoids');
+export const putAvoids = (body: Avoids) =>
+  apiAuthed<Avoids>('/api/profiles/me/avoids', { ...json(body), method: 'PUT' });
 // The catalog changes rarely: share one in-flight request and reuse the answer for a few minutes.
 const CATALOG_TTL_MS = 5 * 60_000;
 let catalog: { at: number; request: Promise<{ dishes: ApiDish[] }> } | null = null;

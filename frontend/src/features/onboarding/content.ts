@@ -1,5 +1,5 @@
 // All onboarding copy, from docs/design/Hissa Screens.html (screens a to d).
-export const TOTAL_STEPS = 4;
+export const TOTAL_STEPS = 5;
 
 export const onboardingContent = {
   back: 'Back',
@@ -34,7 +34,7 @@ export const onboardingContent = {
       { id: 'onFeet', title: 'On my feet', sub: 'Shop, school, housework, regular walking' },
       { id: 'active', title: 'Very active', sub: 'Physical work or training most days' },
     ],
-    cta: 'Show my budget',
+    cta: 'Continue',
   },
   budget: {
     title: 'Your daily budget',

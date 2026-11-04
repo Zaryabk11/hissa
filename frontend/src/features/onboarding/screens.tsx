@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useSession } from '../../shared/auth/session';
-import { putProfile } from '../core/api';
+import { putAvoids, putProfile } from '../core/api';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { hissaRadii } from '../../shared/theme/hissaTokens';
 import { Chip, OptionCard } from '../../shared/ui/hissa/Choice';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
+import { AvoidsPicker } from '../avoids/AvoidsPicker';
+import { ONBOARDING_DISHES, avoidsContent } from '../avoids/content';
 import { onboardingContent as c } from './content';
 import { placeholderDailyKcal } from './placeholderDailyKcal';
 import { finishOnboarding, getOnboardingOwner, resetAnswers, setAnswers, useAnswers, useAnswersHydrated, type Activity, type Goal, type Sex } from './store';
@@ -139,13 +141,28 @@ export function ActivityScreen() {
   const router = useRouter();
   const { activity } = useAnswers();
   return (
-    <HissaScreen actionBar={<PrimaryButton label={c.activity.cta} onPress={() => router.push('/onboarding/budget')} />}>
+    <HissaScreen actionBar={<PrimaryButton label={c.activity.cta} onPress={() => router.push('/onboarding/avoids')} />}>
       <StepHeader step={3} />
       <Heading title={c.activity.title} />
       <View accessibilityRole="radiogroup" style={{ marginTop: 28, gap: 12 }}>
         {c.activity.options.map((o) => (
           <OptionCard key={o.id} title={o.title} sub={o.sub} selected={activity === o.id} onPress={() => setAnswers({ activity: o.id as Activity })} />
         ))}
+      </View>
+    </HissaScreen>
+  );
+}
+
+export function AvoidsScreen() {
+  const router = useRouter();
+  const { avoids } = useAnswers();
+  const empty = !avoids.proteins.length && !avoids.dishes.length;
+  return (
+    <HissaScreen actionBar={<PrimaryButton label={empty ? avoidsContent.skip : avoidsContent.cta} onPress={() => router.push('/onboarding/budget')} />}>
+      <StepHeader step={4} />
+      <Heading title={avoidsContent.title} sub={avoidsContent.sub} />
+      <View style={{ marginTop: 28 }}>
+        <AvoidsPicker value={avoids} onChange={(a) => setAnswers({ avoids: a })} dishes={ONBOARDING_DISHES} />
       </View>
     </HissaScreen>
   );
@@ -180,6 +197,7 @@ export function BudgetScreen() {
     try {
       const name = session.user.user_metadata?.full_name as string | undefined;
       const profile = await putProfile(profilePayload(answers, name));
+      if (answers.avoids.proteins.length || answers.avoids.dishes.length) await putAvoids(answers.avoids);
       setSavedBudget(profile.dailyCalorieBudget);
       finishOnboarding(session.user.id);
     } catch {
@@ -192,7 +210,7 @@ export function BudgetScreen() {
   if (foreignDraft) return <HissaScreen><HissaText>Starting a new profile…</HissaText></HissaScreen>;
   return (
     <HissaScreen actionBar={<View style={{ gap: 8 }}><PrimaryButton label={saving ? 'Saving…' : session && savedBudget === null ? 'Use these details' : c.budget.cta} disabled={saving} onPress={() => void continueToApp()} />{session && savedBudget === null && <PrimaryButton outline label="Start over" onPress={() => { resetAnswers(); router.replace('/onboarding/goal'); }} />}</View>}>
-      <StepHeader step={4} />
+      <StepHeader step={5} />
       <Heading title={c.budget.title} />
       <View style={{ alignItems: 'center', marginTop: 44 }}>
         <View
