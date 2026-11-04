@@ -9,7 +9,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="today" options={{ title: 'Today' }} />
         <Tabs.Screen name="scan" options={{ title: 'Scan' }} />
         <Tabs.Screen name="feel" options={{ title: 'Food & Feel' }} />
-        <Tabs.Screen name="buddy" options={{ title: 'Buddy' }} />
+        <Tabs.Screen name="social" options={{ title: 'Social' }} />
       </Tabs>
     </HissaRoot>
   );

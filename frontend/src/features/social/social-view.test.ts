@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   canNudge,
   friendStatus,
+  goalInput,
   goalProgressLine,
   groupLine,
   notificationLine,
+  personName,
   validUsername,
 } from './social-view';
 import type { FriendRow } from './api/friends';
@@ -84,5 +86,28 @@ describe('notificationLine', () => {
   it('falls back to display name then Someone', () => {
     expect(notificationLine(item('nudge', { userId: 'u', username: null, displayName: 'Ayesha K' }))).toContain('Ayesha K');
     expect(notificationLine(item('nudge', { userId: 'u', username: null, displayName: null }))).toContain('Someone');
+  });
+});
+
+describe('personName', () => {
+  it('prefers username, then display name, then a neutral word', () => {
+    expect(personName({ userId: 'u', username: 'sara', displayName: 'Sara K' })).toBe('sara');
+    expect(personName({ userId: 'u', username: null, displayName: 'Sara K' })).toBe('Sara K');
+    expect(personName({ userId: 'u', username: null, displayName: null })).toBe('Someone');
+  });
+});
+
+describe('goalInput', () => {
+  it('accepts a streak goal of 2-365 days and a window goal inside the API limits', () => {
+    expect(goalInput('streak', '7', '', false)).toEqual({ type: 'streak', target: 7, shared: false });
+    expect(goalInput('window', '5', '7', true)).toEqual({ type: 'window', target: 5, windowDays: 7, shared: true });
+  });
+  it('rejects out of range, non-numeric and impossible goals', () => {
+    expect(goalInput('streak', '1', '', false)).toBeNull();
+    expect(goalInput('streak', '366', '', false)).toBeNull();
+    expect(goalInput('streak', 'abc', '', false)).toBeNull();
+    expect(goalInput('window', '8', '7', false)).toBeNull();
+    expect(goalInput('window', '3', '91', false)).toBeNull();
+    expect(goalInput('window', '3', '', false)).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
-import type { FriendRow } from './api/friends';
-import type { Goal } from './api/goals';
+import type { FriendRow, PersonCard } from './api/friends';
+import type { Goal, GoalInput, GoalType } from './api/goals';
 import type { NotificationItem } from './api/notifications';
 import { socialContent } from './content';
 
@@ -27,4 +27,16 @@ export function notificationLine(n: NotificationItem): string {
   const who = n.actor.username ?? n.actor.displayName ?? socialContent.someone;
   const goal = n.kind === 'goal_reached' && n.goalTitle ? `: ${n.goalTitle}` : '';
   return `${who} ${socialContent.notification[n.kind]}${goal}`;
+}
+
+export const personName = (p: PersonCard) => p.username ?? p.displayName ?? socialContent.someone;
+
+const whole = (text: string) => (/^\d+$/.test(text.trim()) ? Number(text) : NaN);
+
+/** Mirrors the API limits: streak target 2-365; window days 2-90 and target 1..days. Null when invalid. */
+export function goalInput(type: GoalType, target: string, windowDays: string, shared: boolean): GoalInput | null {
+  const t = whole(target);
+  if (type === 'streak') return t >= 2 && t <= 365 ? { type, target: t, shared } : null;
+  const d = whole(windowDays);
+  return d >= 2 && d <= 90 && t >= 1 && t <= d ? { type, target: t, windowDays: d, shared } : null;
 }

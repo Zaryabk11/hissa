@@ -1,17 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { BuddyStatus } from '../buddy/api/buddy';
-import { buddyCard, ringView } from './today-view';
-
-const status = (patch: Partial<BuddyStatus>): BuddyStatus => ({
-  pairStatus: 'active',
-  pendingInviteCode: null,
-  streak: 3,
-  ownLoggedToday: true,
-  buddyLoggedToday: false,
-  unreadNudge: false,
-  nudgedToday: false,
-  ...patch,
-});
+import { ringView, streakCard } from './today-view';
 
 describe('ringView', () => {
   it('shows the whole budget before the first meal', () => {
@@ -31,38 +19,20 @@ describe('ringView', () => {
   });
 });
 
-describe('buddyCard', () => {
-  it('hides when the status did not load, invites when unpaired, waits when pending', () => {
-    expect(buddyCard(null)).toBeNull();
-    expect(buddyCard(status({ pairStatus: 'none' }))).toEqual({ kind: 'invite' });
-    expect(buddyCard(status({ pairStatus: 'pending', pendingInviteCode: 'ABC123' }))).toEqual({
-      kind: 'pending',
-    });
+describe('streakCard', () => {
+  it('hides when the status did not load', () => {
+    expect(streakCard(null)).toEqual({ kind: 'hidden' });
   });
-  it('offers a nudge only while the buddy has not logged and none was sent', () => {
-    expect(buddyCard(status({}))).toMatchObject({
-      kind: 'active',
-      canNudge: true,
-      nudged: false,
-      line: "You logged, your buddy hasn't yet",
+  it('shows only the streak and whether you logged today', () => {
+    expect(streakCard({ streak: 4, loggedToday: true })).toEqual({
+      kind: 'streak',
+      streak: 4,
+      loggedToday: true,
     });
-    expect(buddyCard(status({ nudgedToday: true }))).toMatchObject({
-      canNudge: false,
-      nudged: true,
+    expect(streakCard({ streak: 0, loggedToday: false })).toEqual({
+      kind: 'streak',
+      streak: 0,
+      loggedToday: false,
     });
-    expect(buddyCard(status({ buddyLoggedToday: true }))).toMatchObject({
-      canNudge: false,
-      nudged: false,
-      line: 'You and your buddy both logged today',
-    });
-  });
-  it('exposes nothing beyond streak, line and nudge state', () => {
-    expect(Object.keys(buddyCard(status({})) as object).sort()).toEqual([
-      'canNudge',
-      'kind',
-      'line',
-      'nudged',
-      'streak',
-    ]);
   });
 });
