@@ -1,8 +1,8 @@
 // Drafts one recipe per dish with Gemini, OFFLINE, into database/data/recipes.json (reviewed: false).
 // A human reviews before anything is served. Run: npx tsx --env-file=.env scripts/draft-recipes.ts
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { checkRecipeDraft, type RecipeDraft } from './recipe-draft-guard';
+import { checkRecipeDraft, mergeDrafts, type RecipeDraft } from './recipe-draft-guard';
 
 const DISHES = [
   'chicken-karahi', 'chicken-biryani', 'chicken-pulao', 'chicken-korma', 'chicken-tikka',
@@ -69,8 +69,11 @@ const catalogSlugs = new Set(
 );
 
 async function main() {
+  // recipes.json is the source of truth once a human edits it: never redraft or overwrite its slugs.
+  const existing: RecipeDraft[] = existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : [];
+  const have = new Set(existing.map((r) => r.slug));
   const accepted: RecipeDraft[] = [];
-  for (const dish of DISHES) {
+  for (const dish of DISHES.filter((d) => !have.has(d))) {
     try {
       const checked = checkRecipeDraft(await draft(dish), catalogSlugs);
       if (checked.ok) accepted.push(checked.recipe);
@@ -80,7 +83,8 @@ async function main() {
     }
     await sleep(2000);
   }
-  writeFileSync(out, JSON.stringify(accepted, null, 2) + '\n');
-  console.log(`${accepted.length}/${DISHES.length} drafts written to ${out}`);
+  if (accepted.length === 0) return console.log('No new drafts; recipes.json left untouched');
+  writeFileSync(out, JSON.stringify(mergeDrafts(existing, accepted), null, 2) + '\n');
+  console.log(`${accepted.length} new drafts written to ${out}`);
 }
 void main();

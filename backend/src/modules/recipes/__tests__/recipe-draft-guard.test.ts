@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkRecipeDraft } from '../../../../scripts/recipe-draft-guard';
+import { checkRecipeDraft, mergeDrafts } from '../../../../scripts/recipe-draft-guard';
 
 const slugs = new Set(['daal']);
 const draft = {
@@ -36,5 +36,15 @@ describe('checkRecipeDraft', () => {
   });
   it('rejects 2 steps', () => {
     expect(reason({ ...draft, steps: ['a', 'b'] })).toMatch(/steps/);
+  });
+});
+
+describe('mergeDrafts', () => {
+  it('keeps existing entries untouched and appends only new slugs', () => {
+    const kept = { slug: 'a', reviewed: true };
+    expect(mergeDrafts([kept], [{ slug: 'a', reviewed: false }, { slug: 'b', reviewed: false }])).toEqual([
+      kept,
+      { slug: 'b', reviewed: false },
+    ]);
   });
 });

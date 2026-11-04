@@ -33,3 +33,9 @@ export function checkRecipeDraft(
   if (banned) return { ok: false, reason: `banned word "${banned[0]}"` };
   return { ok: true, recipe };
 }
+
+// Existing entries win untouched (a human may have reviewed them); only new slugs are appended.
+export function mergeDrafts<T extends { slug: string }>(existing: T[], drafted: T[]): T[] {
+  const have = new Set(existing.map((r) => r.slug));
+  return [...existing, ...drafted.filter((r) => !have.has(r.slug))];
+}
