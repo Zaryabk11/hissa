@@ -4,6 +4,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { useRouter, type Tabs } from 'expo-router';
 import { useHissaTheme } from '../../theme/HissaThemeProvider';
 import { MIN_TAP } from '../../theme/hissaTokens';
+import { useUnread } from '../../../features/social/useSocialData';
 import { useColumnLayout } from './HissaScreen';
 import { HissaText } from './HissaText';
 
@@ -15,12 +16,12 @@ const LABELS = {
   today: 'Today',
   scan: 'Scan a meal',
   feel: 'Food & Feel',
-  buddy: 'Buddy',
+  social: 'Social',
   profile: 'Profile',
 } as const;
 type TabName = keyof typeof LABELS;
 // Two tabs either side of Scan, so the raised button sits at the bar's centre.
-const ORDER = ['today', 'feel', 'scan', 'buddy'] as const;
+const ORDER = ['today', 'feel', 'scan', 'social'] as const;
 
 function Icon({ name, color }: { name: TabName; color: string }) {
   const p = {
@@ -53,7 +54,7 @@ function Icon({ name, color }: { name: TabName; color: string }) {
         <Path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" />
       </Svg>
     );
-  if (name === 'buddy')
+  if (name === 'social')
     return (
       <Svg {...p}>
         <Circle cx={9} cy={8} r={3.5} />
@@ -69,11 +70,12 @@ function Icon({ name, color }: { name: TabName; color: string }) {
   );
 }
 
-/** Today | raised Scan | Food & Feel | Buddy. Plugs into expo-router `Tabs` as `tabBar`, so the screens stay real routes. */
+/** Today | raised Scan | Food & Feel | Social. Plugs into expo-router `Tabs` as `tabBar`, so the screens stay real routes. */
 export function TabBar({ state, navigateToTab, insets }: BarProps) {
   const t = useHissaTheme();
   const router = useRouter();
   const { split, columnMax } = useColumnLayout();
+  const unread = useUnread(state.index);
   if (state.routes[state.index].name === 'scan') return null; // the camera is full screen
   return (
     <View style={{ backgroundColor: t.bg, flexDirection: 'row' }}>
@@ -155,6 +157,16 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
                   <HissaText variant="caption" style={{ color }}>
                     {LABELS[name]}
                   </HissaText>
+                  {name === 'social' && unread > 0 && (
+                    <View
+                      accessibilityLabel={`${unread} unread`}
+                      style={{ position: 'absolute', top: 0, right: '22%', minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: t.pri, alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <HissaText variant="caption" style={{ color: t.onPri, fontSize: 11, lineHeight: 14 }}>
+                        {unread > 9 ? '9+' : unread}
+                      </HissaText>
+                    </View>
+                  )}
                 </>
               )}
             </Pressable>

@@ -5,7 +5,7 @@ import { getProfile } from '../src/features/core/api';
 import { getOnboardingFinished, getOnboardingOwner, hydrateAnswers } from '../src/features/onboarding/store';
 import { canUseDraft } from '../src/features/onboarding/draftOwner';
 import { ApiError } from '../src/shared/api/client';
-import { getPendingInvite, useSession } from '../src/shared/auth/session';
+import { useSession } from '../src/shared/auth/session';
 import { useHissaTheme } from '../src/shared/theme/HissaThemeProvider';
 import { HissaRoot } from '../src/shared/ui/hissa/HissaRoot';
 import { HissaText } from '../src/shared/ui/hissa/HissaText';
@@ -36,19 +36,13 @@ const Status = (props: { label: string; onRetry?: () => void }) => (
   </HissaRoot>
 );
 
-// Signed-out: the website gets the landing page; the app (and any invite link) goes straight to sign in.
+// Signed-out: the website gets the landing page; the app goes straight to sign in.
 export default function Index() {
   const { session, loading } = useSession();
-  const [code, setCode] = useState<string | null | undefined>(undefined);
   const [destination, setDestination] = useState<{ userId: string; target: 'today' | 'goal' | 'budget' | 'error' } | null>(null);
   const [retry, setRetry] = useState(0);
   useEffect(() => {
-    void getPendingInvite()
-      .then(setCode)
-      .catch(() => setCode(null));
-  }, []);
-  useEffect(() => {
-    if (!session || code === undefined || code) return;
+    if (!session) return;
     let live = true;
     void hydrateAnswers().then(() => getProfile()).then(() => {
       if (live) setDestination({ userId: session.user.id, target: 'today' });
@@ -57,16 +51,14 @@ export default function Index() {
       setDestination({ userId: session.user.id, target: error instanceof ApiError && error.status === 404 ? (canUseDraft(getOnboardingFinished(), getOnboardingOwner(), session.user.id) ? 'budget' : 'goal') : 'error' });
     });
     return () => { live = false; };
-  }, [session, code, retry]);
-  if (loading || code === undefined)
+  }, [session, retry]);
+  if (loading)
     return <Status label="Loading session" />;
-  if (!session) return <Redirect href={code || Platform.OS !== 'web' ? '/(auth)/sign-in' : '/landing'} />;
+  if (!session) return <Redirect href={Platform.OS !== 'web' ? '/(auth)/sign-in' : '/landing'} />;
   const target = destination?.userId === session.user.id ? destination.target : null;
-  if (!code && target === 'error') return <Status label="Could not connect" onRetry={() => { setDestination(null); setRetry((n) => n + 1); }} />;
-  if (!code && !target) return <Status label="Loading profile" />;
-  if (!code && target === 'goal') return <Redirect href="/onboarding/goal" />;
-  if (!code && target === 'budget') return <Redirect href="/onboarding/budget" />;
-  return (
-    <Redirect href={code ? { pathname: '/(tabs)/buddy', params: { code } } : '/(tabs)/today'} />
-  );
+  if (target === 'error') return <Status label="Could not connect" onRetry={() => { setDestination(null); setRetry((n) => n + 1); }} />;
+  if (!target) return <Status label="Loading profile" />;
+  if (target === 'goal') return <Redirect href="/onboarding/goal" />;
+  if (target === 'budget') return <Redirect href="/onboarding/budget" />;
+  return <Redirect href="/(tabs)/today" />;
 }
