@@ -41,6 +41,7 @@ export const scanContent = {
     swapTitle: (name: string) => `Swap ${name} for`,
     somethingElse: 'Something else',
     remove: 'Not on my plate',
+    avoided: 'You avoid this',
     undo: (s: number) => `Undo, ${s}s`,
     undoLabel: (name: string) => `Undo removing ${name}`,
     addDish: 'Add dish',

@@ -94,7 +94,7 @@ function Chip({ item, onToggle, onSwap }: { item: ReviewItem; onToggle: () => vo
       <Pressable
         accessibilityRole={asking ? 'button' : 'checkbox'}
         accessibilityState={asking ? undefined : { checked: on }}
-        accessibilityLabel={asking ? c.review.question(nameOf(item.dishId)) : `${nameOf(item.dishId)}, ${portionText(item)}`}
+        accessibilityLabel={asking ? c.review.question(nameOf(item.dishId)) : `${nameOf(item.dishId)}, ${portionText(item)}${item.avoided ? `, ${c.review.avoided}` : ''}`}
         onPress={onToggle}
         style={{ flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 14 }}
       >
@@ -110,9 +110,16 @@ function Chip({ item, onToggle, onSwap }: { item: ReviewItem; onToggle: () => vo
         <HissaText variant="label" style={{ color: ink }}>
           {asking ? `${nameOf(item.dishId)}?` : nameOf(item.dishId)}
         </HissaText>
-        <HissaText variant="caption" style={{ flex: 1, color: asking ? t.tintInk : t.muted }}>
-          {portionText(item)}
-        </HissaText>
+        <View style={{ flex: 1, paddingVertical: 6 }}>
+          <HissaText variant="caption" style={{ color: asking ? t.tintInk : t.muted }}>
+            {portionText(item)}
+          </HissaText>
+          {item.avoided && !asking && (
+            <HissaText variant="caption" style={{ color: t.tintInk, fontWeight: '600' }}>
+              {c.review.avoided}
+            </HissaText>
+          )}
+        </View>
       </Pressable>
       {!asking && (
         <Pressable accessibilityRole="button" accessibilityLabel={c.review.swap(nameOf(item.dishId))} onPress={onSwap} style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
@@ -168,7 +175,8 @@ export function ReviewScreen() {
 
   const swapTo = (id: string, dishId: string) => {
     const dish = dishById(dishId);
-    if (dish) patchItem(id, { dishId, qty: dish.defaultQty, ask: undefined, confirmed: true });
+    // A different dish has unknown protein client-side, so drop the flag; the same dish keeps it.
+    if (dish) patchItem(id, { dishId, qty: dish.defaultQty, ask: undefined, confirmed: true, ...(items.find((i) => i.id === id)?.dishId !== dishId && { avoided: false }) });
     setOpen(null);
   };
   const step = (i: ReviewItem, direction: 1 | -1) => patchItem(i.id, { qty: stepQty(i.qty, dishById(i.dishId)!.unit, direction), confirmed: true });

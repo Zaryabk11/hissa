@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { UnauthorizedError } from '../../shared/errors';
-import type { ProfileBody } from './profiles.schemas';
+import type { AvoidsBody, ProfileBody } from './profiles.schemas';
 import type { ProfilesService } from './profiles.service';
 
 // Maps HTTP to profiles service calls. No business logic.

@@ -1,3 +1,4 @@
+import type { Avoids } from '../core/api';
 import { createStore, loadJSON, saveJSON } from '../../shared/storage';
 import { placeholderDailyKcal } from './placeholderDailyKcal';
 
@@ -12,6 +13,7 @@ export type Answers = {
   weightKg: number;
   sex: Sex;
   activity: Activity;
+  avoids: Avoids;
   /** Not asked in onboarding yet. Today shows just "Salaam" without it. */
   name?: string;
 };
@@ -20,7 +22,7 @@ const KEY = 'hissa.onboarding';
 
 // Defaults match the preselected values in the design.
 const store = createStore<{ answers: Answers; hydrated: boolean; finished: boolean; ownerId: string | null }>({
-  answers: { goal: 'lighter', age: 28, heightIn: 67, weightKg: 72, sex: 'male', activity: 'onFeet' },
+  answers: { goal: 'lighter', age: 28, heightIn: 67, weightKg: 72, sex: 'male', activity: 'onFeet', avoids: { proteins: [], dishes: [] } },
   hydrated: false,
   finished: false,
   ownerId: null,
@@ -58,6 +60,6 @@ export async function hydrateAnswers() {
 /** Back to the defaults (used by the demo "clear all data" action). */
 export function resetAnswers() {
   touched = true;
-  store.set({ answers: { goal: 'lighter', age: 28, heightIn: 67, weightKg: 72, sex: 'male', activity: 'onFeet' }, finished: false, ownerId: null });
+  store.set({ answers: { goal: 'lighter', age: 28, heightIn: 67, weightKg: 72, sex: 'male', activity: 'onFeet', avoids: { proteins: [], dishes: [] } }, finished: false, ownerId: null });
   persist();
 }

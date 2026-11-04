@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { NotFoundError } from '../../../shared/errors';
+import type { ProfilesRepository } from '../profiles.repository';
 import { createProfilesService } from '../profiles.service';
 import type { ProfileInput, ProfileRow, ProfileUpsertRow } from '../profiles.types';
 
@@ -33,7 +34,10 @@ function setup(found: ProfileRow | null = null) {
     searchUsernames: vi.fn(async () => []),
     findCards: vi.fn(async () => []),
   };
-  return { repository, service: createProfilesService({ repository }) };
+  return {
+    repository,
+    service: createProfilesService({ repository: repository as unknown as ProfilesRepository }),
+  };
 }
 
 describe('profiles service', () => {

@@ -158,6 +158,16 @@ export function createMealsService({
       };
     },
 
+    // Confirmed dish slugs only, counted per item over the last `days` days.
+    async dishCounts(userId: string, days = 30): Promise<Record<string, number>> {
+      const counts: Record<string, number> = {};
+      for (const day of (await this.history(userId, days)).days)
+        for (const meal of day.meals)
+          for (const { confirmedDish } of meal.items)
+            if (confirmedDish) counts[confirmedDish] = (counts[confirmedDish] ?? 0) + 1;
+      return counts;
+    },
+
     async getMeal(userId: string, mealId: string): Promise<Meal> {
       const meal = await repository.getMeal(userId, mealId);
       if (!meal) throw new NotFoundError('Meal not found');

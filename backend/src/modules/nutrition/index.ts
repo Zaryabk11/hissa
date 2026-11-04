@@ -11,7 +11,7 @@ import {
 
 export { portionFromDish };
 export type { NutritionService };
-export type { Dish, PortionNutrition, Unit } from './nutrition.types';
+export type { Dish, PortionNutrition, ProteinType, Unit } from './nutrition.types';
 
 // The only file other modules may import.
 export function createNutritionModule({ db }: { db: Db }): {

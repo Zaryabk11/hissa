@@ -10,6 +10,7 @@ import { createNotificationsModule } from './notifications';
 import { createNutritionModule } from './nutrition';
 import { createPlanModule } from './plan';
 import { createProfilesModule } from './profiles';
+import { createRecipesModule } from './recipes';
 import { createScanModule } from './scan';
 import { createStreaksModule } from './streaks';
 
@@ -19,7 +20,11 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
   const auth = createAuthModule(deps);
   const profiles = createProfilesModule(deps);
   const nutrition = createNutritionModule(deps);
-  const scan = createScanModule({ ...deps, nutrition: nutrition.service });
+  const scan = createScanModule({
+    ...deps,
+    nutrition: nutrition.service,
+    profiles: profiles.service,
+  });
   const streaks = createStreaksModule(deps);
   const notifications = createNotificationsModule({ ...deps, profiles: profiles.service });
   const friends = createFriendsModule({
@@ -48,6 +53,13 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
     nutrition: nutrition.service,
   });
   const feel = createFeelModule(deps);
+  const recipes = createRecipesModule({
+    ...deps,
+    profiles: profiles.service,
+    meals: meals.service,
+    feel: feel.service,
+    nutrition: nutrition.service,
+  });
 
   return {
     auth: auth.router,
@@ -61,5 +73,6 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
     goals: goals.router,
     notifications: notifications.router,
     feel: feel.router,
+    recipes: recipes.router,
   };
 }

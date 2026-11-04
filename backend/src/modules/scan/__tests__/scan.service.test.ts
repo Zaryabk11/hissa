@@ -2,13 +2,14 @@ import sharp from 'sharp';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { ValidationError } from '../../../shared/errors';
 import type { Dish } from '../../nutrition';
+import type { Avoids } from '../../profiles';
 import { GeminiUnavailableError, type DetectedDish } from '../gemini.client';
 import { createScanService } from '../scan.service';
 
 const NOW = new Date('2026-11-01T19:30:00Z'); // already 2026-11-02 in PKT
 const DISHES = [
-  { slug: 'roti', name: 'Roti', unit: 'roti' },
-  { slug: 'daal', name: 'Daal', unit: 'katori' },
+  { slug: 'roti', name: 'Roti', unit: 'roti', proteinType: null },
+  { slug: 'daal', name: 'Daal', unit: 'katori', proteinType: 'veg' },
 ] as Dish[];
 
 let image: string;
@@ -24,6 +25,7 @@ beforeAll(async () => {
 function setup(
   detected: DetectedDish[] | Error = [],
   count: (day: string, call: number) => number = () => 0,
+  avoids: Avoids = { proteins: [], dishes: [] },
 ) {
   let calls = 0;
   const repository = {
@@ -37,15 +39,17 @@ function setup(
     }),
   };
   const nutrition = { listCatalog: vi.fn(async () => DISHES) };
+  const profiles = { getAvoids: vi.fn(async () => avoids) };
   const service = createScanService({
     repository,
     gemini,
     nutrition,
+    profiles,
     dailyCap: 10,
     now: () => NOW,
   });
   const scan = () => service.scanPhoto('u1', { image, mimeType: 'image/png' });
-  return { repository, gemini, nutrition, service, scan };
+  return { repository, gemini, nutrition, profiles, service, scan };
 }
 
 describe('scan service', () => {
@@ -156,6 +160,7 @@ describe('scan service', () => {
           portion: 0,
           confidence: 0,
           needsConfirmation: true,
+          avoided: false,
         },
       ],
     });
@@ -173,6 +178,7 @@ describe('scan service', () => {
           portion: 1.5,
           confidence: 0.8,
           needsConfirmation: false,
+          avoided: false,
         },
       ],
     });
@@ -186,6 +192,7 @@ describe('scan service', () => {
       expect(result.mode === 'detected' && result.items[0]).toMatchObject({
         portion: 1,
         needsConfirmation: true,
+        avoided: false,
       });
     },
   );
@@ -196,6 +203,7 @@ describe('scan service', () => {
     expect(result.mode === 'detected' && result.items[0]).toMatchObject({
       portion: 20,
       needsConfirmation: false,
+      avoided: false,
     });
   });
 
@@ -206,5 +214,40 @@ describe('scan service', () => {
     ).rejects.toBeInstanceOf(ValidationError);
     expect(repository.recordScan).not.toHaveBeenCalled();
     expect(gemini.detectDishes).not.toHaveBeenCalled();
+  });
+
+  describe('avoided dishes', () => {
+    const roti = [{ dish: 'roti', portion: 1, confidence: 0.9 }];
+    const flags = async (r: ReturnType<typeof setup>['scan']) => {
+      const result = await r();
+      return result.mode === 'detected' ? result.items.map((i) => [i.dish, i.avoided]) : [];
+    };
+
+    it('flags an avoided dish and keeps it', async () => {
+      const { scan } = setup(roti, undefined, { proteins: [], dishes: ['roti'] });
+      expect(await flags(scan)).toEqual([['roti', true]]);
+    });
+
+    it('flags by protein', async () => {
+      const { scan } = setup([...roti, { dish: 'daal', portion: 1, confidence: 0.9 }], undefined, {
+        proteins: ['veg'],
+        dishes: [],
+      });
+      expect(await flags(scan)).toEqual([
+        ['roti', false],
+        ['daal', true],
+      ]);
+    });
+
+    it('unknown item is not avoided', async () => {
+      const { scan, profiles } = setup([], undefined, { proteins: ['veg'], dishes: ['roti'] });
+      expect(await flags(scan)).toEqual([['unknown', false]]);
+      expect(profiles.getAvoids).not.toHaveBeenCalled();
+    });
+
+    it('empty avoids flags nothing', async () => {
+      const { scan } = setup(roti);
+      expect(await flags(scan)).toEqual([['roti', false]]);
+    });
   });
 });

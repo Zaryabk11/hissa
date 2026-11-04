@@ -1,3 +1,5 @@
+import type { ProteinType } from '../nutrition';
+
 export type Goal = 'lose' | 'maintain';
 export type Sex = 'male' | 'female';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active';
