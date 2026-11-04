@@ -114,6 +114,9 @@ describe('usernames', () => {
       weight_kg: 60,
       activity_level: 'sedentary',
       daily_calorie_budget: 1577,
+      protein_target_g: null,
+      carbs_target_g: null,
+      fat_target_g: null,
     });
     const res = await request(app).get('/api/profiles/me');
     expect(res.body.username).toBe('ayesha');

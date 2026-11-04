@@ -26,6 +26,9 @@ const toProfile = (r: ProfileRow, dailyCalorieBudget: number): Profile => ({
   weightKg: r.weight_kg,
   activityLevel: r.activity_level,
   dailyCalorieBudget,
+  proteinTargetG: r.protein_target_g,
+  carbsTargetG: r.carbs_target_g,
+  fatTargetG: r.fat_target_g,
 });
 
 const toCard = (r: CardRow): PersonCard => ({
@@ -58,6 +61,10 @@ export function createProfilesService({ repository }: ProfilesDeps) {
         weight_kg: input.weightKg,
         activity_level: input.activityLevel,
         daily_calorie_budget: budget,
+        // Only send targets the client sent, so onboarding (which omits them) cannot wipe them.
+        ...(input.proteinTargetG !== undefined && { protein_target_g: input.proteinTargetG }),
+        ...(input.carbsTargetG !== undefined && { carbs_target_g: input.carbsTargetG }),
+        ...(input.fatTargetG !== undefined && { fat_target_g: input.fatTargetG }),
       });
       return toProfile(saved, budget);
     },

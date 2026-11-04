@@ -21,6 +21,12 @@ describe('profileBodySchema', () => {
     expect(r.data).toEqual({ ...valid, displayName: 'Ayesha' });
   });
 
+  it('accepts macro targets 1..1000 or null and rejects 0, 1001 and decimals', () => {
+    expect(profileBodySchema.safeParse({ ...valid, proteinTargetG: 90, fatTargetG: null }).success).toBe(true);
+    for (const bad of [0, 1001, 50.5])
+      expect(profileBodySchema.safeParse({ ...valid, carbsTargetG: bad }).success).toBe(false);
+  });
+
   it.each([
     ['invalid goal', { goal: 'bulk' }],
     ['age 9', { age: 9 }],

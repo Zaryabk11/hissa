@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Profile } from '../core/api';
-import { BOUNDS, clamp, formToPayload, isDirty, profileToForm } from './profile-view';
+import { BOUNDS, clamp, formToPayload, isDirty, parseTarget, profileToForm } from './profile-view';
 
 const server: Profile = {
   id: 'u1',
@@ -13,6 +13,9 @@ const server: Profile = {
   weightKg: 60,
   activityLevel: 'moderate',
   dailyCalorieBudget: 2000,
+  proteinTargetG: null,
+  carbsTargetG: 250,
+  fatTargetG: null,
 };
 
 describe('profile form mapping', () => {
@@ -25,7 +28,24 @@ describe('profile form mapping', () => {
       heightIn: 63,
       weightKg: 60,
       activityLevel: 'moderate',
+      proteinTarget: '',
+      carbsTarget: '250',
+      fatTarget: '',
     });
+  });
+
+  it('sends macro targets as numbers, blank or invalid as null, and tracks them as dirty', () => {
+    const form = profileToForm(server);
+    expect(isDirty(form, server)).toBe(false);
+    const next = { ...form, proteinTarget: '90', carbsTarget: '', fatTarget: '0' };
+    expect(formToPayload(next, server)).toMatchObject({
+      proteinTargetG: 90,
+      carbsTargetG: null,
+      fatTargetG: null,
+    });
+    expect(isDirty(next, server)).toBe(true);
+    expect(parseTarget('1001')).toBeNull();
+    expect(parseTarget('12.5')).toBeNull();
   });
 
   it('is not dirty until something changes, and keeps the stored cm when the shown inches did not change', () => {

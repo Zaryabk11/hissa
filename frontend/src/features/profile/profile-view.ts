@@ -8,6 +8,10 @@ export type ProfileForm = {
   heightIn: number;
   weightKg: number;
   activityLevel: Profile['activityLevel'];
+  // Daily macro targets as typed digits; blank means not set.
+  proteinTarget: string;
+  carbsTarget: string;
+  fatTarget: string;
 };
 
 // Stepper limits. The backend accepts age 10-120, height up to 300 cm, weight up to 500 kg; these stay inside that.
@@ -25,7 +29,16 @@ export const profileToForm = (p: Profile): ProfileForm => ({
   heightIn: cmToIn(p.heightCm),
   weightKg: p.weightKg,
   activityLevel: p.activityLevel,
+  proteinTarget: p.proteinTargetG?.toString() ?? '',
+  carbsTarget: p.carbsTargetG?.toString() ?? '',
+  fatTarget: p.fatTargetG?.toString() ?? '',
 });
+
+/** Blank or not a whole 1-1000 number means no target (null, which clears it on the server). */
+export const parseTarget = (s: string): number | null => {
+  const n = Number(s.trim());
+  return s.trim() !== '' && Number.isInteger(n) && n >= 1 && n <= 1000 ? n : null;
+};
 
 /** The PUT body. The server recomputes the budget, so none is sent. A blank name is omitted (the server stores no name). */
 export function formToPayload(f: ProfileForm, original: Profile) {
@@ -42,6 +55,9 @@ export function formToPayload(f: ProfileForm, original: Profile) {
         : Math.round(f.heightIn * 2.54 * 100) / 100,
     weightKg: f.weightKg,
     activityLevel: f.activityLevel,
+    proteinTargetG: parseTarget(f.proteinTarget),
+    carbsTargetG: parseTarget(f.carbsTarget),
+    fatTargetG: parseTarget(f.fatTarget),
   };
 }
 
@@ -54,7 +70,10 @@ export const isDirty = (f: ProfileForm, original: Profile): boolean => {
     next.age !== original.age ||
     next.heightCm !== original.heightCm ||
     next.weightKg !== original.weightKg ||
-    next.activityLevel !== original.activityLevel
+    next.activityLevel !== original.activityLevel ||
+    next.proteinTargetG !== original.proteinTargetG ||
+    next.carbsTargetG !== original.carbsTargetG ||
+    next.fatTargetG !== original.fatTargetG
   );
 };
 

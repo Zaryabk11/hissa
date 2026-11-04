@@ -84,7 +84,22 @@ export function createMealsService({
     const day = pktDay(now());
     const { startIso, endIso } = pktDayBounds(day);
     const meals = await repository.listMealsBetween(userId, startIso, endIso);
-    return { day, meals, totalCalories: meals.reduce((sum, m) => sum + m.totalCalories, 0) };
+    // Estimated macros of the confirmed items, priced from the catalog like calories.
+    const macros = { proteinG: 0, carbsG: 0, fatG: 0 };
+    for (const i of meals.flatMap((m) => m.items)) {
+      if (i.confirmedDish === null || i.confirmedPortion === null) continue;
+      const n = await nutrition.portionNutrition(i.confirmedDish, i.confirmedPortion);
+      macros.proteinG += n.proteinG || 0; // a dish without macros counts 0
+      macros.carbsG += n.carbsG || 0;
+      macros.fatG += n.fatG || 0;
+    }
+    const r1 = (n: number) => Math.round(n * 10) / 10;
+    return {
+      day,
+      meals,
+      totalCalories: meals.reduce((sum, m) => sum + m.totalCalories, 0),
+      macros: { proteinG: r1(macros.proteinG), carbsG: r1(macros.carbsG), fatG: r1(macros.fatG) },
+    };
   }
 
   return {
