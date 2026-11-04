@@ -15,18 +15,6 @@ create table public.friendships (
   unique (user_low, user_high)
 );
 
-create table public.notifications (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
-  kind text not null check (kind in ('friend_request', 'request_accepted', 'nudge', 'goal_reached', 'cheer')),
-  actor_id uuid not null references public.profiles(id) on delete cascade,
-  goal_id uuid,
-  day date,
-  created_at timestamptz not null default now(),
-  read_at timestamptz
-);
-create unique index notifications_one_nudge_per_day on public.notifications (actor_id, user_id, day) where kind = 'nudge';
-
 create table public.goals (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
@@ -40,6 +28,19 @@ create table public.goals (
   reached_at timestamptz
 );
 create unique index goals_one_active_per_user on public.goals (user_id) where status = 'active';
+
+create table public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  kind text not null check (kind in ('friend_request', 'request_accepted', 'nudge', 'goal_reached', 'cheer')),
+  actor_id uuid not null references public.profiles(id) on delete cascade,
+  goal_id uuid references public.goals(id) on delete cascade,
+  day date,
+  created_at timestamptz not null default now(),
+  read_at timestamptz,
+  check (kind <> 'nudge' or day is not null)
+);
+create unique index notifications_one_nudge_per_day on public.notifications (actor_id, user_id, day) where kind = 'nudge';
 
 create table public.goal_cheers (
   goal_id uuid not null references public.goals(id) on delete cascade,
@@ -57,7 +58,7 @@ revoke all on public.friendships, public.notifications, public.goals, public.goa
 -- Active buddies become friends; pending invites are dropped.
 insert into public.friendships (user_low, user_high, requested_by, status, created_at, accepted_at)
   select least(inviter_id, invitee_id), greatest(inviter_id, invitee_id), inviter_id, 'active', created_at, accepted_at
-  from public.buddy_pairs where status = 'active'
+  from public.buddy_pairs where status = 'active' and invitee_id is not null
   on conflict do nothing;
 
 -- The old status call repaired streak_days lazily; do it once for everyone before it goes.
