@@ -5,6 +5,7 @@ import {
   goalInput,
   goalProgressLine,
   groupLine,
+  latestGuard,
   notificationLine,
   personName,
   validUsername,
@@ -109,5 +110,15 @@ describe('goalInput', () => {
     expect(goalInput('window', '8', '7', false)).toBeNull();
     expect(goalInput('window', '3', '91', false)).toBeNull();
     expect(goalInput('window', '3', '', false)).toBeNull();
+  });
+});
+
+describe('latestGuard', () => {
+  it('lets only the most recent call apply its result', () => {
+    const begin = latestGuard();
+    const first = begin();
+    const second = begin();
+    expect(first()).toBe(false);
+    expect(second()).toBe(true);
   });
 });

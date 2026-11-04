@@ -350,3 +350,42 @@ describe('GoalsService.update', () => {
     expect(repository.updateActive).not.toHaveBeenCalled();
   });
 });
+
+describe('a failed friend notification after the goal is reached', () => {
+  it('getMine still returns the reached goal', async () => {
+    const { service, notifications } = setup({
+      active: row(),
+      logged: ['2026-11-04', '2026-11-05'],
+      friends: ['a'],
+    });
+    notifications.notify.mockRejectedValue(new Error('boom'));
+    expect(await service.getMine('me', new Date('2026-11-05T10:00:00Z'))).toMatchObject({
+      status: 'reached',
+    });
+  });
+
+  it('create with an already-met goal still resolves with the reached goal', async () => {
+    const { service, notifications } = setup({ logged: ['2026-11-04'], friends: ['a'] });
+    notifications.notify.mockRejectedValue(new Error('boom'));
+    const g = await service.create(
+      'me',
+      { type: 'window', target: 1, windowDays: 3, shared: true },
+      NOW,
+    );
+    expect(g).toMatchObject({ status: 'reached' });
+  });
+
+  it('onMealSaved resolves and still notifies the other friend', async () => {
+    const { service, notifications } = setup({
+      active: row(),
+      logged: ['2026-11-04', '2026-11-05'],
+      friends: ['a', 'b'],
+    });
+    notifications.notify.mockRejectedValueOnce(new Error('boom'));
+    await expect(
+      service.onMealSaved('me', new Date('2026-11-05T10:00:00Z')),
+    ).resolves.toBeUndefined();
+    expect(notifications.notify).toHaveBeenCalledTimes(2);
+    expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ userId: 'b' }));
+  });
+});

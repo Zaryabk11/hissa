@@ -18,6 +18,15 @@ export const groupLine = (loggedCount: number, total: number) =>
 export const goalProgressLine = (g: Goal) =>
   `${g.progress} of ${g.target}${g.type === 'streak' ? ' days' : ''}`;
 
+/** Each call supersedes the earlier ones: only the latest in-flight load may apply its result. */
+export function latestGuard() {
+  let n = 0;
+  return () => {
+    const id = ++n;
+    return () => id === n;
+  };
+}
+
 export function validUsername(input: string): string | null {
   const name = input.trim().toLowerCase();
   return /^[a-z0-9_]{3,20}$/.test(name) ? name : null;

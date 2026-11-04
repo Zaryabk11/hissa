@@ -1,4 +1,5 @@
 import { ConflictError, NotFoundError, ValidationError } from '../../shared/errors';
+import { logger } from '../../shared/logger';
 import { pktDay, pktDayBounds } from '../../shared/time/pkt';
 import type { FriendsService } from '../friends';
 import { formatGoalTitle, type NotificationsService } from '../notifications';
@@ -48,7 +49,8 @@ export function createGoalsService({
     if (!(await repository.markReached(row.id, now.toISOString()))) return;
     if (!row.shared) return;
     const ids = await friends.friendIds(row.user_id);
-    await Promise.all(
+    // The goal is already reached and committed: a failed notification is logged, never thrown.
+    const results = await Promise.allSettled(
       ids.map((id) =>
         notifications.notify({
           userId: id,
@@ -58,6 +60,9 @@ export function createGoalsService({
         }),
       ),
     );
+    for (const r of results)
+      if (r.status === 'rejected')
+        logger.warn('Goal reached notification failed', { goalId: row.id });
   }
 
   // The caller's open goal with its progress. Settles first: a passed window becomes expired

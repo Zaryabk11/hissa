@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
 import { HissaScreen } from '../../../shared/ui/hissa/HissaScreen';
@@ -24,16 +24,26 @@ export function SocialScreen() {
   const d = useSocialData();
   const [refreshing, setRefreshing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const lock = useRef(false); // synchronous guard: state alone lets a fast double tap through
 
   // Runs one write, then reloads so the screen shows what the server now says.
   const act = (run: () => Promise<unknown>) => async () => {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(true);
     try {
       await run();
       setNotice(null);
     } catch {
       setNotice(c.actionFailed);
     }
-    await d.refresh();
+    try {
+      await d.refresh();
+    } finally {
+      lock.current = false;
+      setBusy(false);
+    }
   };
 
   const header = (
@@ -99,22 +109,26 @@ export function SocialScreen() {
           </Card>
         )}
         {celebrations.map((item) => (
-          <CelebrationCard key={`${item.goalId}`} item={item} onCheer={act(() => cheer(item.goalId))} />
+          <CelebrationCard key={`${item.goalId}`} item={item} busy={busy} onCheer={act(() => cheer(item.goalId))} />
         ))}
         {goal?.status === 'active' ? (
           <GoalCard
             goal={goal}
+            busy={busy}
             onShare={act(() => patchGoal({ shared: !goal.shared }))}
             onAbandon={act(() => patchGoal({ abandon: true }))}
           />
         ) : (
-          <GoalEditor onCreate={(input) => void act(() => createGoal(input))()} />
+          <>
+            {goal?.status === 'reached' && <HissaText variant="label">{c.goal.reached(goal.title)}</HissaText>}
+            <GoalEditor busy={busy} onCreate={(input) => void act(() => createGoal(input))()} />
+          </>
         )}
         {overview.friends.length === 0 && <HissaText muted>{c.noFriends}</HissaText>}
         {overview.friends.map((row) => (
-          <FriendRow key={row.userId} row={row} onNudge={act(() => nudgeFriend(row.userId))} onRemove={act(() => removeFriend(row.userId))} />
+          <FriendRow key={row.userId} row={row} busy={busy} onNudge={act(() => nudgeFriend(row.userId))} onRemove={act(() => removeFriend(row.userId))} />
         ))}
-        <AddFriend overview={overview} onRespond={(id, dec) => void act(() => respondRequest(id, dec))()} onSent={() => void d.refresh()} />
+        <AddFriend overview={overview} busy={busy} onRespond={(id, dec) => void act(() => respondRequest(id, dec))()} onSent={() => void d.refresh()} />
       </View>
     </HissaScreen>
   );

@@ -4,6 +4,7 @@ import { getProfile } from '../core/api';
 import { getOverview, type FriendsOverview } from './api/friends';
 import { getCelebrations, getMyGoal, type Celebration, type Goal } from './api/goals';
 import { getInbox } from './api/notifications';
+import { latestGuard } from './social-view';
 
 const POLL_MS = 20_000;
 const UNREAD_POLL_MS = 30_000;
@@ -15,21 +16,23 @@ export function useSocialData() {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState(false);
   const alive = useRef(false);
+  const begin = useRef(latestGuard()).current;
 
   const refresh = useCallback(async () => {
+    const isLatest = begin();
     try {
       const { username } = await getProfile();
       const next: Data = { username, overview: null, goal: null, celebrations: [] };
       if (username) {
         [next.overview, next.goal, next.celebrations] = await Promise.all([getOverview(), getMyGoal(), getCelebrations()]);
       }
-      if (!alive.current) return;
+      if (!alive.current || !isLatest()) return;
       setData(next);
       setError(false);
     } catch {
-      if (alive.current) setError(true);
+      if (alive.current && isLatest()) setError(true);
     }
-  }, []);
+  }, [begin]);
 
   useFocusEffect(
     useCallback(() => {
