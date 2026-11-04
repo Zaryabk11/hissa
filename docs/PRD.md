@@ -17,10 +17,10 @@ Trackers record what you already ate. In most Pakistani homes the household cook
 | Module           | Priority    | Effort | Done means                                                            |
 | ---------------- | ----------- | ------ | --------------------------------------------------------------------- |
 | 1. Portion Coach | Must ship   | ~60%   | Photo to confirmed portion plan, saved to the daily log, tested e2e   |
-| 2. Duo Streaks   | Should ship | ~25%   | Two real users as friends, streaks update from real scans          |
+| 2. Duo Streaks   | Should ship | ~25%   | Two real users as friends, streaks update from real scans             |
 | 3. Food and Feel | Could ship  | ~15%   | 2-tap feel check-in after a meal, one weekly insight from logged data |
 
-Status (2026-11-03): Module 1 is built and connected to the Expo app. Module 2 (Duo Streaks) is built end to end (API, database, app) and verified by a local two-account smoke test. Module 3 has the 90-minute check-in and a per-user evidence model; the Gemini-worded follow-up question is built (API only); the weekly pattern card is available from the API (`GET /api/feel/pattern`) but has no app screen yet; the private experiment is not built. Live status: `docs/superpowers/plans/2026-11-02-v2-status.md`.
+Status (2026-11-03): Module 1 is built and connected to the Expo app. Module 2 (friends, goals and an in-app notification inbox, replacing the one-buddy Duo Streaks) is built end to end (API, database, Social tab and inbox in the app); its local smoke script (`database/scripts/smoke-v2-local.mjs`) covers the friends flow but has not been run since the rewrite. Module 3 has the 90-minute check-in and a per-user evidence model; the Gemini-worded follow-up question is built (API only); the weekly pattern card is available from the API (`GET /api/feel/pattern`) but has no app screen yet; the private experiment is not built. Live status: `docs/superpowers/plans/2026-11-02-v2-status.md`.
 
 ### 1. Portion Coach
 
@@ -51,7 +51,7 @@ Friends are added by username. A day counts when a person saves at least one mea
 
 ## Out of scope for v1
 
-Training our own vision model, barcode or packaged food, workouts and wearables, groups larger than two, feeds, leaderboards, chat, meal plans and recipes, Urdu UI, medical or allergy modes, payments.
+Training our own vision model, barcode or packaged food, workouts and wearables, squads or named groups, feeds, leaderboards, chat, meal plans and recipes, Urdu UI, medical or allergy modes, payments.
 
 ## Trial success metrics
 

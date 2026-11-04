@@ -24,8 +24,8 @@ Everything below is the prepared plan. Steps marked **owner** need an account or
   | 2   | `20261101000000_catalog_and_scan_log.sql`           | applied per status doc                                                                                  |
   | 3   | `20261102000000_profiles_on_signup.sql`             | applied per status doc                                                                                  |
   | 4   | `20261102000100_revoke_handle_new_user_execute.sql` | applied per status doc                                                                                  |
-  | 5   | `20261102000200_…`                                | applied per status doc                                                                                  |
-  | 6   | `20261102000300_…`                                | applied per status doc                                                                                  |
+  | 5   | `20261102000200_buddy_invites_and_privacy.sql`      | applied per status doc                                                                                  |
+  | 6   | `20261102000300_buddy_nudges.sql`                   | applied per status doc                                                                                  |
   | 7   | `20261102000400_feel_learning.sql`                  | applied per status doc                                                                                  |
   | 8   | `20261102000500_user_experiments.sql`               | to be applied by an authorized owner (file lands with Task 9; check it exists on the branch you deploy) |
 
