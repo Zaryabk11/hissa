@@ -15,6 +15,7 @@ const COLUMNS = [
   'source',
   'basis',
   'unit_basis',
+  'protein_type',
 ];
 const NUMERIC = [
   'grams_per_unit',
@@ -30,6 +31,7 @@ const ENUMS = {
   basis: ['lab', 'calculated'],
   unit_basis: ['derived', 'assumed'],
 };
+const PROTEIN_TYPES = ['beef', 'mutton', 'chicken', 'fish', 'egg', 'veg'];
 
 // Row numbers are file line numbers (header is row 1), so errors point at the line to fix.
 export function parseCatalog(csvText) {
@@ -59,6 +61,10 @@ export function parseCatalog(csvText) {
     for (const [col, allowed] of Object.entries(ENUMS)) {
       if (!allowed.includes(row[col])) fail(`unknown ${col} "${row[col]}"`);
     }
+    // Empty protein_type means no avoid-by-protein group for this dish.
+    if (row.protein_type === '') row.protein_type = null;
+    else if (!PROTEIN_TYPES.includes(row.protein_type))
+      fail(`unknown protein_type "${row.protein_type}"`);
     for (const col of NUMERIC) {
       const n = Number(row[col]);
       if (row[col] === '' || !Number.isFinite(n)) fail(`${col} is not a number`);
@@ -77,7 +83,8 @@ export function parseCatalog(csvText) {
   return rows;
 }
 
-const sql = (v) => (typeof v === 'number' ? String(v) : `'${v.replaceAll("'", "''")}'`);
+const sql = (v) =>
+  v === null ? 'null' : typeof v === 'number' ? String(v) : `'${v.replaceAll("'", "''")}'`;
 
 export function renderSeed(rows) {
   const header =
