@@ -108,3 +108,30 @@ test('seed sql includes protein_type, null for empty', () => {
   assert.match(sql, /'derived', 'beef'\)/);
   assert.match(sql, /protein_type = excluded\.protein_type/);
 });
+
+const RECIPE = {
+  slug: 'daal-simple',
+  title: "Ma'ash daal",
+  dish: 'daal',
+  minutes: 30,
+  servings: 4,
+  ingredients: [{ item: 'daal', quantity: '1 cup' }],
+  steps: ['Boil.', 'Temper.', 'Serve.'],
+  reviewed: false,
+};
+
+test('recipes.json rows become inserts with reviewed false', () => {
+  const sql = renderSeed(parseCatalog(csv(ROW)), [RECIPE]);
+  assert.match(sql, /insert into public\.recipes \(slug, title, dish_id, minutes, servings, ingredients, steps, reviewed\)/);
+  assert.ok(sql.includes("(select id from public.dishes where slug = 'daal')"));
+  assert.ok(sql.includes("'Ma''ash daal'"));
+  assert.match(sql, /, false\)/);
+  assert.match(sql, /on conflict \(slug\) do update set title = excluded\.title/);
+});
+
+test('unknown dish slug fails with the recipe slug', () => {
+  assert.throws(
+    () => renderSeed(parseCatalog(csv(ROW)), [{ ...RECIPE, dish: 'nope' }]),
+    /daal-simple.*nope/,
+  );
+});
