@@ -7,7 +7,7 @@ import type { FriendRow as Row } from '../api/friends';
 import { socialContent as c } from '../content';
 import { canNudge, friendStatus, personName } from '../social-view';
 
-export function FriendRow({ row, onNudge, onRemove }: { row: Row; onNudge: () => void; onRemove: () => void }) {
+export function FriendRow({ row, busy, onNudge, onRemove }: { row: Row; busy: boolean; onNudge: () => void; onRemove: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const status = friendStatus(row);
   return (
@@ -17,15 +17,15 @@ export function FriendRow({ row, onNudge, onRemove }: { row: Row; onNudge: () =>
         <HissaText accessibilityLabel={c.streak(row.streak)}>{`🔥 ${row.streak}`}</HissaText>
       </View>
       <HissaText variant="caption">{c.status[status]}</HissaText>
-      {canNudge(row) && <PrimaryButton outline label={c.nudge} onPress={onNudge} />}
+      {canNudge(row) && <PrimaryButton outline disabled={busy} label={c.nudge} onPress={onNudge} />}
       {status !== 'logged' && row.nudgedToday && <HissaText variant="caption">{c.nudged}</HissaText>}
       {confirm ? (
         <>
-          <PrimaryButton label={c.removeConfirm} onPress={onRemove} />
+          <PrimaryButton disabled={busy} label={c.removeConfirm} onPress={onRemove} />
           <PrimaryButton outline label={c.removeKeep} onPress={() => setConfirm(false)} />
         </>
       ) : (
-        <PrimaryButton outline label={c.remove} onPress={() => setConfirm(true)} />
+        <PrimaryButton outline disabled={busy} label={c.remove} onPress={() => setConfirm(true)} />
       )}
     </Card>
   );

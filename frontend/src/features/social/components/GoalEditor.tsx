@@ -7,7 +7,7 @@ import { socialContent as c } from '../content';
 import { goalInput } from '../social-view';
 import { TextField } from './TextField';
 
-export function GoalEditor({ onCreate }: { onCreate: (input: GoalInput) => void }) {
+export function GoalEditor({ busy, onCreate }: { busy: boolean; onCreate: (input: GoalInput) => void }) {
   const [type, setType] = useState<GoalType>('streak');
   const [target, setTarget] = useState('');
   const [windowDays, setWindowDays] = useState('');
@@ -33,7 +33,7 @@ export function GoalEditor({ onCreate }: { onCreate: (input: GoalInput) => void 
       )}
       <PrimaryButton outline={!shared} label={shared ? c.goal.shared : c.goal.shareToggle} onPress={() => setShared(!shared)} />
       {invalid && <HissaText accessibilityRole="alert">{c.goal.invalid}</HissaText>}
-      <PrimaryButton label={c.goal.save} onPress={save} />
+      <PrimaryButton disabled={busy} label={c.goal.save} onPress={save} />
     </Card>
   );
 }

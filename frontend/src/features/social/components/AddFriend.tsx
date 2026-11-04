@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../../shared/ui/hissa/PrimaryButton';
@@ -19,16 +19,21 @@ function Person({ p, children }: { p: PersonCard; children?: React.ReactNode }) 
 
 export function AddFriend({
   overview,
+  busy,
   onRespond,
   onSent,
 }: {
   overview: FriendsOverview;
+  busy: boolean;
   onRespond: (userId: string, d: 'accept' | 'decline') => void;
   onSent: () => void;
 }) {
   const [text, setText] = useState('');
   const [results, setResults] = useState<PersonCard[] | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const lock = useRef(false);
+  const off = busy || sending;
 
   async function search() {
     const q = text.trim().toLowerCase();
@@ -42,6 +47,9 @@ export function AddFriend({
   }
 
   async function send(p: PersonCard) {
+    if (lock.current) return;
+    lock.current = true;
+    setSending(true);
     try {
       await sendRequest(p.username!);
       setResults((r) => r && r.filter((x) => x.userId !== p.userId));
@@ -49,6 +57,9 @@ export function AddFriend({
       onSent();
     } catch {
       setMessage(c.add.failed);
+    } finally {
+      lock.current = false;
+      setSending(false);
     }
   }
 
@@ -59,8 +70,8 @@ export function AddFriend({
           <HissaText variant="label">{c.add.incoming}</HissaText>
           {overview.incoming.map((p) => (
             <Person key={p.userId} p={p}>
-              <PrimaryButton label={c.add.accept} onPress={() => onRespond(p.userId, 'accept')} />
-              <PrimaryButton outline label={c.add.decline} onPress={() => onRespond(p.userId, 'decline')} />
+              <PrimaryButton disabled={off} label={c.add.accept} onPress={() => onRespond(p.userId, 'accept')} />
+              <PrimaryButton outline disabled={off} label={c.add.decline} onPress={() => onRespond(p.userId, 'decline')} />
             </Person>
           ))}
         </Card>
@@ -75,7 +86,7 @@ export function AddFriend({
         {results?.length === 0 && <HissaText muted>{c.add.none}</HissaText>}
         {results?.map((p) => (
           <Person key={p.userId} p={p}>
-            <PrimaryButton label={c.add.send} onPress={() => void send(p)} />
+            <PrimaryButton disabled={off} label={c.add.send} onPress={() => void send(p)} />
           </Person>
         ))}
       </Card>

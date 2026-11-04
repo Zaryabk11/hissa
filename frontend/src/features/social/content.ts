@@ -37,6 +37,7 @@ export const socialContent = {
   cheers: (n: number) => `${n} ${n === 1 ? 'cheer' : 'cheers'}`,
   goal: {
     title: 'My goal',
+    reached: (title: string) => `Goal reached: ${title}`,
     shared: 'Shared with friends',
     private: 'Only you can see this goal',
     share: 'Share with friends',
