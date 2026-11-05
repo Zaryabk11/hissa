@@ -106,6 +106,16 @@ export function createGoalsRepository(db: Db) {
       if (error) throw error;
       return (data ?? []) as GoalRow[];
     },
+    async activeSharedFor(userIds: string[]): Promise<GoalRow[]> {
+      const { data, error } = await db
+        .from('goals')
+        .select(COLS)
+        .in('user_id', userIds)
+        .eq('status', 'active')
+        .eq('shared', true);
+      if (error) throw error;
+      return (data ?? []) as GoalRow[];
+    },
     async cheersFor(goalIds: string[]): Promise<{ goal_id: string; user_id: string }[]> {
       const { data, error } = await db
         .from('goal_cheers')

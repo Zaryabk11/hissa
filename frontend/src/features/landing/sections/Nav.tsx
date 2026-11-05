@@ -1,10 +1,13 @@
 import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { landingColors, landingFonts, landingSpacing } from '../../../shared/theme/landingTokens';
 import { LandingButton } from '../components/LandingButton';
+import { NavDock } from '../components/NavDock';
 import { content, type SectionId } from '../content';
 import { openGetHissa } from '../getHissa';
 import { useLandingLayout } from '../hooks/useLandingLayout';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 /** 12 + 44 + 12 padding, plus the 1px border. Pages offset their content by this. */
 export const NAV_HEIGHT = 69;
@@ -14,9 +17,11 @@ const blur = Platform.OS === 'web' ? ({ backdropFilter: 'blur(14px)' } as unknow
 
 export function Nav({ onNavigate }: { onNavigate: (id: SectionId) => void }) {
   const { gutter, isMobile } = useLandingLayout();
+  const reduced = useReducedMotion();
   const { top } = useSafeAreaInsets(); // keeps the bar below the iPhone status bar and notch
   return (
-    <View
+    <Animated.View
+      entering={reduced ? undefined : FadeIn.duration(900)}
       style={[
         {
           paddingTop: top,
@@ -64,25 +69,9 @@ export function Nav({ onNavigate }: { onNavigate: (id: SectionId) => void }) {
           </Text>
           <View style={{ width: 9, height: 9, borderRadius: 99, marginTop: 12, backgroundColor: landingColors.lime }} />
         </Pressable>
-        {!isMobile && (
-          <View style={{ flexDirection: 'row', gap: 32 }}>
-            {content.nav.links.map((l) => (
-              <Pressable
-                key={l.id}
-                accessibilityRole="link"
-                accessibilityLabel={l.label}
-                onPress={() => onNavigate(l.id)}
-                style={{ minHeight: landingSpacing.minTap, justifyContent: 'center' }}
-              >
-                <Text style={{ fontFamily: landingFonts.body500, fontSize: 16, color: landingColors.textMuted }}>
-                  {l.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
+        {!isMobile && <NavDock onNavigate={onNavigate} />}
         <LandingButton size="nav" label={content.nav.cta} onPress={openGetHissa} />
       </View>
-    </View>
+    </Animated.View>
   );
 }

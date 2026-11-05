@@ -18,6 +18,9 @@ export type Profile = {
   weightKg: number;
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'active';
   dailyCalorieBudget: number;
+  proteinTargetG: number | null;
+  carbsTargetG: number | null;
+  fatTargetG: number | null;
 };
 export type ProteinType = 'beef' | 'mutton' | 'chicken' | 'fish' | 'egg' | 'veg';
 export type Avoids = { proteins: ProteinType[]; dishes: string[] };
@@ -48,7 +51,8 @@ export type MealInput = {
   confidence: number | null;
 };
 export type ApiMeal = { id: string; eatenAt: string; totalCalories: number; items: MealInput[] };
-export type Today = { day: string; meals: ApiMeal[]; totalCalories: number };
+export type Macros = { proteinG: number; carbsG: number; fatG: number };
+export type Today = { day: string; meals: ApiMeal[]; totalCalories: number; macros: Macros };
 
 const json = (body: unknown) => ({
   method: 'POST',

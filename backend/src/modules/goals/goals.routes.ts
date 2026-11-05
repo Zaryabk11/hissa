@@ -9,6 +9,7 @@ export function createGoalsRouter(controller: GoalsController): Router {
   router.post('/', validate('body', createBodySchema), controller.create);
   router.patch('/mine', validate('body', updateBodySchema), controller.update);
   router.get('/celebrations', controller.celebrations);
+  router.get('/friends', controller.friends);
   router.post('/:id/cheer', validate('params', goalIdParamsSchema), controller.cheer);
   return router;
 }

@@ -26,9 +26,17 @@ const row: ProfileUpsertRow = {
   daily_calorie_budget: 1577,
 };
 
+const noTargets = { protein_target_g: null, carbs_target_g: null, fat_target_g: null };
+
 function setup(found: ProfileRow | null = null) {
   const repository = {
-    upsertProfile: vi.fn(async (r: ProfileUpsertRow) => ({ ...r, username: null })),
+    upsertProfile: vi.fn(async (r: ProfileUpsertRow) => ({
+      protein_target_g: null,
+      carbs_target_g: null,
+      fat_target_g: null,
+      ...r,
+      username: null,
+    })),
     findProfile: vi.fn(async (_userId: string) => found),
     setUsername: vi.fn(async () => true),
     searchUsernames: vi.fn(async () => []),
@@ -56,7 +64,24 @@ describe('profiles service', () => {
       weightKg: 60,
       activityLevel: 'sedentary',
       dailyCalorieBudget: 1577,
+      proteinTargetG: null,
+      carbsTargetG: null,
+      fatTargetG: null,
     });
+  });
+
+  it('writes macro targets only when sent: undefined keeps them, null clears', async () => {
+    const { repository, service } = setup();
+    await service.upsertProfile('u1', { ...input, proteinTargetG: 90, fatTargetG: null });
+    expect(repository.upsertProfile).toHaveBeenLastCalledWith({
+      ...row,
+      protein_target_g: 90,
+      fat_target_g: null,
+    });
+    await service.upsertProfile('u1', input);
+    expect(Object.keys(repository.upsertProfile.mock.lastCall?.[0] ?? {})).not.toContain(
+      'protein_target_g',
+    );
   });
 
   it('ignores a client-supplied budget', async () => {
@@ -76,7 +101,7 @@ describe('profiles service', () => {
   });
 
   it('getProfile returns the stored profile scoped to userId', async () => {
-    const { repository, service } = setup({ ...row, username: null });
+    const { repository, service } = setup({ ...row, ...noTargets, username: null });
     expect((await service.getProfile('u1')).dailyCalorieBudget).toBe(1577);
     expect(repository.findProfile).toHaveBeenCalledWith('u1');
   });
@@ -86,7 +111,7 @@ describe('profiles service', () => {
   });
 
   it('getDailyBudget returns the stored budget', async () => {
-    expect(await setup({ ...row, username: null }).service.getDailyBudget('u1')).toBe(1577);
+    expect(await setup({ ...row, ...noTargets, username: null }).service.getDailyBudget('u1')).toBe(1577);
   });
 
   it('getDailyBudget rejects with "Set up your profile first" when profile or budget is missing', async () => {
@@ -94,7 +119,7 @@ describe('profiles service', () => {
     await expect(setup().service.getDailyBudget('u1')).rejects.toThrow(msg);
     await expect(setup().service.getDailyBudget('u1')).rejects.toBeInstanceOf(NotFoundError);
     await expect(
-      setup({ ...row, username: null, daily_calorie_budget: null }).service.getDailyBudget('u1'),
+      setup({ ...row, ...noTargets, username: null, daily_calorie_budget: null }).service.getDailyBudget('u1'),
     ).rejects.toThrow(msg);
   });
 });

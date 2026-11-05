@@ -377,6 +377,33 @@ export function ProfileScreen() {
         </View>
       </Section>
 
+      <Section title={c.macros.title}>
+        <HissaText variant="caption">{c.macros.note}</HissaText>
+        {c.macros.fields.map((f) => (
+          <TextInput
+            key={f.key}
+            accessibilityLabel={`${f.label} target in grams`}
+            value={form[f.key]}
+            onChangeText={(v) => change({ [f.key]: v.replace(/\D/g, '').slice(0, 4) })}
+            placeholder={`${f.label}, ${c.macros.placeholder}`}
+            placeholderTextColor={t.muted}
+            keyboardType="number-pad"
+            maxLength={4}
+            style={{
+              minHeight: 52,
+              paddingHorizontal: 16,
+              borderRadius: hissaRadii.control,
+              backgroundColor: t.surf,
+              borderWidth: 1,
+              borderColor: t.hair,
+              color: t.ink,
+              fontFamily: hissaFonts.body400,
+              fontSize: 16,
+            }}
+          />
+        ))}
+      </Section>
+
       <Section title={avoidsContent.profileTitle}>
         {avoids && (
           <>

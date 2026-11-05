@@ -17,7 +17,7 @@ import { TodayRecipes } from '../recipes/components/TodayRecipes';
 import { TodaySkeleton } from './components/Skeleton';
 import { todayContent as c } from './content';
 import { dayLabel } from './format';
-import { ringView, streakCard, type StreakStatus } from './today-view';
+import { macroRows, ringView, streakCard, type StreakStatus } from './today-view';
 
 type Loaded = { profile: Profile; today: Today; streak: StreakStatus | null; due: DueCheckin };
 
@@ -137,6 +137,11 @@ export function TodayScreen() {
   const empty = today.meals.length === 0;
   const ring = ringView(profile.dailyCalorieBudget, today.totalCalories, empty);
   const card = streakCard(streak);
+  const macros = macroRows(today.macros, {
+    proteinG: profile.proteinTargetG,
+    carbsG: profile.carbsTargetG,
+    fatG: profile.fatTargetG,
+  });
 
   return (
     <HissaScreen onRefresh={refresh} refreshing={refreshing}>
@@ -182,6 +187,22 @@ export function TodayScreen() {
       </View>
       {ring.atBudget && (
         <HissaText style={{ marginTop: 16, textAlign: 'center' }}>{c.ring.atBudget}</HissaText>
+      )}
+
+      {macros && (
+        <View style={{ marginTop: 20 }}>
+          <Card>
+            <HissaText variant="label">{`${c.macros.title} (${c.macros.estimate})`}</HissaText>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              {macros.map((m) => (
+                <View key={m.label} accessible accessibilityLabel={`${m.label}: about ${m.text}, an estimate`}>
+                  <HissaText variant="caption">{m.label}</HissaText>
+                  <HissaText variant="button">{m.text}</HissaText>
+                </View>
+              ))}
+            </View>
+          </Card>
+        </View>
       )}
 
       {due && (

@@ -6,7 +6,7 @@ import { formatGoalTitle, type NotificationsService } from '../notifications';
 import type { ProfilesService } from '../profiles';
 import type { StreaksService } from '../streaks';
 import type { GoalsRepository } from './goals.repository';
-import type { Celebration, Goal, GoalInput, GoalRow } from './goals.types';
+import type { Celebration, FriendGoal, Goal, GoalInput, GoalRow } from './goals.types';
 import { goalProgress } from './progress';
 
 const CELEBRATION_MS = 48 * 60 * 60 * 1000;
@@ -177,6 +177,32 @@ export function createGoalsService({
           },
         ];
       });
+    },
+
+    // Read-only: settling other users' goals stays with their own requests.
+    async friendGoals(userId: string, now = new Date()): Promise<FriendGoal[]> {
+      const friendIds = await friends.friendIds(userId);
+      if (!friendIds.length) return [];
+      const today = pktDay(now);
+      const rows = await repository.activeSharedFor(friendIds);
+      const out = await Promise.all(
+        rows.map(async (r): Promise<FriendGoal | null> => {
+          const p = goalProgress(
+            toProgressInput(r),
+            await streaks.loggedDays(r.user_id, r.start_day, today),
+            today,
+          );
+          if (p.expired || p.reached) return null;
+          return {
+            userId: r.user_id,
+            goalId: r.id,
+            title: formatGoalTitle(r.type, r.target, r.window_days),
+            progress: p.progress,
+            target: r.target,
+          };
+        }),
+      );
+      return out.filter((g): g is FriendGoal => g !== null);
     },
 
     async cheer(userId: string, goalId: string): Promise<void> {

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+const macroTarget = z.number().int().min(1).max(1000).nullable().optional();
+
 // No dailyCalorieBudget on purpose: it is computed server-side and any client value is stripped.
 export const profileBodySchema = z.object({
   displayName: z.string().trim().max(80).optional(),
@@ -9,6 +11,9 @@ export const profileBodySchema = z.object({
   heightCm: z.number().positive().max(300),
   weightKg: z.number().positive().max(500),
   activityLevel: z.enum(['sedentary', 'light', 'moderate', 'active']),
+  proteinTargetG: macroTarget,
+  carbsTargetG: macroTarget,
+  fatTargetG: macroTarget,
 });
 
 export const usernameSchema = z

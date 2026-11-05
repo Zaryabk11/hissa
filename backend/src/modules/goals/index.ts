@@ -10,7 +10,7 @@ import { createGoalsRouter } from './goals.routes';
 import { createGoalsService, type GoalsService } from './goals.service';
 
 export type { GoalsService };
-export type { Celebration, Goal, GoalInput } from './goals.types';
+export type { Celebration, FriendGoal, Goal, GoalInput } from './goals.types';
 
 // The only file other modules may import.
 export function createGoalsModule({

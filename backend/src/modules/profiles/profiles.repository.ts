@@ -8,7 +8,7 @@ import type {
 } from './profiles.types';
 
 const COLUMNS =
-  'id, username, display_name, goal, sex, age, height_cm, weight_kg, activity_level, daily_calorie_budget';
+  'id, username, display_name, goal, sex, age, height_cm, weight_kg, activity_level, daily_calorie_budget, protein_target_g, carbs_target_g, fat_target_g';
 const CARD_COLUMNS = 'id, username, display_name';
 
 // Supabase data access for profiles. No business rules here.

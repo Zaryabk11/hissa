@@ -193,9 +193,29 @@ describe('meals service', () => {
       day: '2026-11-02',
       meals,
       totalCalories: 750,
+      macros: { proteinG: 0, carbsG: 0, fatG: 0 },
     });
     expect(repository.listMealsBetween).toHaveBeenCalledWith('u1', startIso, endIso);
     await expect(service.caloriesToday('u1')).resolves.toBe(750);
+  });
+
+  it('listToday sums estimated macros of confirmed items from the catalog', async () => {
+    const meals = [
+      {
+        id: 'a',
+        eatenAt: 'x',
+        totalCalories: 300,
+        items: [item({ confirmedDish: 'roti', confirmedPortion: 2 }), item({ confirmedDish: null })],
+      },
+    ];
+    const { service, nutrition } = setup(meals);
+    nutrition.portionNutrition.mockImplementation(
+      async (_s: string, u: number) =>
+        ({ calories: 0, proteinG: 3 * u, carbsG: 10.25 * u, fatG: 0 }) as PortionNutrition,
+    );
+    const today = await service.listToday('u1');
+    expect(today.macros).toEqual({ proteinG: 6, carbsG: 20.5, fatG: 0 });
+    expect(nutrition.portionNutrition).toHaveBeenCalledTimes(1);
   });
 
   describe('week and history', () => {

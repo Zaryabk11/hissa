@@ -91,6 +91,7 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 | POST   | `/api/goals`                         | Create the one active goal: 201                   |
 | PATCH  | `/api/goals/mine`                    | Share or unshare it, or abandon it                |
 | GET    | `/api/goals/celebrations`            | Friends' reached goals with cheer counts          |
+| GET    | `/api/goals/friends`                 | Friends' shared active goals with progress        |
 | POST   | `/api/goals/:id/cheer`               | Cheer a friend's reached goal: 204                |
 | GET    | `/api/notifications`                 | Inbox `{ items, unread }` (no push)               |
 | POST   | `/api/notifications/read`            | Mark the inbox read: 204                          |
@@ -220,6 +221,7 @@ Request (all fields required except `displayName`). Do not send a budget: the se
 - `sex`: `male` | `female`
 - `activityLevel`: `sedentary` | `light` | `moderate` | `active`
 - `age` integer 10-120, `heightCm` up to 300, `weightKg` up to 500, `displayName` up to 80 chars
+- Optional daily macro targets `proteinTargetG`, `carbsTargetG`, `fatTargetG`: whole grams 1-1000, or `null` to clear. Omit a key to leave the stored target unchanged (onboarding omits them).
 
 Response 200 (`GET /api/profiles/me` returns the same shape, or 404 until the profile is saved):
 
@@ -233,7 +235,10 @@ Response 200 (`GET /api/profiles/me` returns the same shape, or 404 until the pr
   "heightCm": 160,
   "weightKg": 60,
   "activityLevel": "sedentary",
-  "dailyCalorieBudget": 1577
+  "dailyCalorieBudget": 1577,
+  "proteinTargetG": null,
+  "carbsTargetG": null,
+  "fatTargetG": null
 }
 ```
 
@@ -389,12 +394,13 @@ Response 201:
 
 ### GET /api/meals/today
 
-Meals eaten today, where "today" is the Pakistan (PKT, UTC+5) calendar day. Oldest first.
+Meals eaten today, where "today" is the Pakistan (PKT, UTC+5) calendar day. Oldest first. `macros` is the estimated protein, carbs and fat in grams of the confirmed items (a dish with no macro data counts 0).
 
 ```json
 {
   "day": "2026-11-01",
   "totalCalories": 542,
+  "macros": { "proteinG": 38.5, "carbsG": 20, "fatG": 31.2 },
   "meals": [
     {
       "id": "<meal uuid>",

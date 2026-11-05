@@ -23,6 +23,8 @@ export type Celebration = {
   cheeredByMe: boolean;
 };
 
+export type FriendGoal = { userId: string; goalId: string; title: string; progress: number; target: number };
+
 const json = { 'Content-Type': 'application/json' };
 
 export const getMyGoal = () => apiAuthed<Goal | null>('/api/goals/mine');
@@ -31,5 +33,6 @@ export const createGoal = (input: GoalInput) =>
 export const patchGoal = (p: { shared?: boolean; abandon?: boolean }) =>
   apiAuthed<Goal | null>('/api/goals/mine', { method: 'PATCH', headers: json, body: JSON.stringify(p) });
 export const getCelebrations = () => apiAuthed<Celebration[]>('/api/goals/celebrations');
+export const getFriendGoals = () => apiAuthed<FriendGoal[]>('/api/goals/friends');
 export const cheer = (goalId: string) =>
   apiAuthed<void>(`/api/goals/${goalId}/cheer`, { method: 'POST' });

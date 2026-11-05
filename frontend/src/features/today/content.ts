@@ -13,6 +13,10 @@ export const todayContent = {
     title: 'Meals today',
     kcal: (n: string) => `About ${n} kcal, an estimate`,
   },
+  macros: {
+    title: 'Macros today',
+    estimate: 'estimate',
+  },
   week: {
     title: 'Your week so far',
     summary: (logged: number, avg: string) =>

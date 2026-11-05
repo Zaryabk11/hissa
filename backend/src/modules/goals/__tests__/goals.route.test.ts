@@ -14,6 +14,7 @@ function app(userId?: string) {
     create: vi.fn(async () => ({ id: goalId })),
     update: vi.fn(async () => null),
     celebrations: vi.fn(async () => []),
+    friendGoals: vi.fn(async () => []),
     cheer: vi.fn(async () => {}),
   };
   const a = express();
@@ -34,6 +35,12 @@ describe('goals routes', () => {
     await request(a).get('/api/goals/celebrations').expect(200);
     expect(service.getMine).toHaveBeenCalledWith('me');
     expect(service.celebrations).toHaveBeenCalledWith('me');
+  });
+
+  it('GET /friends uses the callers id and is not captured by /:id', async () => {
+    const { a, service } = app('me');
+    await request(a).get('/api/goals/friends').expect(200);
+    expect(service.friendGoals).toHaveBeenCalledWith('me');
   });
 
   it('POST / creates a goal; shared defaults to false', async () => {

@@ -44,6 +44,17 @@ export const profileContent = {
       { id: 'active', title: 'Very active', sub: 'Physical work or training most days' },
     ],
   },
+  macros: {
+    title: 'Macro targets',
+    note: 'Optional daily goals in grams. Leave blank to skip. Estimates, not medical advice.',
+    fields: [
+      { key: 'proteinTarget', label: 'Protein' },
+      { key: 'carbsTarget', label: 'Carbs' },
+      { key: 'fatTarget', label: 'Fat' },
+    ],
+    unit: 'g',
+    placeholder: 'Not set',
+  },
   save: 'Save changes',
   saving: 'Saving…',
   saved: (kcal: string) => `Saved. Your budget is about ${kcal} kcal a day, an estimate.`,

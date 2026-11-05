@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ringView, streakCard } from './today-view';
+import { macroRows, ringView, streakCard } from './today-view';
 
 describe('ringView', () => {
   it('shows the whole budget before the first meal', () => {
@@ -34,5 +34,19 @@ describe('streakCard', () => {
       streak: 0,
       loggedToday: false,
     });
+  });
+});
+
+describe('macroRows', () => {
+  const eaten = { proteinG: 42.4, carbsG: 130.6, fatG: 20 };
+  it('is hidden when no target is set', () => {
+    expect(macroRows(eaten, { proteinG: null, carbsG: null, fatG: null })).toBeNull();
+  });
+  it('shows eaten over target, and eaten alone for a macro without a target', () => {
+    expect(macroRows(eaten, { proteinG: 90, carbsG: null, fatG: 60 })).toEqual([
+      { label: 'Protein', text: '42 / 90 g' },
+      { label: 'Carbs', text: '131 g' },
+      { label: 'Fat', text: '20 / 60 g' },
+    ]);
   });
 });
