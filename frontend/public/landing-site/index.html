@@ -820,7 +820,7 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
   <div class="copy">
    <span class="eyebrow pop" data-at=".22">Buddy</span>
    <h2><span class="pop" data-at=".26">Eat</span><span class="pop" data-at=".29">with</span><span class="pop" data-at=".32">your</span><span class="pop" data-at=".35">people.</span></h2>
-   <p class="fade" data-at=".42">Cheer streaks, nudge gently. Friends see you logged, never what you ate.</p>
+   <!-- owner wording pending: spec 12.2 --><p class="fade" data-at=".42">Cheer streaks, nudge gently.</p>
    <a class="cta g fade" data-at=".46" href="#get">Get Hissa</a>
   </div>
   <div class="scene" id="bd-scene" role="group" aria-label="Three friends sharing a table">
@@ -870,7 +870,7 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
   <div class="bcopy" id="hw-bcopy">
    <span class="eyebrow">Buddy</span>
    <h2><span>Eat</span><span>with</span><span>your</span><span>people.</span></h2>
-   <p>Cheer streaks, nudge gently. Friends see you logged, never what you ate.</p>
+   <!-- owner wording pending: spec 12.2 --><p>Cheer streaks, nudge gently.</p>
    <a class="cta g" href="#get">Get Hissa</a>
   </div>
   <div class="hw-pw" id="hw-pw" aria-hidden="true"></div>
@@ -998,7 +998,7 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
      <p class="tag" id="dr-ftag">Questions</p>
      <h2 id="faq-h">Fair questions,<br><em>straight answers.</em></h2>
     </div>
-    <p class="r" id="dr-fhr">The six things people ask first. Tap a question to open the answer.</p>
+    <p class="r" id="dr-fhr">The five things people ask first. Tap a question to open the answer.</p>
    </div>
   </div>
  </div>
@@ -1012,17 +1012,13 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
     <div class="ans" id="fq-a2" role="region" aria-labelledby="fq-q2"><div class="in"><div class="bub"><p>They are estimates, and every one is labelled that way. The AI only names the dish. The numbers come from Hissa&rsquo;s own catalog of Pakistani dishes.</p><p>When it cannot tell two dishes apart, it asks you instead of guessing.</p></div></div></div></li>
 
    <li class="q"><h3><button type="button" id="fq-q3" aria-expanded="false" aria-controls="fq-a3"><svg class="mk" viewBox="0 0 48 48" aria-hidden="true"></svg><span class="qw"><span class="qt">What can my friends see?</span></span></button></h3>
-    <div class="ans" id="fq-a3" role="region" aria-labelledby="fq-q3"><div class="in"><div class="bub"><p>Very little: your username, your display name, whether you logged today, your streak, nudge status, and a goal if you choose to share it.</p><p>Never your meals, photos, calories or feelings. Nudges and cheers land in the app&rsquo;s inbox. There is no push notification.</p></div></div></div></li>
+    <div class="ans" id="fq-a3" role="region" aria-labelledby="fq-q3"><div class="in"><div class="bub"><!-- owner wording pending: spec 12.2 --><p>Your username, your display name, whether you logged today, your streak, nudge status, and a goal if you choose to share it. Nudges and cheers land in the app's inbox. There is no push notification.</p></div></div></div></li>
 
-   <li class="q"><h3><button type="button" id="fq-q4" aria-expanded="false" aria-controls="fq-a4"><svg class="mk" viewBox="0 0 48 48" aria-hidden="true"></svg><span class="qw"><span class="qt">Do you keep my photos?</span></span></button></h3>
-    <div class="ans" id="fq-a4" role="region" aria-labelledby="fq-q4"><div class="in"><div class="bub"><p>No. Your photo is shrunk and sent to Gemini, Google&rsquo;s AI, only to name the dish. Hissa&rsquo;s server does not save it.</p><p>Your log keeps the dish and the portion, not the picture.</p></div></div></div></li>
+   <li class="q"><h3><button type="button" id="fq-q4" aria-expanded="false" aria-controls="fq-a4"><svg class="mk" viewBox="0 0 48 48" aria-hidden="true"></svg><span class="qw"><span class="qt">Which dishes does it know?</span></span></button></h3>
+    <div class="ans" id="fq-a4" role="region" aria-labelledby="fq-q4"><div class="in"><div class="bub"><p>Desi home cooking and restaurant food first, each sized in roti, katori or plate. If a dish is not in the catalog, Hissa says so and lets you pick.</p><ul class="chips" aria-label="Some of the dishes"><li>Karahi</li><li>Biryani</li><li>Daal</li><li>Nihari</li><li>Sabzi</li><li>Paratha</li><li>Haleem</li><li>and more</li></ul></div></div></div></li>
 
-   <li class="q"><h3><button type="button" id="fq-q5" aria-expanded="false" aria-controls="fq-a5"><svg class="mk" viewBox="0 0 48 48" aria-hidden="true"></svg><span class="qw"><span class="qt">Which dishes does it know?</span></span></button></h3>
-    <div class="ans" id="fq-a5" role="region" aria-labelledby="fq-q5"><div class="in"><div class="bub"><p>Desi home cooking and restaurant food first, each sized in roti, katori or plate. If a dish is not in the catalog, Hissa says so and lets you pick.</p><ul class="chips" aria-label="Some of the dishes"><li>Karahi</li><li>Biryani</li><li>Daal</li><li>Nihari</li><li>Sabzi</li><li>Paratha</li><li>Haleem</li><li>and more</li></ul></div></div></div></li>
-
-   <li class="q"><h3><button type="button" id="fq-q6" aria-expanded="false" aria-controls="fq-a6"><svg class="mk" viewBox="0 0 48 48" aria-hidden="true"></svg><span class="qw"><span class="qt">What does it cost?</span></span></button></h3>
-    <div class="ans" id="fq-a6" role="region" aria-labelledby="fq-q6"><div class="in"><div class="bub"><!-- TODO user: pricing answer -->
-<p>We haven&rsquo;t announced pricing yet. This answer will be updated when we do.</p></div></div></div></li>
+   <li class="q"><h3><button type="button" id="fq-q5" aria-expanded="false" aria-controls="fq-a5"><svg class="mk" viewBox="0 0 48 48" aria-hidden="true"></svg><span class="qw"><span class="qt">What does it cost?</span></span></button></h3>
+    <div class="ans" id="fq-a5" role="region" aria-labelledby="fq-q5"><div class="in"><div class="bub"><p>Hissa is free while it is in early access. We will tell you before that changes.</p></div></div></div></li>
   </ul>
   <p class="end"><i class="est2">estimate</i> All numbers in Hissa are estimates. Hissa isn&rsquo;t medical advice.</p>
  </div>
@@ -1045,7 +1041,7 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
    </div>
    <div class="fc-chips" id="fc-chips" aria-hidden="true">
     <div class="chip c1"><i style="background:#C8102E;color:#fff">A</i><span>Ayesha logged today<small>streak 12 days</small></span></div>
-    <div class="chip c2"><i style="background:#0B6B3A;color:#fff">B</i><span>Bilal logged today<small>streak 4 days</small></span></div>
+    <div class="chip c2"><i style="background:#0B6B3A;color:#fff">B</i><span>Bilal logged today<small>streak 7 days</small></span></div>
     <div class="chip c3"><svg viewBox="0 0 30 30"><path d="M5 16C3 12 6 9.5 8.5 11.5L12 8.5C13.5 7.5 15.5 8.6 15 10.4L19 7.5C21 6.6 22.5 8.6 21.4 10.2L23.5 18C24 22.5 20 26.5 15 26C10.5 25.5 7 21.5 5 16Z" fill="#F4B41A" stroke="#1a0a05" stroke-width="2.2" stroke-linejoin="round"/><path d="M4 4L7 7M12 2V6M20 3.5L18 7M26 11L22.5 12" stroke="#1a0a05" stroke-width="2.4" stroke-linecap="round"/></svg><span>Shabash!<small>Zara sent you a cheer</small></span><b class="dot"></b></div>
    </div>
   </div>
@@ -1396,7 +1392,7 @@ function sceneHTML(stk){
   +'<div class="chips">'
    +'<div class="lab pop" data-at=".46" data-out=".72" style="--r:0deg">Hissa thinks it is&hellip; tap to fix</div>'
    +'<span class="chip pop" data-at=".48" data-out=".72" style="--r:-2deg"><svg class="k" aria-hidden="true"><use href="#tickc"/></svg>Chicken karahi<i class="rip"></i></span>'
-   +'<span class="chip pop" data-at=".5" data-out=".72" style="--r:1.5deg">Chicken handi</span>'
+   +'<span class="chip pop" data-at=".5" data-out=".72" style="--r:1.5deg">Beef karahi</span>'
    +'<span class="chip pop" data-at=".52" data-out=".72" style="--r:-1deg">Mutton karahi</span>'
   +'</div>'
   +'<div class="plateW"><img class="plate" alt="" width="520" height="520">'
@@ -1610,9 +1606,9 @@ var RUN=200,FQ=140,TOT=RUN+FQ; /* vh of scroll: dish rail, then the FAQ iris */
 /* catalog dishes (database/data/catalog.csv): units katori 150 g, roti 36 g, plate 250 g, piece */
 var DISHES=[
  {n:'Chicken karahi',s:'with a stack of roti',c:[['kat','1 katori'],['roti','1½ roti']],img:'karahi',alt:'chicken karahi in a black karahi pan with a stack of rotis in a gingham cloth'},
- {n:'Home thali',s:'daal, palak, chawal, roti',c:[['kat','2 katori'],['plt','½ plate'],['roti','1 roti']],img:'thali',alt:'a steel thali with daal, curry, saag, rice and roti'},
+ {n:'Daal, palak, chawal, roti',s:'on one plate',c:[['kat','2 katori'],['plt','½ plate'],['roti','1 roti']],img:'thali',alt:'a steel thali with daal, curry, saag, rice and roti'},
  {n:'Chicken biryani',s:'a copper handi, with raita',c:[['plt','1 plate']],img:'biryani',alt:'chicken biryani in a copper handi with a bowl of raita'},
- {n:'Maash daal',s:'with rotis on the side',c:[['kat','1 katori'],['roti','1 roti']],img:'daal',alt:'maash daal in a steel bowl with ghee and a green chilli, two rotis beside it'},
+ {n:'Maash daal',s:'with rotis on the side',c:[['kat','1 katori'],['roti','2 roti']],img:'daal',alt:'maash daal in a steel bowl with ghee and a green chilli, two rotis beside it'},
  {n:'Nihari',s:'with a naan',c:[['kat','1 katori'],['roti','1 naan']],img:'nihari',alt:'nihari in a clay bowl topped with ginger, a naan beside it'},
  {n:'Aloo gosht',s:'with two rotis',c:[['kat','1 katori'],['roti','2 roti']],img:'aloogosht',alt:'aloo gosht in a steel karahi with coriander and two rotis'},
  {n:'Haleem',s:'a bowl, with lemon',c:[['kat','1 katori']],img:'haleem',alt:'haleem in a cream bowl with fried onion, ginger and lemon wedges'},
