@@ -3,8 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hissa Landing Full v5</title>
-<link rel="icon" href="data:,">
+<title>Hissa · One more roti is fine</title>
+<meta name="description" content="Snap your plate. Hissa tells you your portion in roti and katori, like a friend at the dastarkhwan, not a diet app.">
+<meta name="theme-color" content="#F4B41A">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<noscript><style>
+#ld,#hs .hs-chips,#hs .hs-iris,#hs .hs-pw,#bd .scene,#bd .bd-pw,#bd .card,#bd .hl,#dr .spacer,#dr .pre,#dr .bar{display:none!important}
+main section{height:auto!important;margin:0!important;visibility:visible!important}
+#hs .hs-stage,#bd .stage,#hw .stage,#fx .stage,#dr .stage,#fc .fc-stage{position:relative!important;height:auto!important;min-height:0!important;visibility:visible!important;overflow:visible!important}
+#hs .hs-hero{position:relative!important;min-height:65vh;padding:120px 20px 60px}
+#hs .hs-copy{position:relative!important;right:auto!important;bottom:auto!important;width:auto!important;text-align:left;align-items:flex-start}
+#hs .hs-idea{position:relative!important;opacity:1!important;padding:60px 20px;background:#0B6B3A}
+#hs .hs-idea .hl,#hs .hs-idea .card{position:relative!important;left:auto!important;top:auto!important;width:auto!important;max-width:500px;opacity:1!important;transform:none!important;margin:0 0 16px}
+#hs .hs-idea .hl span{opacity:1!important;transform:none!important}
+#bd .stage{padding:90px 20px 60px;background:#0B6B3A}
+#bd .copy{position:relative!important;left:auto!important;top:auto!important;width:auto!important}
+#bd .pop,#bd .fade{opacity:1!important;visibility:visible!important;transform:none!important}
+#dr .stage{background:#FFF6DD;pointer-events:auto!important}
+#dr .cream,#dr .fh{position:relative!important;inset:auto!important;clip-path:none!important}
+#dr .cream{padding:90px 20px 0}
+#dr .fh .l,#dr .fh .r{opacity:1!important;transform:none!important}
+#dr .sheet{margin:0!important}
+#dr .ans{grid-template-rows:1fr!important;visibility:visible!important}
+#dr .bub{opacity:1!important;transform:none!important}
+*{animation:none!important;transition:none!important}
+</style></noscript>
 <script>(function(){var d=document.documentElement;if(matchMedia('(prefers-reduced-motion:reduce)').matches||innerWidth<=820)d.classList.add('fb')})()</script>
 <script>(function(){document.documentElement.classList.add('ld');try{history.scrollRestoration='manual'}catch(e){}scrollTo(0,0)})()</script>
 <link rel="preload" href="fonts/bricolage-grotesque-800.woff2" as="font" type="font/woff2" crossorigin>
@@ -39,7 +62,8 @@ html.ld.ld-rm #hs .hs-wm canvas{visibility:visible}
 .ld-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 </style>
 </head>
-<body data-nav="s">
+<body id="top" data-nav="s">
+<a class="skip" href="#main">Skip to content</a>
 <div id="ld" role="status" aria-live="polite"><span class="ld-sr" id="ld-sr">Loading Hissa</span>
  <div class="ld-h ld-t" aria-hidden="true"><i></i></div><div class="ld-h ld-b" aria-hidden="true"><i></i></div>
  <div class="ld-c" aria-hidden="true">
@@ -117,7 +141,7 @@ function finish(){
 @font-face{font-family:'Bricolage Grotesque';font-weight:800;font-style:normal;font-display:swap;src:url(fonts/bricolage-grotesque-800.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 @font-face{font-family:Figtree;font-weight:500 700;font-style:normal;font-display:swap;src:url(fonts/figtree-var-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 @font-face{font-family:'Noto Nastaliq Urdu';font-weight:700;font-style:normal;font-display:swap;src:url(fonts/noto-nastaliq-urdu-700.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}
-:root{--saf:#F4B41A;--ink:#1a0a05;--grn:#0B6B3A;--red:#C8102E;--cr:#FFF6DD;--pk:#E5338A;--pkl:#FFC2DE;--paper:#FFFBEF;--mut:#5a4630;--ease:cubic-bezier(.22,.8,.2,1);--out:100vh}
+:root{--saf:#F4B41A;--ink:#1a0a05;--grn:#0B6B3A;--red:#C8102E;--cr:#FFF6DD;--pk:#E5338A;--pkl:#FFC2DE;--paper:#FFFBEF;--mut:#5a4630;--ring:var(--ink);--ease:cubic-bezier(.22,.8,.2,1);--out:100vh}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--saf);font-family:Figtree,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:clip}
@@ -127,7 +151,11 @@ html.lenis,html.lenis body{height:auto}
 .lenis.lenis-smooth{scroll-behavior:auto!important}
 .lenis.lenis-stopped{overflow:hidden}
 .lenis.lenis-smooth iframe{pointer-events:none}
-a:focus-visible{outline:3px solid var(--pk);outline-offset:3px}
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--ring);outline-offset:3px}
+.skip{position:fixed;z-index:101;top:8px;left:12px;transform:translateY(-160%);background:var(--cr);color:var(--ink);padding:12px;border-radius:8px}
+.skip:focus{transform:none}
+#hs .hs-idea,#bd,#hw .bcopy,#dr .iris{--ring:var(--cr)}
+#dr{--ring:var(--cr)}#dr .cream{--ring:var(--ink)}
 
 /* ---------- shared nav (one pill, one CTA) ---------- */
 .nav{position:fixed;top:12px;left:22px;right:22px;display:flex;justify-content:space-between;align-items:center;font:600 14px Figtree;z-index:50;pointer-events:none}
@@ -135,7 +163,7 @@ a:focus-visible{outline:3px solid var(--pk);outline-offset:3px}
 .u{font:700 26px/1 'Noto Nastaliq Urdu';color:#fff;text-shadow:2px 2px 0 var(--ink),4px 4px 0 var(--red);padding-top:10px}
 .cta{display:inline-block;background:var(--grn);color:var(--cr);font:700 15px Figtree;padding:12px 22px;border-radius:99px;border:2px solid var(--ink);box-shadow:0 3px 0 var(--ink);text-decoration:none}
 .cta.g{background:var(--saf);color:var(--ink)}
-.nav .cta{padding:10px 20px;font-size:14px;transition:background .25s,color .25s}
+.nav .cta{padding:10px 20px;font-size:14px;min-height:44px;transition:background .25s,color .25s}
 body[data-nav=g] .nav .cta{background:var(--saf);color:var(--ink)}
 /* ink stage: the ink pill and the CTA outline would vanish, ring them in cream */
 .nav .cta{transition:background .25s,color .25s,border-color .5s,box-shadow .5s}
@@ -143,8 +171,8 @@ body.ri-p .nav .pill{box-shadow:0 0 0 2px rgba(255,246,221,.55)}
 body.ri-c .nav .cta{border-color:var(--cr);box-shadow:0 3px 0 var(--cr)}
 .pill{transition:box-shadow .5s}
 .pill .blobs{transition:opacity .3s}.pill.nb .blobs{opacity:0}
-.nav a:focus-visible{outline:3px solid var(--pk);outline-offset:3px}
-body.ri-p .nav a:focus-visible{outline-color:var(--saf)}
+.nav .pill,body.ri-p .nav{--ring:var(--cr)}
+.nav a:focus-visible{outline:3px solid var(--ring);outline-offset:3px}
 .pill{position:relative;display:flex;gap:2px;background:var(--ink);border-radius:99px;padding:6px}
 .pill .blobs{position:absolute;inset:0;filter:url(#goo);pointer-events:none}
 .pill .b{position:absolute;left:0;top:6px;height:calc(100% - 12px);border-radius:99px;background:linear-gradient(100deg,#0B6B3A 0%,#C8102E 100%);will-change:transform,width}
@@ -170,7 +198,7 @@ body.ri-p .nav a:focus-visible{outline-color:var(--saf)}
  .chip small{display:block;font:500 11px Figtree;color:#5a4630}
  .pin::after{content:'';position:absolute;left:22px;bottom:-11px;width:14px;height:14px;background:var(--cr);border-right:3px solid var(--ink);border-bottom:3px solid var(--ink);transform:rotate(45deg)}
  .fp{margin:-10px 0 0 80px;left:30%;top:68%;transform:rotate(-2deg);animation-delay:3.2s}
- .chip.feed{margin:-10px 0 0 80px;left:5%;top:38%;opacity:0;animation:hs-feed 9s ease-in-out infinite}
+ .chip.feed{margin:-10px 0 0 80px;left:5%;top:38%;opacity:0;animation:hs-feed 9s ease-in-out 2}
  .hs-iris{position:absolute;left:50%;top:52%;width:400px;height:400px;margin:-200px 0 0 -200px;border-radius:50%;background:var(--grn);transform:scale(0);will-change:transform;z-index:8}
  .hs-idea{position:absolute;inset:0;color:var(--cr);z-index:9;opacity:0}
  .hl{position:absolute;left:5%;top:17%;width:26%;margin:0;font:800 clamp(34px,4.6vw,56px)/.96 'Bricolage Grotesque';letter-spacing:-.035em}
@@ -628,8 +656,7 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 #dr .est2{display:inline-block;background:var(--pk);color:var(--ink);border:2px solid var(--ink);border-radius:99px;padding:2px 10px 3px;font:700 13px/1.2 Figtree}
 #dr .spacer{height:calc(340vh + var(--out))}
 #dr .cream{z-index:3}
-#dr a:focus-visible,#dr .rail:focus-visible,#dr .q button:focus-visible{outline:3px solid var(--pk);outline-offset:4px;border-radius:10px}
-#dr .iris a:focus-visible{outline-color:var(--saf)}
+#dr a:focus-visible,#dr .rail:focus-visible,#dr .q button:focus-visible{outline:3px solid var(--ring);outline-offset:3px;border-radius:10px}
 .fb #dr .cream{position:relative;inset:auto;clip-path:none!important;border-radius:50% 50% 0 0/56px 56px 0 0;margin-top:-56px;padding:84px 20px 8px}
 .fb #dr .fh{position:relative;left:auto;right:auto;top:auto;transform:none;display:block}
 .fb #dr .fh .l,.fb #dr .fh .r{opacity:1!important;transform:none!important}
@@ -637,7 +664,7 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 .fb #dr .fh .r{width:auto;max-width:520px;margin-top:16px}
 .fb #dr .spacer{display:none}
 .fb #dr .sheet{min-height:0;padding-top:30px}
-.fb #dr .rail:focus-visible{outline:3px solid var(--saf)}
+.fb #dr .rail:focus-visible{outline:3px solid var(--ring);outline-offset:3px}
 .fb #dr .cream{z-index:auto}
 @media (min-width:821px){.fb #dr .cream{padding:100px 5% 8px}
 .fb #dr .fh{display:flex;justify-content:space-between;align-items:flex-end}
@@ -687,24 +714,25 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 #fc .fc-table{flex:none;width:100%;margin-top:34px}
 #fc .fc-chips{position:static;display:flex;flex-direction:column;align-items:flex-start;gap:14px;margin-top:30px;padding-left:6px}
 #fc .chip{position:relative;left:auto;right:auto;top:auto;bottom:auto}}
-#fc a:focus-visible,.ft a:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+#fc a:focus-visible,.ft a:focus-visible{outline:3px solid var(--ring);outline-offset:3px}
 #fc:not(.live) .kw img{animation-play-state:paused}
 .ft{position:relative;overflow:hidden;background:var(--saf);padding:clamp(28px,5vw,72px) 4vw 0}
 .ft-wm{position:relative;z-index:2;max-width:1700px;margin:0 auto}
 .ft-wm canvas{display:block;width:100%;height:auto;cursor:crosshair;touch-action:pan-y}
 .ft-bar{position:relative;z-index:3;max-width:1700px;margin:clamp(34px,4vw,60px) auto 0;border-top:2px solid var(--ink);padding:26px 0 34px;display:grid;grid-template-columns:1fr auto;gap:18px 40px;align-items:start}
 .ft-links{display:flex;flex-wrap:wrap;gap:10px 30px}
-.ft-links a{display:inline-block;font:700 16px Figtree;color:var(--ink);text-decoration:none;padding:4px 0;border-bottom:2px solid transparent;transition:transform .5s cubic-bezier(.3,1.9,.5,1)}
+.ft-links a{display:inline-flex;align-items:center;min-height:44px;font:700 16px Figtree;color:var(--ink);text-decoration:none;padding:4px 0;border-bottom:2px solid transparent;transition:transform .5s cubic-bezier(.3,1.9,.5,1)}
 .ft-links a[href]:hover,.ft-links a[href]:focus-visible{border-bottom-color:var(--ink);transform:translateY(-5px) rotate(-3deg) scale(1.08)}
 .ft-links a[href]:active{transform:translateY(1px) scale(.96)}
 .ft-links a:not([href]){cursor:default}
 /* footer energy: marquee band tucked behind the lettering, cheer chips, layered wordmark (canvas) */
-.ft-mq{position:relative;z-index:1;margin:calc(-1*clamp(20px,3.4vw,56px)) -4vw 0;background:var(--ink);color:var(--cr);transform:rotate(-1.3deg);padding:clamp(12px,1.2vw,18px) 0 clamp(14px,1.4vw,20px);overflow:hidden;pointer-events:none}
+.ft-mq{position:relative;z-index:1;margin:calc(-1*clamp(20px,3.4vw,56px)) -4vw 0;background:var(--ink);color:var(--cr);transform:rotate(-1.3deg);padding:clamp(12px,1.2vw,18px) 0 clamp(14px,1.4vw,20px);overflow:hidden}
 .ft-mq-t{display:flex;width:max-content;font:800 clamp(26px,2.9vw,44px)/1 'Bricolage Grotesque';letter-spacing:-.025em;animation:ft-mq var(--mqd,26s) linear infinite;will-change:transform}
 .ft-mq-t span{flex:none;display:inline-flex;align-items:center;white-space:nowrap}
 .ft-mq-t span::after{content:"";width:.4em;height:.4em;border-radius:50%;background:var(--pk);margin:0 .7em}
 @keyframes ft-mq{to{transform:translateX(-50%)}}
 .ft:not(.live) .ft-mq-t{animation-play-state:paused}
+.ft-mq:hover .ft-mq-t,.ft-mq:focus-within .ft-mq-t{animation-play-state:paused}
 .ft-chips{position:absolute;inset:0;z-index:5;pointer-events:none}
 .fchip{position:absolute;display:flex;gap:7px;align-items:center;background:var(--pk);color:var(--ink);border:3px solid var(--ink);border-radius:18px 18px 18px 4px;padding:4px 14px 5px 9px;box-shadow:3px 3px 0 var(--ink);font:800 clamp(18px,1.6vw,23px)/1 'Bricolage Grotesque';letter-spacing:-.025em;white-space:nowrap;opacity:0;animation:fchip 3.6s cubic-bezier(.3,1.4,.5,1) forwards}
 .fchip svg{width:26px;height:26px;flex:none}
@@ -777,12 +805,12 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 </svg>
 
 <header class="nav">
- <span class="u" aria-label="Hissa">حصہ</span>
- <nav class="pill" id="nav-pill" aria-label="Sections"><div class="blobs"><div class="b b1"></div><div class="b b2"></div></div><a href="#bd" class="on">Buddy</a><a href="#hw">How it works</a><a href="#fx">Features</a><a href="#faq">FAQ</a></nav>
+ <a class="u" href="#top" aria-label="Hissa, back to top">حصہ</a>
+ <nav class="pill" id="nav-pill" aria-label="Sections"><div class="blobs"><div class="b b1"></div><div class="b b2"></div></div><a href="#bd">Buddy</a><a href="#hw">How it works</a><a href="#fx">Features</a><a href="#faq">FAQ</a></nav>
  <a class="cta" id="nav-cta" href="#get">Get Hissa</a>
 </header>
 
-<main>
+<main id="main">
 <!-- ===== Hero + The idea ===== -->
 <section id="hs" aria-label="Hissa">
  <div class="hs-stage" id="hs-stage">
@@ -813,9 +841,9 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 <section id="bd" aria-label="Buddy">
  <div class="stage" id="bd-stage" data-navbg="g">
   <h2 class="hl" aria-hidden="true"><span data-out=".04">Your</span><span data-out=".055">hissa</span><span data-out=".07">is</span><span data-out=".085">your</span><span data-out=".1">share.</span></h2>
-  <div class="card c1" style="transform:rotate(2deg)"><b>Portions, not points</b><span>Hissa speaks in katori and roti, the way your kitchen already does.</span></div>
-  <div class="card c2" style="transform:rotate(-2deg)"><b>Honest about guessing</b><span>Every number is an estimate, and Hissa asks when it is not sure.</span></div>
-  <div class="card c3" style="transform:rotate(-2deg)"><b>Kind on a heavy day</b><span>Over budget? You get a lighter plate and a gentle word, never a red warning.</span></div>
+  <div class="card c1" style="transform:rotate(2deg)" aria-hidden="true" inert><b>Portions, not points</b><span>Hissa speaks in katori and roti, the way your kitchen already does.</span></div>
+  <div class="card c2" style="transform:rotate(-2deg)" aria-hidden="true" inert><b>Honest about guessing</b><span>Every number is an estimate, and Hissa asks when it is not sure.</span></div>
+  <div class="card c3" style="transform:rotate(-2deg)" aria-hidden="true" inert><b>Kind on a heavy day</b><span>Over budget? You get a lighter plate and a gentle word, never a red warning.</span></div>
   <div class="bd-pw" id="bd-pw" aria-hidden="true"></div>
   <div class="copy">
    <span class="eyebrow pop" data-at=".22">Buddy</span>
@@ -867,7 +895,7 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 <section id="hw" aria-label="How it works">
  <div class="stage" id="hw-stage" data-navbg="s">
   <!-- Buddy end state, identical to the last frame of #bd -->
-  <div class="bcopy" id="hw-bcopy">
+  <div class="bcopy" id="hw-bcopy" aria-hidden="true" inert>
    <span class="eyebrow">Buddy</span>
    <h2><span>Eat</span><span>with</span><span>your</span><span>people.</span></h2>
    <!-- owner wording pending: spec 12.2 --><p>Cheer streaks, nudge gently.</p>
@@ -883,7 +911,7 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
    </div>
    <div id="hw-sceneHost"></div>
   </div>
-  <div class="bs" id="hw-bs" role="group" aria-label="Three friends sharing a table">
+  <div class="bs" id="hw-bs" role="group" aria-label="Three friends sharing a table" aria-hidden="true" inert>
    <svg class="tbl bt" viewBox="0 0 860 740" aria-hidden="true"><path id="hw-tfill" fill="#07502B" opacity=".9"/><path id="hw-t1" fill="none" stroke="#F4B41A" stroke-width="6" stroke-linecap="round"/><path id="hw-t2" fill="none" stroke="#FFF6DD" stroke-opacity=".55" stroke-width="2.5" stroke-linecap="round"/></svg>
    <i id="hw-tc" style="left:430px;top:392px;width:0;height:0"></i>
    <div class="seat a" style="left:140px;top:160px"><div class="av"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#av0"/></svg><div class="spkw bt"><svg class="spk" viewBox="0 0 20 20" aria-hidden="true"><use href="#spark"/></svg><svg class="spk u2" viewBox="0 0 20 20" aria-hidden="true"><use href="#spark"/></svg><svg class="spk u3" viewBox="0 0 20 20" aria-hidden="true"><use href="#spark"/></svg></div></div>
@@ -1838,7 +1866,7 @@ new IntersectionObserver(function(es){wrap.classList.toggle('live',es[0].isInter
 /* ===================== MASTER: nav, handoffs, scheduling ===================== */
 (function(){
 var HS=HX.HS,BD=HX.BD,HW=HX.HW,FX=HX.FX,DR=HX.DR,FC=HX.FC,cl=HX.cl,RM=HX.RM,FB=HX.fb(),ready=false,pend=false;
-var secs=[HS,BD,HW,FX],navG=null,home=0,HOLD=30,STRETCH=70,OUT=100,FXR=250;
+var secs=[HS,BD,HW,FX],navG=null,home=-1,HOLD=30,STRETCH=70,OUT=100,FXR=250;
 var FAQ_AT=DR.TOT+22,FX_AT=.3,GET_AT=.62;
 
 /* ---- nav pill with goo blob ---- */
@@ -1895,7 +1923,7 @@ function frame(){
   pend=false;if(!ready)return;
   var vh=innerHeight;
   if(FB){
-    var st='s',idx=0;
+    var st='s',idx=-1;
     [].forEach.call(document.querySelectorAll('[data-navbg]'),function(e){var r=e.getBoundingClientRect(),k=e.dataset.navbg;
       if(r.top<=30&&r.bottom-(k==='k'?56:0)>30)st=k});
     setNav(st==='g');HX.ring({p:st==='k',c:st==='k'});
@@ -1921,7 +1949,7 @@ function frame(){
   HS.livePct(vA?pa:1);
   setNav(vA?HS.nav(pa):vB?true:vC?pc<.13:false);
   if(!vD&&!vF&&!vC&&!vA&&!vB&&fc.top>vh)HX.ring({p:false,c:false});
-  var h2=vA||vB?0:fc.top<vh*.55?-1:f.top>1?(pc>.14?1:0):u<0?(pf>.04?2:1):(v>DR.RUN?3:2);
+  var h2=vA?-1:vB?0:fc.top<vh*.55?-1:f.top>1?(pc>.14?1:0):u<0?(pf>.04?2:1):(v>DR.RUN?3:2);
   setHome(h2);
 }
 function sched(){if(!pend){pend=true;requestAnimationFrame(frame)}}

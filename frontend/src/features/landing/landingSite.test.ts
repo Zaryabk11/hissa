@@ -58,3 +58,28 @@ describe('landing site copy', () => {
     expect(html).not.toMatch(/googleapis|gstatic|cdn\.|src="\/|href="\/|url\(\/|'\/files\//i);
   });
 });
+
+describe('landing site access', () => {
+  it('has descriptive metadata and a local saffron favicon', () => {
+    expect(html).toContain('<title>Hissa · One more roti is fine</title>');
+    expect(html).toContain('<meta name="description" content="Snap your plate. Hissa tells you your portion in roti and katori, like a friend at the dastarkhwan, not a diet app.">');
+    expect(html).toContain('<meta name="theme-color" content="#F4B41A">');
+    expect(html).toContain('<link rel="icon" href="assets/favicon.svg"');
+  });
+
+  it('lets keyboard and no-script visitors reach the content', () => {
+    expect(html).toMatch(/<body[^>]*>\s*<a[^>]*href="#main"/);
+    expect(html).toContain('<main id="main">');
+    expect(html).toMatch(/<noscript>[\s\S]*?#ld\s*\{\s*display:none/);
+    expect(html).toMatch(/<noscript>[\s\S]*?main section[^{]*\{[^}]*visibility:visible/);
+    expect(html).not.toMatch(/outline:[^;}]*var\(--pk\)/);
+  });
+
+  it('hides duplicated stage content from assistive technology', () => {
+    expect(html).toMatch(/id="hw-bcopy"[^>]*aria-hidden="true"[^>]*inert/);
+    expect(html).toMatch(/id="hw-bs"[^>]*aria-hidden="true"[^>]*inert/);
+    expect(html).toMatch(/id="bd"[\s\S]*?class="card c1"[^>]*aria-hidden="true"[^>]*inert/);
+    expect(html).toMatch(/id="bd"[\s\S]*?class="card c2"[^>]*aria-hidden="true"[^>]*inert/);
+    expect(html).toMatch(/id="bd"[\s\S]*?class="card c3"[^>]*aria-hidden="true"[^>]*inert/);
+  });
+});
