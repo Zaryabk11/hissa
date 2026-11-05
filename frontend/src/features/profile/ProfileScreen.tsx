@@ -424,7 +424,7 @@ export function ProfileScreen() {
           label={c.signOut}
           onPress={() => {
             setSignOutError(false);
-            void signOut().catch(() => setSignOutError(true));
+            void signOut().then(() => router.replace('/landing')).catch(() => setSignOutError(true));
           }}
         />
         {signOutError && <HissaText accessibilityRole="alert">{c.signOutError}</HissaText>}

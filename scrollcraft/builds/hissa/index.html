@@ -160,7 +160,7 @@
     <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#F2F3EE" stroke-opacity=".35" stroke-width="2"/><path d="M16 16V4a12 12 0 0 1 10.4 18z" fill="#D4FF3A"/></svg>
     hissa
   </a>
-  <a class="btn" href="#join">Explore Hissa</a>
+  <a class="btn" data-explore href="#join">Explore Hissa</a>
 </header>
 
 <main id="top">
@@ -261,7 +261,7 @@
       <div>
         <h2 class="sc-display" data-sc-cue="0.04" data-sc-kinetic="lines">Pull up a chair.</h2>
         <p class="readout" id="readout" aria-live="polite">&nbsp;</p>
-        <a class="btn" href="#join" data-sc-cue="0.5" data-sc-rise="0">Explore Hissa</a>
+        <a class="btn" data-explore href="#join" data-sc-cue="0.5" data-sc-rise="0">Explore Hissa</a>
       </div>
       <div class="dial" id="dial" role="slider" tabindex="0" aria-label="Cut your share of the plate" aria-valuemin="10" aria-valuemax="90" aria-valuenow="40">
         <svg viewBox="-100 -100 200 200" aria-hidden="true">
@@ -326,6 +326,14 @@
     requestAnimationFrame(tick);
   })();
 })();
+</script>
+<script>
+/* "Explore Hissa" opens the app's sign-in screen when this page is embedded (app WebView or web iframe). */
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('[data-explore]')) return;
+  if (window.ReactNativeWebView) { e.preventDefault(); window.ReactNativeWebView.postMessage('hissa:explore'); }
+  else if (parent !== window) { e.preventDefault(); parent.postMessage('hissa:explore', location.origin); }
+});
 </script>
 <script>
 /* Streak: the 7 jumps in, then the dots pop one by one. Replays each time it scrolls into view. */
