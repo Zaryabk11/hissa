@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hissa · One more roti is fine</title>
+<meta name="description" content="Snap your plate. Hissa tells you your portion in roti and katori, like a friend at the dastarkhwan, not a diet app.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%23161718'/><path d='M16 16V5a11 11 0 0 1 9.5 16.5z' fill='%23D4FF3A'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="scrollcraft.css">
+<style>
+  :root {
+    --sc-canvas: #161718;
+    --sc-surface: #202224;
+    --sc-ink: #F2F3EE;
+    --sc-ink-soft: #B9BCC1;
+    --sc-accent: #D4FF3A;
+    --sc-accent-ink: #141414;
+    --sc-font-display: "Bricolage Grotesque", system-ui, sans-serif;
+    --sc-font-text: "Figtree", system-ui, sans-serif;
+    --line: #303236;
+  }
+  em { font-style: normal; color: var(--sc-accent); }
+
+  /* chrome: wordmark + the one CTA */
+  .bar { position: fixed; z-index: 50; inset: 0 0 auto 0; display: flex; justify-content: space-between; align-items: center;
+         padding: 1rem var(--sc-gutter); pointer-events: none; }
+  .bar > * { pointer-events: auto; }
+  .mark { display: inline-flex; align-items: center; gap: .55rem; font: 800 1.35rem/1 var(--sc-font-display); letter-spacing: -.02em; color: var(--sc-ink); text-decoration: none; }
+  .mark svg { width: 1.5rem; height: 1.5rem; }
+  .btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.4rem; border-radius: 99px; background: var(--sc-accent); color: var(--sc-accent-ink);
+         font: 600 .95rem/1 var(--sc-font-text); text-decoration: none; transition: transform .25s var(--sc-ease-out), box-shadow .25s; }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -8px rgba(212,255,58,.45); }
+  .btn:focus-visible, .dial:focus-visible { outline: 2px solid var(--sc-ink); outline-offset: 4px; }
+
+  /* act 1: scroll pushes the camera in on the plate */
+  .hero { overflow: hidden; }
+  .hero__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 50%; transform-origin: 66% 55%;
+               transform: scale(calc(1 + var(--sc-p, 0) * .22)); will-change: transform; }
+  .hero-copy h1 { font-size: clamp(2.6rem, 1.4rem + 5vw, 6rem); max-width: 9ch; }
+  .hero-copy .sc-body { margin-top: 1.1rem; max-width: 34ch; color: var(--sc-ink); }
+
+  /* act 2: words on the left, the plate inside a filling ring on the right */
+  .argument { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); align-items: center; gap: clamp(1.5rem, 5vw, 5rem); padding: 5rem var(--sc-gutter) 3rem; }
+  .lines { position: relative; height: min(58vh, 26rem); }
+  .lines p { position: absolute; left: 0; top: 50%; translate: 0 -50%; width: 100%; max-width: 15ch; margin: 0; font: 700 var(--sc-t-3xl)/1.02 var(--sc-font-display); letter-spacing: -.03em; text-wrap: balance; }
+  .lines p.soft { color: var(--sc-ink-soft); }
+  .lines .last { max-width: 12ch; font-size: var(--sc-t-4xl); }
+  .ringwrap { position: relative; justify-self: center; width: min(100%, 64vh); aspect-ratio: 1; }
+  .ringwrap img { position: absolute; inset: 7%; width: 86%; height: 86%; border-radius: 50%; object-fit: cover; }
+  .ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ring circle { fill: none; stroke-linecap: round; }
+  .ring .trk { stroke: var(--line); stroke-width: 1.5; }
+  .ring .fill { stroke: var(--sc-accent); stroke-width: 2.5; stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--sc-p, 0)); transform: rotate(-90deg); transform-origin: 50% 50%; }
+
+  /* act 3 */
+  .turn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(2rem, 6vw, 6rem); align-items: center; }
+  .steps { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; gap: 1.5rem; max-width: 40ch; }
+  .steps li { padding-top: 1.1rem; border-top: 1px solid var(--line); display: grid; gap: .3rem; }
+  .steps b { font: 600 var(--sc-t-xs)/1 var(--sc-font-text); letter-spacing: .12em; text-transform: uppercase; color: var(--sc-accent); }
+  .steps strong { font: 700 var(--sc-t-lg)/1.2 var(--sc-font-display); letter-spacing: -.01em; }
+  .steps span { color: var(--sc-ink-soft); }
+  .shot { position: relative; margin: 0; border-radius: 28px; overflow: hidden; aspect-ratio: 4/3; background: var(--sc-surface); }
+  .shot img { width: 100%; height: 100%; object-fit: cover; }
+  .chips { position: absolute; left: 1rem; bottom: 1rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+  .chip { padding: .55rem .9rem; border-radius: 99px; background: rgba(22,23,24,.82); backdrop-filter: blur(8px); border: 1px solid var(--line); font-size: var(--sc-t-sm); }
+  .chip.on { background: var(--sc-accent); border-color: var(--sc-accent); color: var(--sc-accent-ink); font-weight: 600; }
+  .cap { margin: .8rem .2rem 0; font-size: var(--sc-t-xs); color: var(--sc-ink-soft); }
+
+  /* act 4 */
+  .rail { display: flex; align-items: center; gap: clamp(1.5rem, 4vw, 4rem); height: 100%; padding-inline: var(--sc-gutter); width: max-content; }
+  .rail__lead { width: min(80vw, 26rem); flex: none; }
+  .item { flex: none; width: min(72vw, clamp(21rem, 27vw, 29rem)); }
+  .item > div { border-radius: 24px; overflow: hidden; aspect-ratio: 1; background: var(--sc-surface); }
+  .item img { width: 100%; height: 100%; object-fit: cover; }
+  .item h3 { margin: 1.1rem 0 .3rem; font: 700 var(--sc-t-xl)/1.1 var(--sc-font-display); letter-spacing: -.02em; }
+  .item dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: .25rem 1rem; font-size: var(--sc-t-sm); }
+  .item dt { color: var(--sc-ink-soft); }
+  .item dd { margin: 0; }
+
+  /* act 5: the plate dial */
+  .close { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: clamp(1rem, 5vw, 5rem); padding: 5rem var(--sc-gutter) 3rem; }
+  .close h2 { font-size: var(--sc-t-4xl); }
+  .readout { margin: 1.6rem 0 0; font: 700 var(--sc-t-2xl)/1.05 var(--sc-font-display); letter-spacing: -.02em; min-height: 2.2em; }
+  .readout small { display: block; margin-top: .6rem; font: 400 var(--sc-t-sm)/1.4 var(--sc-font-text); letter-spacing: 0; color: var(--sc-ink-soft); }
+  .close .btn { margin-top: 1.8rem; }
+  .dial { width: min(100%, 62vh); margin-inline: auto; aspect-ratio: 1; cursor: grab; touch-action: pan-y; border-radius: 50%; }
+  .dial svg { width: 100%; height: 100%; overflow: visible; }
+  /* act 5b: streak */
+  .streak__grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: clamp(2rem, 6vw, 6rem); align-items: center; }
+  .streak__grid > div:first-child { display: grid; gap: 1.1rem; justify-items: start; }
+  .streak h2 { max-width: 12ch; }
+  .tag { font: 600 var(--sc-t-xs)/1 var(--sc-font-text); letter-spacing: .12em; text-transform: uppercase; color: var(--sc-accent); }
+  .btn--ghost { background: transparent; color: var(--sc-accent); box-shadow: inset 0 0 0 1px var(--sc-accent); }
+  .btn--ghost:hover { background: rgba(212,255,58,.12); box-shadow: inset 0 0 0 1px var(--sc-accent); }
+  .tally { display: grid; justify-items: center; gap: .6rem; padding: clamp(1.5rem, 4vw, 3rem); border-radius: 28px; background: var(--sc-surface); border: 1px solid var(--line); }
+  .tally__n { font: 800 clamp(7rem, 20vw, 14rem)/.8 var(--sc-font-display); letter-spacing: -.06em; color: var(--sc-accent); padding-top: .06em; }
+  .tally__l { font-weight: 600; }
+  .dots { display: flex; gap: .55rem; }
+  .dots i { width: 1.05rem; height: 1.05rem; border-radius: 50%; background: var(--sc-accent); }
+  .tally__n, .dots i { opacity: 0; }
+  .tally.go .tally__n { animation: jump .75s cubic-bezier(.3,1.6,.5,1) both; }
+  .tally.go .dots i { animation: pop .3s cubic-bezier(.3,1.7,.5,1) both; animation-delay: calc(.7s + var(--i) * 70ms); }
+  @keyframes jump { 0% { opacity: 0; transform: translateY(60%) scale(.5); } 60% { opacity: 1; transform: translateY(-8%) scale(1.08); } 100% { opacity: 1; transform: none; } }
+  @keyframes pop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .tally__n, .dots i { opacity: 1; animation: none !important; } }
+  .tally small { color: var(--sc-ink-soft); font-size: var(--sc-t-xs); }
+
+  /* footer: the original landing footer */
+  .sitefoot { width: 100%; max-width: 1120px; margin-inline: auto; padding: clamp(1.5rem, 5vw, 5rem) var(--sc-gutter) 2rem; }
+  .sitefoot__row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2rem; }
+  .sitefoot__note { max-width: 22rem; margin: 0; color: #A3A6AB; line-height: 1.55; }
+  .sitefoot nav { display: flex; flex-wrap: wrap; column-gap: 1.75rem; }
+  .sitefoot nav a { display: inline-flex; align-items: center; min-height: 44px; color: #D5D7DB; font-weight: 500; text-decoration: none; }
+  .sitefoot nav a:hover { color: var(--sc-ink); }
+  .mesh { position: relative; overflow: hidden; margin-top: 3rem; border-radius: 32px; background: #101112; border: 1px solid var(--line); }
+  .mesh .blob { position: absolute; border-radius: 50%; filter: blur(90px); pointer-events: none; animation: drift 11s ease-in-out infinite; }
+  .mesh .b1 { width: 45%; aspect-ratio: 1; left: -5%; bottom: -40%; background: #D4FF3A; opacity: .55; }
+  .mesh .b2 { width: 50%; aspect-ratio: 1; right: -5%; bottom: -40%; background: #3B6BFF; opacity: .7; animation-duration: 13s; animation-direction: reverse; }
+  .mesh .b3 { width: 40%; aspect-ratio: 1; left: 30%; bottom: -50%; background: #19C3B1; opacity: .5; animation-duration: 9s; }
+  .mesh .ptr { position: absolute; left: 0; top: 0; width: 260px; height: 260px; margin: -130px 0 0 -130px; border-radius: 50%; background: #7A5CFF; opacity: .5; filter: blur(70px); pointer-events: none; will-change: transform; }
+  @keyframes drift { 50% { transform: translate(14%, -12%) scale(1.25); } }
+  @media (prefers-reduced-motion: reduce) { .mesh .blob { animation: none; } }
+  .word { position: relative; margin: 0; text-align: center; user-select: none; font: 800 clamp(120px, 32vw, 400px)/1 var(--sc-font-display); letter-spacing: -.07em; padding: .05em .05em .12em;
+          color: transparent; background: linear-gradient(100deg, #D4FF3A 10%, #7FE3C0 45%, #6B93FF 90%); -webkit-background-clip: text; background-clip: text; }
+  .sitefoot__base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; margin-top: 1.5rem; font-size: .875rem; color: #8C8F95; }
+
+  /* the original landing's follower ring */
+  .ring-cursor { position: fixed; z-index: 70; left: 0; top: 0; width: 40px; height: 40px; margin: -20px 0 0 -20px; border: 1px solid #fff; border-radius: 99px; pointer-events: none; mix-blend-mode: difference; opacity: 0; transition: opacity .3s; }
+  .fine, .fine * { cursor: none !important; }
+
+  @media (max-width: 760px) {
+    .hero__img { height: 74svh; object-position: 68% 50%; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
+    .hero-copy { bottom: 2.4rem; }
+    .hero-copy h1 { font-size: 2.9rem; }
+    .argument { grid-template-columns: 1fr; align-content: center; gap: 1.5rem; padding-top: 5rem; }
+    .ringwrap { width: min(72vw, 42svh); order: -1; }
+    .lines { height: 26svh; }
+    .lines p { font-size: var(--sc-t-2xl); max-width: none; }
+    .lines .last { font-size: var(--sc-t-3xl); }
+    .turn, .close { grid-template-columns: 1fr; }
+    .close { padding-top: 4.5rem; align-content: center; gap: 0; }
+    .dial { width: min(100%, 44vh); order: -1; margin-bottom: 1rem; }
+    .close h2 { font-size: var(--sc-t-3xl); }
+    .readout { margin-top: 1rem; }
+    .streak__grid { grid-template-columns: 1fr; }
+    .sitefoot__row { gap: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<span data-sc-progress></span>
+<div class="sc-grain" aria-hidden="true"></div>
+
+<header class="bar">
+  <a class="mark" href="#top" aria-label="Hissa, back to top">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#F2F3EE" stroke-opacity=".35" stroke-width="2"/><path d="M16 16V4a12 12 0 0 1 10.4 18z" fill="#D4FF3A"/></svg>
+    hissa
+  </a>
+  <a class="btn" href="#join">Explore Hissa</a>
+</header>
+
+<main id="top">
+
+  <!-- 1 · APPETITE: pin. The camera pushes in on the plate as you scroll. -->
+  <section data-sc-act="pin" data-sc-span="1.8" data-sc-drift="#161718">
+    <div data-sc-stage class="hero">
+      <picture>
+        <source media="(max-width: 760px)" srcset="assets/hero-m.webp">
+        <img class="hero__img" src="assets/hero.webp" width="2400" height="1350" fetchpriority="high" alt="An overhead steel thali with roti, chicken karahi, raita and salad on a dark slate table, a lime napkin beside it.">
+      </picture>
+      <div class="sc-scrim sc-scrim--lead" aria-hidden="true"></div>
+      <div class="sc-copy sc-copy--lead hero-copy" data-sc-cue="0 0.8 0">
+        <h1 class="sc-display" data-sc-kinetic="lines">One more roti is <em>fine.</em></h1>
+        <p class="sc-body">Snap your plate. Hissa tells you your portion in roti and katori. Like a friend at the dastarkhwan, not a diet app.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RELIEF: pin + kinetic. The ring fills with the scroll. -->
+  <section data-sc-act="pin" data-sc-span="2.4" data-sc-drift="#202224">
+    <div data-sc-stage class="argument">
+      <div class="lines">
+        <p data-sc-cue="0 0.3 0">Your kitchen counts in <em>roti</em> and katori.</p>
+        <p class="soft" data-sc-cue="0.26 0.58">Not grams. Not points. Not a score to beat.</p>
+        <p data-sc-cue="0.5 0.86 0.2 0.2">Over budget? A lighter plate and a gentle word.</p>
+        <p class="last" data-sc-cue="0.8">Your <em>hissa</em> is your share.</p>
+      </div>
+      <div class="ringwrap" aria-hidden="true">
+        <img src="assets/plate.webp" width="800" height="800" alt="" loading="lazy">
+        <svg class="ring" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="48"/><circle class="fill" cx="50" cy="50" r="48" pathLength="1"/></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · EASE: flow + reveal -->
+  <section id="how" class="sc-section" data-sc-act="flow" data-sc-drift="#161718" style="padding-block: clamp(3rem, 7vw, 6rem)">
+    <div class="sc-wrap turn">
+      <div class="sc-stack" data-sc-in data-sc-stagger="80">
+        <h2 class="sc-display sc-display--lg">Three taps. One plate.</h2>
+        <ol class="steps">
+          <li><b>01 Snap</b><strong>Put your plate in the frame</strong><span>Karahi, biryani, nihari, whatever is on the table. No weighing, no typing.</span></li>
+          <li><b>02 Confirm</b><strong>Tap what's right, fix what's off</strong><span>Hissa asks when it isn't sure. It never pretends to be.</span></li>
+          <li><b>03 Eat</b><strong>Get your hissa for the plate</strong><span>One katori, one and a half roti. Big day? A lighter plate, kindly.</span></li>
+        </ol>
+      </div>
+      <div>
+        <figure class="shot" data-sc-reveal="left" data-sc-reveal-at="0.12 0.6">
+          <img src="assets/angle.webp" width="1600" height="900" alt="A stack of folded rotis on a steel thali, with karahi and raita behind." loading="lazy">
+          <div class="chips"><span class="chip on">Chicken karahi · 1 katori</span><span class="chip">Roti · x5</span></div>
+        </figure>
+        <p class="cap">Sample scan. Portions are estimates.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · CURIOSITY: pan. Crops of the real plate, one label schema. -->
+  <section id="portions" data-sc-act="pan" data-sc-span="2.2" data-sc-drift="#101112">
+    <div data-sc-stage>
+      <div class="rail" data-sc-pan="0.08">
+        <div class="rail__lead sc-stack">
+          <h2 class="sc-display sc-display--md">Katori by katori.</h2>
+          <p class="sc-body">Built for desi home cooking first. Hissa reads the plate and answers in the measures your kitchen already uses.</p>
+        </div>
+        <article class="item"><div data-sc-tilt="5"><img src="assets/crop/karahi.webp" alt="Chicken karahi with ginger and coriander" loading="lazy"></div>
+          <h3>Chicken karahi</h3><dl><dt>Hissa</dt><dd>1 katori</dd><dt>Note</dt><dd>The one to measure</dd></dl></article>
+        <article class="item"><div data-sc-tilt="5"><img src="assets/crop/roti.webp" alt="Folded rotis" loading="lazy"></div>
+          <h3>Roti</h3><dl><dt>Hissa</dt><dd>1 to 2, your call</dd><dt>Note</dt><dd>Always welcome</dd></dl></article>
+        <article class="item"><div data-sc-tilt="5"><img src="assets/crop/raita.webp" alt="Raita with mint" loading="lazy"></div>
+          <h3>Raita</h3><dl><dt>Hissa</dt><dd>1 small katori</dd><dt>Note</dt><dd>Cools the karahi</dd></dl></article>
+        <article class="item"><div data-sc-tilt="5"><img src="assets/crop/salad.webp" alt="Cucumber, tomato and onion salad" loading="lazy"></div>
+          <h3>Salad</h3><dl><dt>Hissa</dt><dd>As much as you like</dd><dt>Note</dt><dd>Fills the plate</dd></dl></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4b · TOGETHER: flow. The streak, the other half of the app. -->
+  <section id="streak" class="sc-section streak" data-sc-act="flow" data-sc-drift="#202224" style="padding-block: clamp(3rem, 7vw, 6rem)">
+    <div class="sc-wrap streak__grid">
+      <div data-sc-in data-sc-stagger="80">
+        <span class="tag">Buddy</span>
+        <h2 class="sc-display sc-display--lg">Log together. Keep one <em>streak.</em></h2>
+        <p class="sc-body">Pair with a friend, a sibling, a spouse. You only see that they logged, never what they ate. A nudge when they forget, no judgement when they do.</p>
+        <a class="btn btn--ghost" href="#join">Bring your buddy</a>
+      </div>
+      <div class="tally" data-sc-reveal="up" data-sc-reveal-at="0.1 0.5" role="img" aria-label="Sample streak: 7 days together, 7 of 7 dots filled">
+        <span class="tally__n" id="n">7</span>
+        <span class="tally__l">days together</span>
+        <span class="dots" id="dots"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i></span>
+        <small>Sample streak</small>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · OWNERSHIP, the peak: pin + the plate dial. Last element on the page. -->
+  <section id="join" data-sc-act="pin" data-sc-span="2.6" data-sc-drift="#161718">
+    <div data-sc-stage class="close">
+      <div>
+        <h2 class="sc-display" data-sc-cue="0.04" data-sc-kinetic="lines">Pull up a chair.</h2>
+        <p class="readout" id="readout" aria-live="polite">&nbsp;</p>
+        <a class="btn" href="#join" data-sc-cue="0.5" data-sc-rise="0">Explore Hissa</a>
+      </div>
+      <div class="dial" id="dial" role="slider" tabindex="0" aria-label="Cut your share of the plate" aria-valuemin="10" aria-valuemax="90" aria-valuenow="40">
+        <svg viewBox="-100 -100 200 200" aria-hidden="true">
+          <circle r="96" fill="#2A2C2F" stroke="#44474C" stroke-width="2"/>
+          <circle r="76" fill="none" stroke="#34373B" stroke-width="1.5"/>
+          <path id="wedge" fill="#D4FF3A" fill-opacity=".92"/>
+          <path id="edge" stroke="#F2F3EE" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <circle r="6" fill="#161718" stroke="#44474C"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="sitefoot" data-sc-in>
+  <div class="sitefoot__row">
+    <p class="sitefoot__note">All numbers in Hissa are estimates. Hissa isn't medical advice.</p>
+    <nav aria-label="Footer">
+      <a href="#how">How it works</a><a href="#portions">Portions</a><a href="#streak">Buddy</a><a href="#top">Privacy</a>
+    </nav>
+  </div>
+  <div class="mesh" id="mesh">
+    <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><i class="ptr" id="ptr"></i>
+    <p class="word" aria-hidden="true">hissa</p>
+  </div>
+  <div class="sitefoot__base"><span>&copy; 2026 Hissa</span><span>Made for the dastarkhwan</span></div>
+</footer>
+
+<script src="scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.body);</script>
+<script>
+/* The plate dial: share f (0.1 to 0.9 of the plate) -> roti and katori. Scroll sweeps it until the visitor takes over. */
+(function () {
+  var dial = document.getElementById('dial'), wedge = document.getElementById('wedge'), edge = document.getElementById('edge'),
+      out = document.getElementById('readout'), act = document.getElementById('join'), touched = false, f = 0.1;
+  var R = 96, half = function (n) { return Math.round(n * 2) / 2; };
+  var word = function (n, one, many) { return (n % 1 ? (n < 1 ? 'half' : Math.floor(n) + '½') : n) + ' ' + (n === 1 ? one : many); };
+  function pt(a) { return [R * Math.sin(a), -R * Math.cos(a)]; }
+  function draw() {
+    var a = f * Math.PI * 2, p = pt(a);
+    wedge.setAttribute('d', 'M0 0V' + -R + 'A' + R + ' ' + R + ' 0 ' + (f > .5 ? 1 : 0) + ' 1 ' + p[0].toFixed(2) + ' ' + p[1].toFixed(2) + 'Z');
+    edge.setAttribute('d', 'M0 0L' + p[0].toFixed(2) + ' ' + p[1].toFixed(2));
+    var roti = Math.max(.5, half(f * 4)), kat = Math.max(.5, half(f * 2));
+    out.innerHTML = 'About ' + word(kat, 'katori', 'katori') + ', ' + word(roti, 'roti', 'roti') + '.<small>Your share of the plate, an estimate.</small>';
+    dial.setAttribute('aria-valuenow', Math.round(f * 100));
+    dial.setAttribute('aria-valuetext', out.textContent);
+  }
+  function set(v) { f = Math.min(.9, Math.max(.1, v)); draw(); }
+  function fromPointer(e) {
+    var r = dial.getBoundingClientRect(), x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
+    var a = Math.atan2(x, -y); if (a < 0) a += Math.PI * 2; touched = true; set(a / (Math.PI * 2));
+  }
+  dial.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse' || e.buttons) fromPointer(e); });
+  dial.addEventListener('click', fromPointer);
+  dial.addEventListener('keydown', function (e) {
+    var d = { ArrowRight: .05, ArrowUp: .05, ArrowLeft: -.05, ArrowDown: -.05 }[e.key];
+    if (d) { e.preventDefault(); touched = true; set(f + d); }
+  });
+  (function tick() {
+    if (!touched) { var p = parseFloat(act.style.getPropertyValue('--sc-p')) || 0; set(.1 + .3 * Math.min(1, p / .45)); }
+    requestAnimationFrame(tick);
+  })();
+})();
+</script>
+<script>
+/* Streak: the 7 jumps in, then the dots pop one by one. Replays each time it scrolls into view. */
+(function () {
+  var t = document.querySelector('.tally');
+  new IntersectionObserver(function (e) { e.forEach(function (x) { t.classList.toggle('go', x.isIntersecting); }); }, { threshold: .55 }).observe(t);
+})();
+/* Original landing cursor: a 40px follower ring that grows over links and buttons. Fine pointers only. */
+(function () {
+  if (!matchMedia('(pointer: fine)').matches) return;
+  var el = document.createElement('div'); el.className = 'ring-cursor'; el.setAttribute('aria-hidden', 'true'); document.body.appendChild(el);
+  document.documentElement.classList.add('fine');
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches, mx = -100, my = -100, rx = -100, ry = -100, sc = 1, cur = 1;
+  addEventListener('pointermove', function (e) {
+    mx = e.clientX; my = e.clientY; el.style.opacity = 1;
+    sc = e.target.closest && e.target.closest('a, button, [role="button"], [role="link"]') ? 72 / 40 : 1;
+  });
+  document.addEventListener('mouseout', function (e) { if (!e.relatedTarget) el.style.opacity = 0; });
+  (function tick() {
+    rx = reduced ? mx : rx + (mx - rx) * .2; ry = reduced ? my : ry + (my - ry) * .2; cur += (sc - cur) * .2;
+    el.style.transform = 'translate(' + rx + 'px,' + ry + 'px) scale(' + cur + ')';
+    requestAnimationFrame(tick);
+  })();
+  /* footer: the violet blob eases toward the pointer while it is over the panel */
+  var mesh = document.getElementById('mesh'), ptr = document.getElementById('ptr'), px = null, py, tx, ty;
+  function place() { if (px == null) { var r = mesh.getBoundingClientRect(); px = tx = r.width / 2; py = ty = r.height * .6; } }
+  addEventListener('pointermove', function (e) {
+    var r = mesh.getBoundingClientRect(); place();
+    if (e.clientY < r.top || e.clientY > r.bottom) return;
+    tx = Math.min(r.width, Math.max(0, e.clientX - r.left)); ty = Math.min(r.height, Math.max(0, e.clientY - r.top));
+  });
+  (function loop() { place(); px += (tx - px) * (reduced ? 1 : .12); py += (ty - py) * (reduced ? 1 : .12); ptr.style.transform = 'translate(' + px + 'px,' + py + 'px)'; requestAnimationFrame(loop); })();
+})();
+</script>
+</body>
+</html>
