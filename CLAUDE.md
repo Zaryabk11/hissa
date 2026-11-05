@@ -5,6 +5,7 @@ Hissa is a portion coach app for desi households. See `docs/PRD.md` and `docs/ar
 ## Read first
 
 - Current status and next steps: `docs/superpowers/plans/2026-11-02-v2-status.md`. Read it first when you start work.
+- For mobile UI changes, start at `docs/design/mobile/README.md`; its approved visual system and refresh plan replace the older graphite/lime design handoff. The screens already exist: preserve their behavior.
 - If `graphify-out/GRAPH_REPORT.md` exists, read it before answering architecture questions (the graph is git-ignored; rebuild the code graph with `graphify update .`).
 - Write only what the task needs. No extra features, options or abstractions.
 

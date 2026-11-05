@@ -1,0 +1,77 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@700&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Figtree:wght@500;600;700&display=swap');
+.demo{position:relative;height:620px;border:4px solid #1a0a05;border-radius:12px;overflow:hidden;font-family:Figtree,system-ui;color:#1a0a05;background:#F4B41A}
+.sc{position:absolute;inset:0;overflow-y:auto}
+.track{height:3400px;position:relative}
+.stage{position:sticky;top:0;height:620px;overflow:hidden}
+.stub{position:absolute;inset:0;background:#F4B41A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.stub .u{font:700 150px/1.5 'Noto Nastaliq Urdu';color:#fff;text-shadow:5px 5px 0 #1a0a05,10px 10px 0 #0B6B3A,15px 15px 0 #C8102E;height:210px}
+.stub h1{font:800 34px 'Bricolage Grotesque';letter-spacing:-.03em;margin:0}
+.iris{position:absolute;left:50%;top:52%;width:400px;height:400px;margin:-200px 0 0 -200px;border-radius:50%;background:#0B6B3A;transform:scale(0);will-change:transform}
+.idea{position:absolute;inset:0;color:#FFF6DD}
+.hl{position:absolute;left:5%;top:17%;width:26%;font:800 clamp(34px,4.6vw,56px)/.96 'Bricolage Grotesque';letter-spacing:-.035em}
+.hl span{display:inline-block;opacity:0;transform:translateY(24px) rotate(2deg);transition:opacity .35s,transform .5s cubic-bezier(.3,1.5,.5,1);margin-right:.22em}
+.hl span.in{opacity:1;transform:none}
+.plateWrap{position:absolute;left:50%;top:52%;width:520px;height:520px;margin:-260px 0 0 -260px;filter:drop-shadow(0 10px 0 rgba(0,0,0,.25));will-change:transform,opacity}
+.wd{position:absolute;inset:0;will-change:transform}
+.wd img{position:absolute;inset:0;width:100%;height:100%;display:block;clip-path:ellipse(38.2% 35.4% at 50% 50.8%)}
+.card{position:absolute;width:200px;background:#FFF6DD;color:#1a0a05;border:3px solid #1a0a05;border-radius:14px;padding:11px 13px;box-shadow:4px 4px 0 #1a0a05;opacity:0;transform:translateY(16px) rotate(var(--r));transition:opacity .4s,transform .55s cubic-bezier(.3,1.5,.5,1)}
+.card.in{opacity:1;transform:rotate(var(--r))}
+.card b{display:block;font:800 17px/1.1 'Bricolage Grotesque';letter-spacing:-.02em;margin-bottom:4px}
+.card span{font:500 13px/1.35 Figtree}
+.c1{left:74%;top:12%;--r:2deg}.c2{left:73%;top:63%;--r:-2deg}.c3{left:4%;top:62%;--r:-2deg}
+.mnav{position:absolute;top:12px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 22px;z-index:20;pointer-events:none}
+.mnav .u{font:700 26px/1 'Noto Nastaliq Urdu';color:#fff;text-shadow:2px 2px 0 #1a0a05,4px 4px 0 #C8102E;padding-top:10px}
+.mnav .p{display:flex;gap:2px;background:#1a0a05;border-radius:99px;padding:6px;font:600 15px Figtree;color:#FFF6DD}
+.mnav .p a{padding:10px 18px;border-radius:99px}
+.mnav .p a.on{background:linear-gradient(100deg,#0B6B3A,#C8102E);color:#fff}
+.cta{background:#0B6B3A;color:#FFF6DD;font:700 14px Figtree;padding:11px 20px;border-radius:99px;box-shadow:0 3px 0 #1a0a05;border:2px solid #1a0a05}
+.hint{position:absolute;left:50%;bottom:12px;translate:-50% 0;background:#1a0a05;color:#FFF6DD;font:600 13px Figtree;padding:7px 14px;border-radius:99px;z-index:21;pointer-events:none;transition:opacity .3s}
+.note{font:14px/1.5 system-ui;margin:10px 4px 0;color:#555}.note b{color:#111}
+@media (prefers-reduced-motion:reduce){.hl span,.card{transition:none}}
+</style>
+
+<h2>The idea: the plate divides</h2>
+<p class="subtitle">Scroll inside the window. The saffron hero is wiped by a green iris, the painted thali lands, then splits into three hissas that each carry one idea.</p>
+
+<div class="demo" id="demo">
+  <div class="mnav"><span class="u">حصہ</span><div class="p"><a>Buddy</a><a class="on">How it works</a><a>Features</a><a>FAQ</a></div><span class="cta">Get Hissa</span></div>
+  <div class="sc" id="sc"><div class="track" id="tr"><div class="stage">
+    <div class="stub"><div class="u">حصہ</div><h1>One more roti is fine.</h1></div>
+    <div class="iris" id="iris"></div>
+    <div class="idea" id="idea">
+      <div class="hl" id="hl"><span>Your</span><span>hissa</span><span>is</span><span>your</span><span>share.</span></div>
+      <div class="plateWrap" id="pw"></div>
+      <div class="card c1"><b>Portions, not points</b><span>Hissa speaks in katori and roti, the way your kitchen already does.</span></div>
+      <div class="card c2"><b>Honest about guessing</b><span>Every number is an estimate, and Hissa asks when it is not sure.</span></div>
+      <div class="card c3"><b>Kind on a heavy day</b><span>Over budget? You get a lighter plate and a gentle word, never a red warning.</span></div>
+    </div>
+  </div></div></div>
+  <div class="hint" id="hint">Scroll down</div>
+</div>
+<p class="note"><b>Beats:</b> 1) the green iris grows out of the hero and covers it. 2) the headline lands word by word while the thali drops in with a small turn. 3) the plate splits into three portions that slide apart along their own direction, and each cards pops in beside its slice. 4) hold, then the slices become the three people in the Buddy section. The slice split follows your scroll, so you can scrub it backward too.</p>
+
+<script>
+(function(){
+  var sc=document.getElementById('sc'),tr=document.getElementById('tr'),iris=document.getElementById('iris'),idea=document.getElementById('idea'),pw=document.getElementById('pw'),hint=document.getElementById('hint');
+  var spans=[].slice.call(document.querySelectorAll('#hl span')),cards=[].slice.call(document.querySelectorAll('.card'));
+  var CX=50,CY=50.8,R=150;
+  function P(a){var r=a*Math.PI/180;return (CX+R*Math.cos(r)).toFixed(1)+'% '+(CY+R*Math.sin(r)).toFixed(1)+'%'}
+  var wedges=[[-105,15],[15,135],[135,255]].map(function(w){
+    var el=document.createElement('div');el.className='wd';el.style.clipPath='polygon('+CX+'% '+CY+'%,'+P(w[0])+','+P((w[0]+w[1])/2)+','+P(w[1])+')';
+    var im=new Image();im.src='./assets/thali-1024.jpg';el.appendChild(im);pw.appendChild(el);return {el:el,a:(w[0]+w[1])/2}});
+  function ease(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)}
+  function upd(){
+    var p=sc.scrollTop/(3400-620);hint.style.opacity=p<.02?1:0;
+    var ir=ease(p/.16);iris.style.transform='scale('+(ir*3.6)+')';
+    var land=ease((p-.12)/.16);idea.style.opacity=ir>.55?1:0;
+    pw.style.opacity=land;pw.style.transform='scale('+(.55+.45*land)+') rotate('+((1-land)*-18)+'deg)';
+    spans.forEach(function(s,i){s.classList.toggle('in',p>.16+i*.018)});
+    var d=ease((p-.34)/.3);
+    wedges.forEach(function(w,i){var r=w.a*Math.PI/180,dist=d*96;
+      w.el.style.transform='translate('+(Math.cos(r)*dist)+'px,'+(Math.sin(r)*dist)+'px) rotate('+(d*(i%2?-5:5))+'deg)'});
+    cards.forEach(function(c,i){c.classList.toggle('in',p>.40+i*.07)});
+  }
+  sc.addEventListener('scroll',upd);upd();
+})();
+</script>

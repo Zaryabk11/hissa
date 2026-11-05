@@ -31,3 +31,5 @@ graphify-out/
 .worktrees/
 
 /video
+
+.playwright-mcp

@@ -1,0 +1,220 @@
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@700&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Figtree:wght@500;600;700&display=swap');
+.pick{border:3px solid transparent;border-radius:14px;margin:0 0 26px;cursor:pointer;position:relative;padding:3px}
+.pick.selected{border-color:#E8A317}
+.tag{position:absolute;top:-12px;left:16px;background:#111;color:#fff;font:700 12px system-ui;padding:4px 10px;border-radius:99px;z-index:9}
+.hp{position:relative;aspect-ratio:16/9.3;background:#F4B41A;border:4px solid #1a0a05;border-radius:12px;overflow:hidden;font-family:Figtree,system-ui;color:#1a0a05}
+.nav{position:absolute;top:14px;left:22px;right:22px;display:flex;justify-content:space-between;align-items:center;font:600 14px Figtree;z-index:6}
+.nav .l{display:flex;gap:20px}
+.nav .u{font:700 26px/1 'Noto Nastaliq Urdu';color:#fff;text-shadow:2px 2px 0 #1a0a05,4px 4px 0 #C8102E;padding-top:10px}
+.cta{display:inline-block;background:#0B6B3A;color:#FFF6DD;font:700 15px Figtree;padding:12px 22px;border-radius:99px;box-shadow:0 3px 0 #1a0a05}
+h1{font:800 min(4.1vw,50px)/.98 'Bricolage Grotesque';letter-spacing:-.03em;margin:0 0 12px}
+.hp p{font:500 15px/1.45 Figtree;max-width:38ch;margin:0 0 16px}
+canvas{display:block;width:100%;height:auto}
+.chip{position:absolute;z-index:5;background:#FFF6DD;border:3px solid #1a0a05;border-radius:14px;padding:8px 12px 8px 8px;font:700 13px/1.25 Figtree;box-shadow:4px 4px 0 #1a0a05;display:flex;gap:9px;align-items:center}
+.chip i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:800 14px 'Bricolage Grotesque';color:#fff;font-style:normal;flex:none}
+.chip small{display:block;font:500 11px Figtree;color:#5a4630}
+.note{font:14px/1.5 system-ui;margin:10px 4px 0;color:#555}.note b{color:#111}
+/* shared: 15% smaller painting, right-aligned text */
+.o1 .wm{position:absolute;right:1.5%;top:15%;width:50%;z-index:1}
+.o1 .copy{position:absolute;right:4.5%;bottom:6%;width:41%;z-index:3;display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.o1 .copy p{margin-left:auto}
+.o1 .art{position:absolute;left:-7%;bottom:-9%;width:52.7%;z-index:2;translate:80px -10px}
+.o1 .nav .l{margin-left:8%}
+.chip{opacity:0;animation:pin .6s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes pin{from{opacity:0;translate:0 14px;scale:.7}to{opacity:1;translate:0 0;scale:1}}
+.pin::after{content:'';position:absolute;left:22px;bottom:-11px;width:14px;height:14px;background:#FFF6DD;border-right:3px solid #1a0a05;border-bottom:3px solid #1a0a05;transform:rotate(45deg)}
+.fp{margin:-10px 0 0 80px;left:30%;top:68%;transform:rotate(-2deg);animation-delay:3.2s}
+/* A: tray top-left */
+.a1{left:2.5%;top:12%;transform:rotate(-2deg);animation-delay:2.4s}
+.a2{left:15%;top:22%;transform:rotate(2deg);animation-delay:2.9s}
+/* B: feed floating up from the steam */
+.chip.feed{margin:-10px 0 0 80px;left:5%;top:38%;opacity:0;animation:feed 9s ease-in-out infinite}
+@keyframes feed{0%{opacity:0;translate:0 24px;scale:.8}8%{opacity:1;translate:0 0;scale:1}70%{opacity:1;translate:90px -150px}88%,100%{opacity:0;translate:120px -200px;scale:.95}}
+@media (prefers-reduced-motion:reduce){.chip{animation:none;opacity:1}.chip.feed{display:none}}
+
+.o1 .nav .l{margin-left:0}
+.nav{top:12px}
+.pill{position:relative;display:flex;gap:2px;background:#1a0a05;border-radius:99px;padding:6px}
+.pill .blobs{position:absolute;inset:0;filter:url(#goo);pointer-events:none}
+.pill .b{position:absolute;left:0;top:6px;height:calc(100% - 12px);border-radius:99px;background:linear-gradient(100deg,#0B6B3A 0%,#C8102E 100%);will-change:transform,width}
+.pill .b2{top:10px;height:calc(100% - 20px);background:linear-gradient(100deg,#0B6B3A 0%,#C8102E 100%)}
+.pill a{position:relative;z-index:2;padding:10px 18px;border-radius:99px;font:600 15px Figtree;color:#FFF6DD;text-decoration:none}
+.pill a.on{color:#fff}
+
+.demo{position:relative;height:620px;border:4px solid #1a0a05;border-radius:12px;overflow:hidden;background:#F4B41A}
+.sc{position:absolute;inset:0;overflow-y:auto}
+.track{height:4000px;position:relative}
+.stage{position:sticky;top:0;height:620px;overflow:hidden}
+.iris{position:absolute;left:50%;top:52%;width:400px;height:400px;margin:-200px 0 0 -200px;border-radius:50%;background:#0B6B3A;transform:scale(0);will-change:transform}
+.idea{position:absolute;inset:0;color:#FFF6DD}
+.hl{position:absolute;left:5%;top:17%;width:26%;font:800 clamp(34px,4.6vw,56px)/.96 'Bricolage Grotesque';letter-spacing:-.035em}
+.hl span{display:inline-block;opacity:0;transform:translateY(24px) rotate(2deg);transition:opacity .35s,transform .5s cubic-bezier(.3,1.5,.5,1);margin-right:.22em}
+.hl span.in{opacity:1;transform:none}
+.plateWrap{position:absolute;left:50%;top:52%;width:520px;height:520px;margin:-260px 0 0 -260px;filter:drop-shadow(0 10px 0 rgba(0,0,0,.25));will-change:transform,opacity}
+.wd{position:absolute;inset:0;will-change:transform}
+.wd img{position:absolute;inset:0;width:100%;height:100%;display:block;clip-path:ellipse(38.2% 35.4% at 50% 50.8%)}
+.card{position:absolute;width:200px;background:#FFF6DD;color:#1a0a05;border:3px solid #1a0a05;border-radius:14px;padding:11px 13px;box-shadow:4px 4px 0 #1a0a05;opacity:0;transform:translateY(16px) rotate(var(--r));transition:opacity .4s,transform .55s cubic-bezier(.3,1.5,.5,1)}
+.card.in{opacity:1;transform:rotate(var(--r))}
+.card b{display:block;font:800 17px/1.1 'Bricolage Grotesque';letter-spacing:-.02em;margin-bottom:4px}
+.card span{font:500 13px/1.35 Figtree}
+.c1{left:74%;top:12%;--r:2deg}.c2{left:73%;top:63%;--r:-2deg}.c3{left:4%;top:62%;--r:-2deg}
+
+.iris{z-index:8}.idea{z-index:9}
+.hint{position:absolute;left:50%;bottom:12px;translate:-50% 0;background:#1a0a05;color:#FFF6DD;font:600 13px Figtree;padding:7px 14px;border-radius:99px;z-index:31;pointer-events:none;transition:opacity .3s}
+.demo .nav{top:12px}
+#hB .wm{z-index:12;will-change:transform,opacity;transform-origin:50% 50%}
+</style>
+<svg width="0" height="0" style="position:absolute"><filter id="goo"><feGaussianBlur in="SourceGraphic" stdDeviation="7"/><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"/></filter></svg>
+<h2>Hero to The idea: with the cube-chop wordmark</h2>
+<p class="subtitle">Scroll slowly, then fast. Watch the wordmark smear with your scroll speed, the painting slide away, and the green iris pour out of the roti chip.</p>
+<div class="demo" id="demo">
+  <div class="nav" style="z-index:30"><span class="u">حصہ</span>
+    <nav class="pill" id="pill"><div class="blobs"><div class="b b1"></div><div class="b b2"></div></div><a href="#" class="on">Buddy</a><a href="#">How it works</a><a href="#">Features</a><a href="#">FAQ</a></nav>
+    <span class="cta" style="padding:11px 20px;font-size:14px">Get Hissa</span></div>
+  
+  <div class="sc" id="sc"><div class="track"><div class="stage" id="stage">
+    <div class="hp o1" id="hB" style="position:absolute;inset:0;aspect-ratio:auto;border:0;border-radius:0">
+  <div class="wm"><canvas id="wmB" width="1200" height="520"></canvas></div>
+  <div class="art"><canvas id="artB" width="1024" height="1024"></canvas></div>
+  <div id="chips" style="position:absolute;inset:0;z-index:5;pointer-events:none"><div class="chip pin fp"><i style="background:#0B6B3A">&#127835;</i><span>1&frac12; roti, 1 katori<small>about 520 kcal &middot; estimate</small></span></div>
+  <div class="chip feed" style="animation-delay:0s"><i style="background:#E5338A">A</i><span>Ayesha logged lunch<small>streak 12 days</small></span></div>
+  <div class="chip feed" style="animation-delay:3s"><i style="background:#C8102E">B</i><span>Bilal cheered your plate</span></div>
+  <div class="chip feed" style="animation-delay:6s"><i style="background:#7A5CFF">Z</i><span>Zara joined your table</span></div>
+  </div>
+  <div class="copy"><h1>One more roti is fine.</h1><p>Snap your plate. Hissa tells you your portion in roti and katori. Cook, eat and cheer on your family and friends.</p><span class="cta">Get Hissa</span></div>
+</div>
+    <div class="iris" id="iris"></div>
+    <div class="idea" id="idea">
+      <div class="hl" id="hl"><span>Your</span><span>hissa</span><span>is</span><span>your</span><span>share.</span></div>
+      <div class="plateWrap" id="pw"></div>
+      <div class="card c1"><b>Portions, not points</b><span>Hissa speaks in katori and roti, the way your kitchen already does.</span></div>
+      <div class="card c2"><b>Honest about guessing</b><span>Every number is an estimate, and Hissa asks when it is not sure.</span></div>
+      <div class="card c3"><b>Kind on a heavy day</b><span>Over budget? You get a lighter plate and a gentle word, never a red warning.</span></div>
+    </div>
+  </div></div></div>
+  <div class="hint" id="hint">Scroll down</div>
+</div>
+<p class="note"><b>What is real here:</b> the live liquid wordmark, the painted dish with steam, the chips and the nav are the locked hero. Scroll speed pushes the same displacement field the cursor uses, so scrolling smears حصہ. The painting and chips slide out left, the copy drifts right, the iris grows from the roti chip, and once the hero is fully covered its WebGL pauses.</p>
+<script>
+
+function GL(cv,fs){var gl=cv.getContext('webgl',{premultipliedAlpha:true,alpha:true});
+  function sh(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o}
+  var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,'attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0.,1.);}'));
+  gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);gl.useProgram(p);
+  var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  var a=gl.getAttribLocation(p,'a');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+  return {gl:gl,p:p,tex:function(unit,src,w,h,data){var t=gl.createTexture();gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,t);
+    [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER].forEach(function(k){gl.texParameteri(gl.TEXTURE_2D,k,gl.LINEAR)});
+    [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T].forEach(function(k){gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE)});
+    if(src)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);return t},u:function(n){return gl.getUniformLocation(p,n)}}}
+
+
+function art(cv,host){
+  var g=GL(cv,'precision highp float;uniform sampler2D uT;uniform float t;uniform vec2 m;uniform vec3 bg;varying vec2 v;'+
+  'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}'+
+  'float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}'+
+  'void main(){vec2 uv=v;'+
+  'float steam=smoothstep(.40,.52,v.y)*smoothstep(.95,.7,v.y)*smoothstep(.12,.3,v.x)*smoothstep(.75,.55,v.x);'+
+  'uv.x+=(n(vec2(v.y*6.,t*.5))-.5)*.035*steam;uv.y-=(n(vec2(v.x*5.+t*.3,v.y*4.-t*.6))-.5)*.02*steam;'+
+  'float sim=smoothstep(.28,.36,v.y)*smoothstep(.62,.5,v.y)*smoothstep(.1,.2,v.x)*smoothstep(.8,.65,v.x);'+
+  'uv+=(vec2(n(v*40.+t*1.3),n(v*40.-t*1.1))-.5)*.0035*sim;uv+=(m-.5)*vec2(.014,-.014)*(1.-steam*.3);'+
+  'vec3 c=texture2D(uT,uv).rgb;float d=distance(c,bg);float a=smoothstep(.11,.30,d);'+
+  'a=max(a,smoothstep(.10,.30,c.b-bg.b)*.7*smoothstep(.38,.5,v.y));gl_FragColor=vec4(c*a,a);}'),gl=g.gl;
+  var mx=.5,my=.5,tx=.5,ty=.5,t0=performance.now(),tl=g.u('t'),ml=g.u('m'),bl=g.u('bg');
+  host.addEventListener('pointermove',function(e){var r=cv.getBoundingClientRect();tx=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));ty=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))});
+  var img=new Image();img.onload=function(){
+    var c2=document.createElement('canvas');c2.width=c2.height=64;var x=c2.getContext('2d');x.drawImage(img,0,0,64,64);
+    var px=[[4,4],[58,4],[4,58],[58,58],[32,3],[3,32]].map(function(q){return x.getImageData(q[0],q[1],1,1).data});var bg=[0,0,0];px.forEach(function(d){bg[0]+=d[0];bg[1]+=d[1];bg[2]+=d[2]});
+    gl.uniform3f(bl,bg[0]/px.length/255,bg[1]/px.length/255,bg[2]/px.length/255);
+    g.tex(0,img);gl.uniform1i(g.u('uT'),0);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+    (function loop(){requestAnimationFrame(loop);if(window.__pause)return;mx+=(tx-mx)*.06;my+=(ty-my)*.06;gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform1f(tl,(performance.now()-t0)/1000);gl.uniform2f(ml,mx,my);gl.viewport(0,0,1024,1024);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)})()};
+  img.src='./assets/karahi-1024.jpg';
+}
+
+
+async function cubes(cv){
+  var W=cv.width,H=cv.height;
+  try{await document.fonts.load('700 400px "Noto Nastaliq Urdu"','حصہ')}catch(e){}
+  var src=document.createElement('canvas');src.width=W;src.height=H;var x=src.getContext('2d',{willReadFrequently:true});x.textAlign='center';x.direction='rtl';x.lineJoin='round';x.font='700 400px "Noto Nastaliq Urdu"';
+  [[22,22,'#C8102E',32],[14,14,'#0B6B3A',32],[7,7,'#1a0a05',28],[0,0,'#ffffff',3]].forEach(function(l){x.fillStyle=x.strokeStyle=l[2];x.lineWidth=l[3];x.strokeText('حصہ',W/2-30+l[0],H*.74+l[1]);x.fillText('حصہ',W/2-30+l[0],H*.74+l[1])});
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches){cv.getContext('2d').drawImage(src,0,0);return}
+  var gl=cv.getContext('webgl',{premultipliedAlpha:true,alpha:true});
+  function sh(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o}
+  var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,'attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0.,1.);}'));
+  gl.attachShader(p,sh(gl.FRAGMENT_SHADER,'precision highp float;uniform sampler2D uT;uniform vec2 m,res;uniform float act;varying vec2 v;'+
+   'float h(vec2 q){return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453);}'+
+   'void main(){vec2 p=v*res;float s=240.;vec2 c=vec2(0.);'+
+   'for(int L=0;L<5;L++){c=(floor(p/s)+.5)*s;if(L==3||distance(c,m)>=1.5*s)break;s*=.5;}'+
+   'float d=distance(c,m);float i=exp(-(d*d)/(140.*140.))*act;'+
+   'float gap=.03*act+.26*i;float ang=(h(c+s)-.5)*.5*i;vec2 jit=vec2(h(c*1.7+3.),h(c*2.3+9.))-.5;'+
+   'vec2 q=(p-c)/s-jit*gap*.5;float cs=cos(-ang),sn=sin(-ang);q=vec2(cs*q.x-sn*q.y,sn*q.x+cs*q.y)/(1.-gap);'+
+   'float e=max(abs(q.x),abs(q.y));float a=1.-smoothstep(.5-1.5/s,.5,e);a=mix(1.,a,smoothstep(.012,.07,gap));'+
+   'vec2 uv=(c+q*s)/res;if(a<=0.){gl_FragColor=vec4(0.);return;}gl_FragColor=texture2D(uT,clamp(uv,.001,.999))*a;}'));
+  gl.linkProgram(p);gl.useProgram(p);
+  var buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  var al=gl.getAttribLocation(p,'a');gl.enableVertexAttribArray(al);gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
+  var t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);[gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER].forEach(function(k){gl.texParameteri(gl.TEXTURE_2D,k,gl.LINEAR)});[gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T].forEach(function(k){gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE)});gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);
+  gl.uniform1i(gl.getUniformLocation(p,'uT'),0);gl.uniform2f(gl.getUniformLocation(p,'res'),W,H);
+  var um=gl.getUniformLocation(p,'m'),ua=gl.getUniformLocation(p,'act');
+  gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+  function near(cx,cy,r){var x0=Math.max(0,Math.floor(cx-r)),y0=Math.max(0,Math.floor(cy-r)),x1=Math.min(W,Math.ceil(cx+r)),y1=Math.min(H,Math.ceil(cy+r));if(x1<=x0||y1<=y0)return false;
+    var d=x.getImageData(x0,y0,x1-x0,y1-y0).data,w=x1-x0;for(var j=0;j<y1-y0;j++)for(var i=0;i<w;i++){if(d[(j*w+i)*4+3]>24){var dx=x0+i-cx,dy=y0+j-cy;if(dx*dx+dy*dy<=r*r)return true}}return false}
+  var mx=.5,my=.5,tx=.5,ty=.5,act=0,tact=0,user=false,t0=performance.now();
+  cv.addEventListener('pointermove',function(e){user=true;var r=cv.getBoundingClientRect();tx=(e.clientX-r.left)/r.width;ty=1-(e.clientY-r.top)/r.height;tact=near(tx*W,(1-ty)*H,5*W/r.width)?1:0});
+  cv.addEventListener('pointerleave',function(){tact=0});
+  (function loop(){requestAnimationFrame(loop);if(window.__pause)return;var tt=(performance.now()-t0)/1000;
+    if(!user){if(tt<3.2){tx=.18+.64*(tt/3.2);ty=.5;tact=near(tx*W,(1-ty)*H,7)?1:0}else tact=0}
+    mx+=(tx-mx)*.18;my+=(ty-my)*.18;act+=(tact-act)*.1;
+    gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform2f(um,mx*W,my*H);gl.uniform1f(ua,act);gl.viewport(0,0,W,H);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)})();
+}
+
+art(document.getElementById('artB'),document.getElementById('hB'));cubes(document.getElementById('wmB'));
+
+(function(){
+  var nav=document.getElementById('pill');var ls=[].slice.call(nav.querySelectorAll('a'));var b1=nav.querySelector('.b1'),b2=nav.querySelector('.b2');
+  function tg(a){var r=a.getBoundingClientRect(),n=nav.getBoundingClientRect();return{x:r.left-n.left,w:r.width}}
+  var t=tg(ls[0]),p=Object.assign({},t),q=Object.assign({},t);
+  ls.forEach(function(a){a.addEventListener('pointerenter',function(){t=tg(a);ls.forEach(function(l){l.classList.toggle('on',l===a)})});a.addEventListener('click',function(e){e.preventDefault()})});
+  (function loop(){requestAnimationFrame(loop);p.x+=(t.x-p.x)*.2;p.w+=(t.w-p.w)*.2;q.x+=(t.x-q.x)*.08;q.w+=(t.w-q.w)*.08;
+    b1.style.transform='translateX('+p.x+'px)';b1.style.width=p.w+'px';b2.style.transform='translateX('+q.x+'px)';b2.style.width=q.w+'px'})();
+})();
+
+(function(){
+  var sc=document.getElementById('sc'),stage=document.getElementById('stage'),iris=document.getElementById('iris'),idea=document.getElementById('idea'),pw=document.getElementById('pw'),hint=document.getElementById('hint');
+  var art=document.querySelector('#hB .art'),copy=document.querySelector('#hB .copy'),kids=[].slice.call(copy.children),wm=document.querySelector('#hB .wm'),chips=document.getElementById('chips'),wmEl=document.querySelector('#hB .wm');
+  var spans=[].slice.call(document.querySelectorAll('#hl span')),cards=[].slice.call(document.querySelectorAll('.card'));
+  var CX=50,CY=50.8,R=150;
+  function P(a){var r=a*Math.PI/180;return (CX+R*Math.cos(r)).toFixed(1)+'% '+(CY+R*Math.sin(r)).toFixed(1)+'%'}
+  var wedges=[[-105,15],[15,135],[135,255]].map(function(w){
+    var el=document.createElement('div');el.className='wd';el.style.clipPath='polygon('+CX+'% '+CY+'%,'+P(w[0])+','+P((w[0]+w[1])/2)+','+P(w[1])+')';
+    var im=new Image();im.src='./assets/thali-1024.jpg';el.appendChild(im);pw.appendChild(el);return {el:el,a:(w[0]+w[1])/2}});
+  function ease(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)}
+  var ox=0,oy=0,wcx=0,wcy=0;
+  function origin(){var c=document.querySelector('#hB .fp').getBoundingClientRect(),s=stage.getBoundingClientRect();ox=c.left-s.left+c.width/2;oy=c.top-s.top+c.height/2;iris.style.left=ox+'px';iris.style.top=oy+'px';wcx=wm.offsetLeft+wm.offsetWidth/2;wcy=wm.offsetTop+wm.offsetHeight/2}
+  setTimeout(origin,600);setTimeout(origin,4200);
+  var last=0,TOT=4000-620;
+  function upd(){
+    var y=sc.scrollTop,dy=y-last;last=y;var p=y/TOT;hint.style.opacity=p<.02?1:0;
+    window.__pause=p>.36;
+    var out=ease(p/.2);
+    art.style.translate=(80-out*1100)+'px '+(-10+out*30)+'px';art.style.rotate=(-out*8)+'deg';
+    var tx=ease(p/.16);kids[0].style.transform='translateY('+(-tx*260)+'px)';kids[1].style.transform='translateY('+(-tx*170)+'px)';kids[2].style.transform='translateY('+(-tx*90)+'px)';copy.style.opacity=1-ease(p/.15);
+    wm.style.transform='translate('+((ox-wcx)*out)+'px,'+((oy-wcy)*out)+'px) scale('+(1-.45*out)+')';wm.style.opacity=1-ease((p-.2)/.1);
+    chips.style.opacity=1-ease(p/.08);
+    var ir=ease((p-.12)/.2);iris.style.transform='scale('+(ir*4.2)+')';
+    idea.style.opacity=ir>.85?1:0;
+    var land=ease((p-.28)/.16);pw.style.opacity=land;pw.style.transform='scale('+(.55+.45*land)+') rotate('+((1-land)*-18)+'deg)';
+    spans.forEach(function(s,i){s.classList.toggle('in',p>.31+i*.02)});
+    var d=ease((p-.5)/.24);
+    wedges.forEach(function(w,i){var r=w.a*Math.PI/180,dist=d*96;w.el.style.transform='translate('+(Math.cos(r)*dist)+'px,'+(Math.sin(r)*dist)+'px) rotate('+(d*(i%2?-5:5))+'deg)'});
+    cards.forEach(function(c,i){c.classList.toggle('in',p>.56+i*.06)});
+  }
+  sc.addEventListener('scroll',upd);upd();
+})();
+</script>
