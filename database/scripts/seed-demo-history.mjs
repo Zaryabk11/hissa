@@ -28,7 +28,7 @@ export function readTarget(env) {
 }
 
 // Deterministic, valid-looking UUID per (user, row), so a re-run hits the same rows.
-function rowId(userId, name) {
+export function rowId(userId, name) {
   const h = createHash('sha1').update(`hissa-demo-history:${userId}:${name}`).digest('hex');
   const variant = ((parseInt(h[16], 16) & 3) | 8).toString(16);
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;

@@ -60,7 +60,7 @@
       "Cook on high heat until the oil separates from the masala and the chicken is tender.",
       "Garnish with sliced green chilies and fresh coriander before serving hot with naan."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "chicken-biryani",
@@ -123,7 +123,7 @@
       "Top with the reserved fried onions, fresh mint, coriander, and green chilies.",
       "Cover the pot tightly and let it steam on very low heat for twenty minutes before serving."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "chicken-pulao",
@@ -165,7 +165,7 @@
         "quantity": "1 tablespoon"
       },
       {
-        "item": "Corriander and cumin powder",
+        "item": "Coriander and cumin powder",
         "quantity": "1 tablespoon"
       },
       {
@@ -193,7 +193,7 @@
       "Cover the pot with a tight lid and simmer on very low heat for 15 minutes.",
       "Fluff the rice gently with a fork and serve hot."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "chicken-korma",
@@ -260,7 +260,7 @@
       "Pour in the water, cover the pot with a lid, and let it simmer on low heat until the chicken is tender and oil separates.",
       "Sprinkle garam masala powder on top and serve hot with naan or rice."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "chicken-tikka",
@@ -321,7 +321,7 @@
       "Cook for about 20 to 25 minutes, turning occasionally, until the chicken is tender and slightly charred on the edges.",
       "Serve hot with sliced onions and fresh mint chutney."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "aloo-gosht",
@@ -331,7 +331,7 @@
     "servings": 4,
     "ingredients": [
       {
-        "item": "Mutton or beef",
+        "item": "Mutton",
         "quantity": "500 grams"
       },
       {
@@ -393,7 +393,7 @@
       "Add the potato pieces and cook until both the meat and potatoes are fully tender.",
       "Sprinkle garam masala and fresh coriander leaves on top before serving."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "mutton-karahi",
@@ -441,6 +441,10 @@
       {
         "item": "Coriander powder",
         "quantity": "1 tablespoon"
+      },
+      {
+        "item": "water",
+        "quantity": "1/2 cup"
       }
     ],
     "steps": [
@@ -454,7 +458,7 @@
       "Add slit green chilies and half of the fresh coriander leaves, then simmer for another 2 minutes.",
       "Garnish with the remaining fresh coriander and serve hot with naan."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "beef-pulao",
@@ -523,7 +527,7 @@
       "Cook uncovered until most of the water is absorbed.",
       "Cover the pot tightly and let the rice steam on low heat for ten minutes before serving."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "nihari",
@@ -592,7 +596,7 @@
       "In a small pan, melt the ghee and pour it over the nihari just before serving.",
       "Garnish with julienned ginger, chopped fresh coriander, sliced green chilies, and serve hot with naan."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "keema",
@@ -602,7 +606,7 @@
     "servings": 4,
     "ingredients": [
       {
-        "item": "minced beef or mutton",
+        "item": "minced beef",
         "quantity": "500 grams"
       },
       {
@@ -665,7 +669,7 @@
       "Sprinkle garam masala, chopped green chilies, and fresh coriander leaves on top.",
       "Serve hot with fresh roti or naan."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "kofta",
@@ -730,7 +734,7 @@
       "Cover the pot and let it simmer on low heat until the kofta are fully cooked and tender.",
       "Sprinkle garam masala and fresh coriander leaves on top before serving."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "palak-gosht",
@@ -740,7 +744,7 @@
     "servings": 4,
     "ingredients": [
       {
-        "item": "Mutton or beef",
+        "item": "Mutton",
         "quantity": "500 grams"
       },
       {
@@ -795,7 +799,7 @@
       "Cook on medium heat, stirring occasionally, until the oil separates from the spinach and gravy.",
       "Sprinkle garam masala powder on top and serve hot with naan or boiled rice."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "machli",
@@ -861,7 +865,7 @@
       "Remove the fried fish and drain excess oil on paper towels.",
       "Serve hot with lemon wedges and mint chutney."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "fish-curry",
@@ -925,7 +929,7 @@
       "Add a cup of water, cover the pan with a lid, and simmer on low heat for ten minutes without stirring too much.",
       "Sprinkle garam masala and fresh coriander leaves on top before turning off the heat."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "chana-daal",
@@ -990,7 +994,7 @@
       "Cover and cook on medium-low heat until the daal is soft and tender.",
       "Sprinkle garam masala and chopped cilantro on top before serving."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "maash-daal",
@@ -1060,7 +1064,7 @@
       "Sprinkle garam masala powder, chopped green chilies, and fresh coriander on top.",
       "Cover and let it steam on very low heat for 5 minutes before serving."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "mixed-daal",
@@ -1133,7 +1137,7 @@
       "Simmer everything together for five minutes so the flavors blend nicely.",
       "Garnish with fresh coriander and serve hot with boiled rice or flatbread."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "daal-kaddu",
@@ -1207,7 +1211,7 @@
       "Mash gently with the back of a spoon if a smoother texture is desired.",
       "Sprinkle garam masala and fresh cilantro on top before serving hot with chapati or boiled rice."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "choley",
@@ -1270,7 +1274,7 @@
       "Cover the lid and let it simmer on low heat for ten minutes.",
       "Sprinkle garam masala powder and fresh coriander leaves on top before serving."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "lobia",
@@ -1338,7 +1342,7 @@
       "Cover and simmer on low heat for 10 minutes so the flavors blend together.",
       "Sprinkle garam masala and chopped fresh cilantro on top before serving with roti or rice."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "bhindi",
@@ -1399,7 +1403,7 @@
       "Cover the pan with a lid and let it simmer on low heat for ten minutes, stirring occasionally.",
       "Serve hot with freshly made chapati or paratha."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "aloo-palak",
@@ -1471,7 +1475,7 @@
       "Sprinkle garam masala powder on top and mix gently.",
       "Serve hot with flatbread or rice."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "mixed-sabzi",
@@ -1540,7 +1544,7 @@
       "Cover again and let all the vegetables simmer on low heat until tender.",
       "Garnish with fresh coriander and serve hot with flatbread."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "khichdi",
@@ -1598,7 +1602,7 @@
       "Cover with a lid and cook on medium-low heat until the rice and dal are very soft and well combined, stirring occasionally.",
       "Remove from heat, drizzle with a little extra ghee if desired, and serve hot."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "kadhi-pakora",
@@ -1650,6 +1654,10 @@
       {
         "item": "water",
         "quantity": "6 cups"
+      },
+      {
+        "item": "whole dried red chilies",
+        "quantity": "3"
       }
     ],
     "steps": [
@@ -1661,7 +1669,7 @@
       "In a separate pan, heat a little oil with cumin seeds and whole red chilies to make the tempering.",
       "Pour the tempering over the kadhi and serve hot with boiled rice."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "egg-fried-rice",
@@ -1695,10 +1703,6 @@
         "quantity": "1 teaspoon"
       },
       {
-        "item": "Soy sauce",
-        "quantity": "2 tablespoons"
-      },
-      {
         "item": "White pepper powder",
         "quantity": "half teaspoon"
       },
@@ -1717,11 +1721,11 @@
       "Heat 1 tablespoon of oil in a large wok and scramble the eggs, then remove and set aside.",
       "In the same wok, add the remaining oil and sauté the garlic paste for 30 seconds.",
       "Add the diced carrots and green beans, stir-frying on high heat for 3 minutes.",
-      "Pour in the soy sauce, white pepper, and salt, mixing well with the vegetables.",
+      "Add the white pepper and salt, mixing well with the vegetables.",
       "Add the boiled rice and gently fold everything together to avoid breaking the grains.",
       "Toss in the scrambled eggs and chopped spring onions, mix thoroughly, cover, and let it steam on low heat for 5 minutes before serving."
     ],
-    "reviewed": false
+    "reviewed": true
   },
   {
     "slug": "raita",
@@ -1767,6 +1771,6 @@
       "Mix in the roasted cumin powder, black salt, and regular salt.",
       "Stir everything together well and chill in the refrigerator before serving."
     ],
-    "reviewed": false
+    "reviewed": true
   }
 ]
