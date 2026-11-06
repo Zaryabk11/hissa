@@ -1,10 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, Pressable, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
-import { hissaRadii } from '../../shared/theme/hissaTokens';
+import { hissaRadii, MIN_TAP } from '../../shared/theme/hissaTokens';
 import { Bone } from '../../shared/ui/hissa/Bone';
+import { Card } from '../../shared/ui/hissa/Card';
+import { Sheet } from '../../shared/ui/hissa/Sheet';
+import { sticker } from '../../shared/ui/hissa/sticker';
+import { Toast } from '../../shared/ui/hissa/Toast';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
@@ -30,14 +34,14 @@ function Icon({ d, color, size = 20, width = 1.75, children }: { d?: string; col
   );
 }
 
-function Pick({ label, onPress }: { label: string; onPress: () => void }) {
+function Pick({ label, onPress, hint, compact }: { label: string; onPress: () => void; hint?: string; compact?: boolean }) {
   const t = useHissaTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={hint ?? label}
       onPress={onPress}
-      style={{ height: 48, minWidth: 96, paddingHorizontal: 16, borderRadius: hissaRadii.control, borderWidth: 1, borderColor: t.hair, alignItems: 'center', justifyContent: 'center' }}
+      style={[sticker(t, 2), { minHeight: MIN_TAP, minWidth: compact ? MIN_TAP : 96, paddingHorizontal: compact ? 0 : 16, borderRadius: 99, backgroundColor: t.surf2, alignItems: 'center', justifyContent: 'center' }]}
     >
       <HissaText variant="button">{label}</HissaText>
     </Pressable>
@@ -47,7 +51,7 @@ function Pick({ label, onPress }: { label: string; onPress: () => void }) {
 function TextAction({ label, onPress }: { label: string; onPress: () => void }) {
   const t = useHissaTheme();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ height: 48, alignItems: 'center', justifyContent: 'center', marginTop: 4 }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ minHeight: MIN_TAP, alignItems: 'center', justifyContent: 'center', marginTop: 4 }}>
       <HissaText variant="button" style={{ color: t.pri }}>
         {label}
       </HissaText>
@@ -56,22 +60,24 @@ function TextAction({ label, onPress }: { label: string; onPress: () => void }) 
 }
 
 /** The indented card under a chip: answer a question, or swap the dish for another. */
-function OptionsCard({ title, options, onPick, action, actionFirst }: { title: string; options: string[]; onPick: (dishId: string) => void; action: { label: string; onPress: () => void }; actionFirst?: boolean }) {
+function OptionsCard({ title, options, onPick, action, actionFirst, bare }: { title: string; options: string[]; onPick: (dishId: string) => void; action: { label: string; onPress: () => void }; actionFirst?: boolean; bare?: boolean }) {
   const t = useHissaTheme();
   const [query, setQuery] = useState('');
   const visible = options.filter((id) => nameOf(id).toLowerCase().includes(query.trim().toLowerCase()));
   return (
-    <View accessibilityRole="radiogroup" style={{ marginLeft: 14, borderRadius: hissaRadii.control, backgroundColor: t.surf, borderWidth: 1, borderColor: t.hair, padding: 16 }}>
-      <HissaText variant="label">{title}</HissaText>
+    <Card tone="turt" style={bare ? { borderWidth: 0, boxShadow: 'none', backgroundColor: 'transparent', padding: 0 } : { marginLeft: 14 }}>
+      <View accessibilityRole="radiogroup">
+      {!bare && <HissaText variant="label" style={{ color: t.tintInk }}>{title}</HissaText>}
       {actionFirst && <TextAction label={action.label} onPress={action.onPress} />}
-      {options.length > 8 && <TextInput accessibilityLabel="Search dishes" placeholder="Search dishes" placeholderTextColor={t.muted} value={query} onChangeText={setQuery} style={{ color: t.ink, borderWidth: 1, borderColor: t.hair, borderRadius: hissaRadii.control, minHeight: 48, paddingHorizontal: 12, marginTop: 12 }} />}
+      {options.length > 8 && <TextInput accessibilityLabel="Search dishes" placeholder="Search dishes" placeholderTextColor={t.muted} value={query} onChangeText={setQuery} style={{ color: t.ink, backgroundColor: t.surf, borderWidth: 2, borderColor: t.line, borderRadius: hissaRadii.control, minHeight: 48, paddingHorizontal: 12, marginTop: 12 }} />}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
         {visible.map((o) => (
           <Pick key={o} label={nameOf(o)} onPress={() => onPick(o)} />
         ))}
       </View>
       {!actionFirst && <TextAction label={action.label} onPress={action.onPress} />}
-    </View>
+      </View>
+    </Card>
   );
 }
 
@@ -81,18 +87,7 @@ function Chip({ item, onToggle, onSwap }: { item: ReviewItem; onToggle: () => vo
   const on = item.confirmed && !asking;
   const ink = asking ? t.tintInk : t.ink;
   return (
-    <View
-      style={{
-        minHeight: 48,
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: hissaRadii.control,
-        backgroundColor: asking || on ? t.tint : t.surf,
-        borderWidth: asking ? 1.5 : 1,
-        borderStyle: asking ? 'dashed' : 'solid',
-        borderColor: asking ? t.tintInk : on ? t.tintInk : t.hair,
-      }}
-    >
+    <Card tone={asking || on ? 'turt' : 'surf'} style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', padding: 0, borderStyle: asking ? 'dashed' : 'solid' }}>
       <Pressable
         accessibilityRole={asking ? 'button' : 'checkbox'}
         accessibilityState={asking ? undefined : { checked: on }}
@@ -128,24 +123,7 @@ function Chip({ item, onToggle, onSwap }: { item: ReviewItem; onToggle: () => vo
           <Icon d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" color={t.muted} />
         </Pressable>
       )}
-    </View>
-  );
-}
-
-/** Keep removed predictions so the saved meal records what the scan got wrong. */
-function RemovedRow({ item }: { item: ReviewItem }) {
-  const t = useHissaTheme();
-  return (
-    <View style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, borderRadius: hissaRadii.control, backgroundColor: t.surf, borderWidth: 1, borderColor: t.hair, opacity: 0.6 }}>
-      <HissaText variant="label" style={{ flex: 1, textDecorationLine: 'line-through' }}>
-        {nameOf(item.dishId)}
-      </HissaText>
-      <Pressable accessibilityRole="button" accessibilityLabel={c.review.undoLabel(nameOf(item.dishId))} onPress={() => patchItem(item.id, { removed: false })} style={{ minHeight: 48, paddingHorizontal: 14, justifyContent: 'center' }}>
-        <HissaText variant="button" style={{ color: t.pri }}>
-          Undo
-        </HissaText>
-      </Pressable>
-    </View>
+    </Card>
   );
 }
 
@@ -160,7 +138,7 @@ function PlanSkeleton({ rows }: { rows: number }) {
   );
 }
 
-type Open = { id: string; mode: 'ask' | 'swap' } | 'add' | null;
+type Open = { id: string; mode: 'ask' | 'swap' } | null;
 
 /** Screen i. Detected dishes as chips: confirm, swap, answer the question, remove with undo, add a dish. */
 export function ReviewScreen() {
@@ -169,9 +147,22 @@ export function ReviewScreen() {
   const { photoUri, image, items, manualReason } = useScan();
   useEffect(() => { if (!photoUri) router.replace('/(tabs)/scan'); }, [photoUri, router]);
   const [open, setOpen] = useState<Open>(null);
+  const [adding, setAdding] = useState(false);
+  const [undo, setUndo] = useState<string | null>(null);
   const [busy, setBusy] = useState<'save' | 'plan' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const active = items.filter((i) => !i.removed);
+  // Removed predictions stay in the store so the saved meal records what the scan got wrong; Undo lasts 5s.
+  useEffect(() => {
+    if (!undo) return;
+    const id = setTimeout(() => setUndo(null), 5000);
+    return () => clearTimeout(id);
+  }, [undo]);
+  const remove = (id: string) => {
+    patchItem(id, { removed: true });
+    setUndo(id);
+    setOpen(null);
+  };
   const canContinue = active.length > 0 && active.every((i) => i.confirmed && !i.ask && !!dishById(i.dishId));
   const total = kcalForItems(active);
 
@@ -182,7 +173,7 @@ export function ReviewScreen() {
     setOpen(null);
   };
   const step = (i: ReviewItem, direction: 1 | -1) => patchItem(i.id, { qty: stepQty(i.qty, dishById(i.dishId)!.unit, direction), confirmed: true });
-  const toggle = (i: ReviewItem) => (i.ask ? setOpen(open && open !== 'add' && open.id === i.id ? null : { id: i.id, mode: 'ask' }) : patchItem(i.id, { confirmed: !i.confirmed }));
+  const toggle = (i: ReviewItem) => (i.ask ? setOpen(open?.id === i.id ? null : { id: i.id, mode: 'ask' }) : patchItem(i.id, { confirmed: !i.confirmed }));
   const save = async () => {
     if (busy || !canContinue) return;
     setBusy('save');
@@ -213,6 +204,7 @@ export function ReviewScreen() {
   };
 
   return (
+    <>
     <HissaScreen actionBar={
         <View style={{ gap: 8 }}>
           {snapsEnabled && image && <HissaText variant="caption">{c.review.snapNotice}</HissaText>}
@@ -240,23 +232,19 @@ export function ReviewScreen() {
       ) : (
       <View style={{ marginTop: 24, gap: 8 }}>
         {items.map((i) => {
-          const here = open && open !== 'add' && open.id === i.id ? open.mode : null;
+          const here = open?.id === i.id ? open.mode : null;
           return (
             <View key={i.id} style={{ gap: 8 }}>
-              {i.removed ? (
-                <RemovedRow item={i} />
-              ) : (
-                <Chip item={i} onToggle={() => toggle(i)} onSwap={() => setOpen(here === 'swap' ? null : { id: i.id, mode: 'swap' })} />
-              )}
+              {!i.removed && <Chip item={i} onToggle={() => toggle(i)} onSwap={() => setOpen(here === 'swap' ? null : { id: i.id, mode: 'swap' })} />}
               {!i.removed && !i.ask && !!dishById(i.dishId) && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 14 }}>
                   <HissaText variant="caption" style={{ flex: 1 }}>Portion estimate: {portionText(i)}</HissaText>
-                  <Pick label="−" onPress={() => step(i, -1)} />
-                  <Pick label="+" onPress={() => step(i, 1)} />
+                  <Pick compact label="−" hint={`Less ${nameOf(i.dishId)}`} onPress={() => step(i, -1)} />
+                  <Pick compact label="+" hint={`More ${nameOf(i.dishId)}`} onPress={() => step(i, 1)} />
                 </View>
               )}
               {here === 'ask' && i.ask && (
-                <OptionsCard title={i.dishId === 'unknown' ? 'Choose a dish from the catalog' : c.review.askTitle(i.ask.map(nameOf))} options={i.dishId === 'unknown' ? CATALOG.map((d) => d.id) : i.ask} onPick={(n) => swapTo(i.id, n)} action={{ label: i.dishId === 'unknown' ? c.review.remove : c.review.somethingElse, onPress: () => { if (i.dishId === 'unknown') { patchItem(i.id, { removed: true }); setOpen(null); } else setOpen({ id: i.id, mode: 'swap' }); } }} />
+                <OptionsCard title={i.dishId === 'unknown' ? 'Choose a dish from the catalog' : c.review.askTitle(i.ask.map(nameOf))} options={i.dishId === 'unknown' ? CATALOG.map((d) => d.id) : i.ask} onPick={(n) => swapTo(i.id, n)} action={{ label: i.dishId === 'unknown' ? c.review.remove : c.review.somethingElse, onPress: () => { if (i.dishId === 'unknown') remove(i.id); else setOpen({ id: i.id, mode: 'swap' }); } }} />
               )}
               {here === 'swap' && (
                 <OptionsCard
@@ -264,7 +252,7 @@ export function ReviewScreen() {
                   title={c.review.swapTitle(nameOf(i.dishId))}
                   options={CATALOG.map((d) => d.id).filter((id) => id !== i.dishId)}
                   onPick={(n) => swapTo(i.id, n)}
-                  action={{ label: c.review.remove, onPress: () => { patchItem(i.id, { removed: true }); setOpen(null); } }}
+                  action={{ label: c.review.remove, onPress: () => remove(i.id) }}
                 />
               )}
             </View>
@@ -273,34 +261,41 @@ export function ReviewScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={c.review.addDish}
-          accessibilityState={{ expanded: open === 'add', disabled: items.length >= 10 }}
           disabled={items.length >= 10}
-          onPress={() => setOpen(open === 'add' ? null : 'add')}
-          style={{ height: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 }}
+          onPress={() => setAdding(true)}
+          style={[sticker(t, 3), { minHeight: MIN_TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 99, backgroundColor: t.surf2, opacity: items.length >= 10 ? 0.4 : 1 }]}
         >
-          <Icon d="M12 5v14M5 12h14" color={t.pri} />
-          <HissaText variant="button" style={{ color: t.pri }}>
-            {c.review.addDish}
-          </HissaText>
+          <Icon d="M12 5v14M5 12h14" color={t.ink} />
+          <HissaText variant="button">{c.review.addDish}</HissaText>
         </Pressable>
-        {open === 'add' && (
+      </View>
+      )}
+
+      <Sheet visible={adding} onClose={() => setAdding(false)} title={c.review.addTitle}>
+        <ScrollView style={{ maxHeight: 360 }}>
           <OptionsCard
+            bare
             title={c.review.addTitle}
             options={CATALOG.map((d) => d.id)}
             onPick={(id) => {
               const dish = dishById(id)!;
               setItems([...items, { ...newItem({ dishId: id, qty: dish.defaultQty }), confirmed: true }]);
-              setOpen(null);
+              setAdding(false);
             }}
-            action={{ label: c.close, onPress: () => setOpen(null) }}
+            action={{ label: c.close, onPress: () => setAdding(false) }}
           />
-        )}
-      </View>
-      )}
+        </ScrollView>
+      </Sheet>
 
       <HissaText variant="caption" style={{ marginTop: 16 }}>
         {active.length === 0 ? c.review.empty : !canContinue ? 'Confirm each dish to see an estimate.' : c.review.estimate(fmt(total))}
       </HissaText>
     </HissaScreen>
+    {undo && (
+      <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 96 }}>
+        <Toast message={`${nameOf(items.find((i) => i.id === undo)?.dishId ?? '')} removed`} onAction={() => { patchItem(undo, { removed: false }); setUndo(null); }} />
+      </View>
+    )}
+    </>
   );
 }
