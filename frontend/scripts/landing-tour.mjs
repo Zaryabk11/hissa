@@ -80,7 +80,7 @@ async function capture(page, path) {
   await page.screenshot({ path, animations: 'disabled' });
 }
 
-async function tour(browser, out) {
+async function tour(browser, out, prefix = 'tour') {
   for (const [w, h] of [...desktop, [390, 844]]) {
     const page = await open(browser, { w, h, rm: w === 390 });
     try {
@@ -93,7 +93,8 @@ async function tour(browser, out) {
           const { expected, actual } = await stageState(page);
           if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${w}x${h} at ${positions[i]}px: stages ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
         }
-        await capture(page, join(out, `tour-${w}x${h}-${String(i).padStart(2, '0')}.png`));
+        if (await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)) throw new Error(`${w}x${h} at ${positions[i]}px: horizontal overflow`);
+        await capture(page, join(out, `${prefix}-${w}x${h}-${String(i).padStart(2, '0')}.png`));
       }
       if (page.pageErrors.length) throw new Error(page.pageErrors.join('\n'));
     } finally { await page.context().close(); }
@@ -127,6 +128,7 @@ async function seams(browser, out) {
       ['how-features', '#fx', .5, true],
       ['features-dishes', '#dr', 1, true],
       ['dishes-faq-iris', '#dr', 3, true],
+      // Footer enters by ordinary document scroll; no stage swaps at this boundary.
       ['final-footer-scroll', '#ft', 0, false],
     ];
     const report = [];
@@ -139,9 +141,13 @@ async function seams(browser, out) {
       const b = await page.screenshot({ animations: 'disabled' });
       await writeFile(join(out, `seam-${name}-after.png`), b);
       const ratio = await diff(page, a, b);
-      report.push({ name, at, changedPercent: +(ratio * 100).toFixed(3), thresholdPercent: limit ? .5 : null });
+      report.push({
+        name, at, changedPercent: +(ratio * 100).toFixed(3), thresholdPercent: limit ? .5 : null,
+        ...(limit ? {} : { ruling: 'No matched-frame hand-off: final stage has already scrolled away when the footer crosses the viewport. This is a normal scroll boundary; inspect both screenshots.' }),
+      });
     }
     await writeFile(join(out, 'seam-report.json'), JSON.stringify(report, null, 2));
+    process.stdout.write(`INFO final-footer-scroll: ${report.at(-1).changedPercent}% changed; no matched-frame hand-off, review screenshots (see seam-report.json)\n`);
     const failures = report.filter(row => row.thresholdPercent !== null && row.changedPercent >= row.thresholdPercent);
     if (failures.length) throw new Error(failures.map(row => `${row.name}: ${row.changedPercent}%`).join(', '));
     if (page.pageErrors.length) throw new Error(page.pageErrors.join('\n'));
@@ -149,7 +155,7 @@ async function seams(browser, out) {
 }
 
 async function modes(browser, out) {
-  for (const [w, h, rm] of [[390, 844, true], [1024, 768, false], [1180, 820, false]]) {
+  for (const [w, h, rm] of [[390, 844, true], [1280, 720, true], [1024, 768, false], [1180, 820, false]]) {
     const page = await open(browser, { w, h, rm });
     try {
       const state = await page.evaluate(() => ({ stacked: document.documentElement.classList.contains('fb'), lenis: !!window.HX?.lenis, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth }));
@@ -164,7 +170,7 @@ async function modes(browser, out) {
         if (body < 16) throw new Error(`body font ${body}px`);
         const snap = await page.locator('#dr-rail').evaluate(el => getComputedStyle(el).scrollSnapType);
         if (!snap.includes('x')) throw new Error(`dish rail snap: ${snap}`);
-      } else {
+      } else if (!rm) {
         for (const section of ['#bd', '#hw']) {
           const top = await page.locator(section).evaluate(el => el.getBoundingClientRect().top + scrollY);
           for (const offset of [0, h, 2 * h]) {
@@ -178,7 +184,7 @@ async function modes(browser, out) {
           }
         }
       }
-      await capture(page, join(out, `mode-${w}x${h}.png`));
+      await capture(page, join(out, `mode-${w}x${h}${rm ? '-reduced' : ''}.png`));
       if (page.pageErrors.length) throw new Error(page.pageErrors.join('\n'));
     } finally { await page.context().close(); }
   }
@@ -292,24 +298,8 @@ async function throttle(browser, out) {
 
 async function matrix(type, name, out) {
   const browser = await type.launch({ headless: true });
-  try {
-    for (const [w, h, rm] of [[1280, 720, false], [390, 844, true]]) {
-      const page = await open(browser, { w, h, rm });
-      try {
-        const max = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
-        for (const y of [0, max / 2, max]) {
-          await scroll(page, y);
-          if (!rm) {
-            const { expected, actual } = await stageState(page);
-            if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${name} ${w}px at ${y}: stages ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
-          }
-        }
-        if (await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)) throw new Error(`${name} ${w}px horizontal overflow`);
-        if (page.pageErrors.length) throw new Error(page.pageErrors.join('\n'));
-        await capture(page, join(out, `matrix-${name}-${w}x${h}.png`));
-      } finally { await page.context().close(); }
-    }
-  } finally { await browser.close(); }
+  try { await tour(browser, out, `matrix-${name}`); }
+  finally { await browser.close(); }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
