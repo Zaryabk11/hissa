@@ -195,6 +195,22 @@ export function createFriendsService({
         throw e;
       }
     },
+
+    // Friends only; the target must have logged today on a streak of 3+. A repeat the same day is
+    // a 409 from the notifications unique index.
+    async cheerStreak(userId: string, friendId: string, now = new Date()): Promise<void> {
+      const [low, high] = pair(userId, friendId);
+      if ((await repository.find(low, high))?.status !== 'active')
+        throw new NotFoundError('Not friends');
+      const s = (await streaks.getStreaks([friendId], now))[friendId];
+      if (!s?.loggedToday || s.streak < 3) throw new ValidationError('No streak to cheer');
+      await notifications.notify({
+        userId: friendId,
+        kind: 'cheer_streak',
+        actorId: userId,
+        day: pktDay(now),
+      });
+    },
   };
 }
 export type FriendsService = ReturnType<typeof createFriendsService>;

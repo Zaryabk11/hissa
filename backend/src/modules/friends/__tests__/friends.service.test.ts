@@ -277,6 +277,74 @@ describe('friends service: nudge', () => {
   });
 });
 
+describe('friends service: cheerStreak', () => {
+  const active = [row(me, bob, me, 'active')];
+  const hot = { [bob]: { streak: 3, loggedToday: true } };
+
+  it('notifies a logged friend on a streak of 3 with the PKT day', async () => {
+    const { service, notifications } = setup(active, hot);
+    await service.cheerStreak(me, bob, new Date('2026-11-04T20:00:00Z')); // 01:00 PKT on the 5th
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
+    expect(notifications.notify).toHaveBeenCalledWith({
+      userId: bob,
+      kind: 'cheer_streak',
+      actorId: me,
+      day: '2026-11-05',
+    });
+  });
+
+  it('400s on a streak under 3', async () => {
+    const { service, notifications } = setup(active, { [bob]: { streak: 2, loggedToday: true } });
+    await expect(service.cheerStreak(me, bob, NOW)).rejects.toBeInstanceOf(ValidationError);
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('400s when the friend has not logged today', async () => {
+    const { service, notifications } = setup(active, { [bob]: { streak: 5, loggedToday: false } });
+    await expect(service.cheerStreak(me, bob, NOW)).rejects.toBeInstanceOf(ValidationError);
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('404s for a non-friend, yourself and a removed friend, sending nothing', async () => {
+    const { service, notifications } = setup(
+      [row(me, bob, me, 'pending'), row(me, cat, me, 'removed')],
+      { [bob]: { streak: 9, loggedToday: true }, [cat]: { streak: 9, loggedToday: true } },
+    );
+    await expect(service.cheerStreak(me, bob, NOW)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.cheerStreak(me, cat, NOW)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.cheerStreak(me, 'u4', NOW)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.cheerStreak(me, me, NOW)).rejects.toBeInstanceOf(NotFoundError);
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('a repeat the same day is a 409, not remapped', async () => {
+    const { service, notifications } = setup(active, hot);
+    notifications.notify.mockRejectedValueOnce(new ConflictError('Already cheered today'));
+    const err = await service.cheerStreak(me, bob, NOW).catch((e) => e);
+    expect(err).toBeInstanceOf(ConflictError);
+    expect(err.message).toBe('Already cheered today');
+  });
+
+  it('lets other errors through', async () => {
+    const { service, notifications } = setup(active, hot);
+    notifications.notify.mockRejectedValueOnce(new Error('db down'));
+    await expect(service.cheerStreak(me, bob, NOW)).rejects.toThrow('db down');
+  });
+
+  it('a nudge and a cheer the same day both go through, and the next day is allowed', async () => {
+    const { service, notifications, streaks } = setup(active, hot);
+    streaks.getStreaks.mockResolvedValueOnce({ [bob]: { streak: 3, loggedToday: false } });
+    await service.nudge(me, bob, NOW);
+    await service.cheerStreak(me, bob, NOW);
+    await service.cheerStreak(me, bob, new Date('2026-11-05T10:00:00Z'));
+    expect(notifications.notify.mock.calls.map((c) => c[0])).toEqual([
+      { userId: bob, kind: 'nudge', actorId: me, day: '2026-11-04' },
+      { userId: bob, kind: 'cheer_streak', actorId: me, day: '2026-11-04' },
+      { userId: bob, kind: 'cheer_streak', actorId: me, day: '2026-11-05' },
+    ]);
+  });
+});
+
 describe('friends service: overview', () => {
   const data = [
     row(me, bob, me, 'active'),
