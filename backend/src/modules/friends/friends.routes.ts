@@ -13,5 +13,6 @@ export function createFriendsRouter(controller: FriendsController): Router {
   router.post('/requests/:userId/decline', uuid, controller.decline);
   router.delete('/:userId', uuid, controller.remove);
   router.post('/:userId/nudge', uuid, controller.nudge);
+  router.post('/:userId/cheer-streak', uuid, controller.cheerStreak);
   return router;
 }

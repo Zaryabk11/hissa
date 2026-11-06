@@ -37,6 +37,10 @@ export function createFriendsController(service: FriendsService) {
       await service.nudge(uid(req), other(req));
       res.status(204).end();
     },
+    async cheerStreak(req: Request, res: Response): Promise<void> {
+      await service.cheerStreak(uid(req), other(req));
+      res.status(204).end();
+    },
   };
 }
 export type FriendsController = ReturnType<typeof createFriendsController>;

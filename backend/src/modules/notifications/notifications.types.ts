@@ -1,7 +1,7 @@
 import type { PersonCard } from '../profiles';
 
 export type NotificationKind =
-  'friend_request' | 'request_accepted' | 'nudge' | 'goal_reached' | 'cheer';
+  'friend_request' | 'request_accepted' | 'nudge' | 'goal_reached' | 'cheer' | 'cheer_streak';
 export type GoalType = 'streak' | 'window';
 
 export type NewNotification = {

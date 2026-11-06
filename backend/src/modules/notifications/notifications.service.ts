@@ -18,9 +18,11 @@ export function createNotificationsService({ repository, profiles }: Notificatio
       try {
         await repository.insert(n);
       } catch (e) {
-        // 23505: the one-nudge-per-day unique index.
+        // 23505: the one-nudge / one-streak-cheer per day unique indexes.
         if ((e as { code?: string }).code === '23505')
-          throw new ConflictError('Already nudged today');
+          throw new ConflictError(
+            n.kind === 'cheer_streak' ? 'Already cheered today' : 'Already nudged today',
+          );
         throw e;
       }
     },

@@ -16,6 +16,7 @@ function app(userId?: string) {
     respond: vi.fn(async () => {}),
     remove: vi.fn(async () => {}),
     nudge: vi.fn(async () => {}),
+    cheerStreak: vi.fn(async () => {}),
   };
   const a = express();
   a.use(express.json());
@@ -73,6 +74,17 @@ describe('friends routes', () => {
     expect(service.nudge).toHaveBeenCalledWith('me', other);
   });
 
+  it('cheer-streak passes the caller id and ignores a body userId', async () => {
+    const { a, service } = app('me');
+    await request(a)
+      .post(`/api/friends/${other}/cheer-streak`)
+      .send({ userId: 'evil' })
+      .expect(204);
+    expect(service.cheerStreak).toHaveBeenCalledWith('me', other);
+    await request(a).post('/api/friends/nope/cheer-streak').expect(400);
+    expect(service.cheerStreak).toHaveBeenCalledTimes(1);
+  });
+
   it('a :userId that is not a uuid is 400', async () => {
     const { a, service } = app('me');
     await request(a).post('/api/friends/requests/nope/accept').expect(400);
@@ -92,6 +104,7 @@ describe('friends routes', () => {
     await request(a).post(`/api/friends/requests/${other}/accept`).expect(401);
     await request(a).delete(`/api/friends/${other}`).expect(401);
     await request(a).post(`/api/friends/${other}/nudge`).expect(401);
+    await request(a).post(`/api/friends/${other}/cheer-streak`).expect(401);
     for (const fn of Object.values(service)) expect(fn).not.toHaveBeenCalled();
   });
 });
