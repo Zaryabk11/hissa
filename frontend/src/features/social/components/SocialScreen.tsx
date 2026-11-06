@@ -14,12 +14,14 @@ import { cheer, createGoal, patchGoal } from '../api/goals';
 import { socialContent as c } from '../content';
 import { groupLine } from '../social-view';
 import { useSocialData } from '../useSocialData';
+import { snapsEnabled } from '../../../shared/flags';
 import { AddFriend } from './AddFriend';
 import { BuddyCard } from './BuddyCard';
 import { CelebrationCard } from './CelebrationCard';
 import { FriendRow } from './FriendRow';
 import { GoalCard } from './GoalCard';
 import { GoalEditor } from './GoalEditor';
+import { SnapList } from './SnapList';
 import { UsernamePrompt } from './UsernamePrompt';
 
 export function SocialScreen() {
@@ -65,6 +67,16 @@ export function SocialScreen() {
           <Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0" />
         </Svg>
         <HissaText variant="button">{c.inbox.open}</HissaText>
+        {(d.inboxUnread ?? 0) > 0 && (
+          <View
+            accessibilityLabel={`${d.inboxUnread} unread`}
+            style={{ position: 'absolute', top: -8, right: -6, minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 5, backgroundColor: t.pri, borderWidth: 2, borderColor: t.line, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <HissaText variant="caption" style={{ color: t.onPri, fontSize: 11, lineHeight: 14 }}>
+              {(d.inboxUnread ?? 0) > 9 ? '9+' : d.inboxUnread}
+            </HissaText>
+          </View>
+        )}
       </Pressable>
     </View>
   );
@@ -96,7 +108,7 @@ export function SocialScreen() {
       </HissaScreen>
     );
 
-  const { overview, goal, celebrations = [], friendGoals = [] } = d;
+  const { overview, goal, celebrations = [], friendGoals = [], snaps = [] } = d;
   const line = groupLine(overview.loggedCount, overview.friends.length);
 
   return (
@@ -109,6 +121,7 @@ export function SocialScreen() {
     >
       {header}
       <View style={{ gap: 12 }}>
+        <AddFriend overview={overview} busy={busy} onRespond={(id, dec) => void act(() => respondRequest(id, dec))()} onSent={() => void d.refresh()} />
         <BuddyCard username={d.username} friend={overview.friends[0]} />
         {(notice || d.error) && <HissaText accessibilityRole="alert">{notice ?? c.loadFailed}</HissaText>}
         {line && (
@@ -116,6 +129,7 @@ export function SocialScreen() {
             <HissaText variant="label">{line}</HissaText>
           </StickerCard>
         )}
+        {snapsEnabled && snaps.length > 0 && <SnapList items={snaps} />}
         {celebrations.map((item) => (
           <CelebrationCard key={`${item.goalId}`} item={item} busy={busy} onCheer={act(() => cheer(item.goalId))} />
         ))}
@@ -147,7 +161,6 @@ export function SocialScreen() {
             </View>
           ))}
         </Card>
-        <AddFriend overview={overview} busy={busy} onRespond={(id, dec) => void act(() => respondRequest(id, dec))()} onSent={() => void d.refresh()} />
       </View>
     </HissaScreen>
   );

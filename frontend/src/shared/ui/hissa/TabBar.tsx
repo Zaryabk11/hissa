@@ -3,8 +3,8 @@ import { Pressable, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useRouter, type Tabs } from 'expo-router';
 import { useHissaTheme } from '../../theme/HissaThemeProvider';
-import { MIN_TAP } from '../../theme/hissaTokens';
 import { useUnread } from '../../../features/social/useSocialData';
+import { Backdrop } from './Backdrop';
 import { sticker } from './sticker';
 import { useColumnLayout } from './HissaScreen';
 import { HissaText } from './HissaText';
@@ -12,6 +12,7 @@ import { HissaText } from './HissaText';
 type BarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 const SCAN_SIZE = 64;
+const PILL = 76; // height of the bar surface; every slot is this tall and centres its icon and label
 const RAISE = 52; // how far the Scan button rises above the bar surface
 const LABELS = {
   today: 'Today',
@@ -79,15 +80,21 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
   const unread = useUnread(state.index);
   if (state.routes[state.index].name === 'scan') return null; // the camera is full screen
   return (
-    <View style={{ flexDirection: 'row' }}>
+    <View pointerEvents="box-none" style={{ flexDirection: 'row', marginTop: -RAISE }}>
       {split && <View style={{ flex: 1 }} />}
-      <View style={{ flex: 1 }}>
+      <View pointerEvents="box-none" style={{ flex: 1 }}>
+      {/* Gingham under the bar, so the strip below it matches the screens. */}
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: insets.bottom + 8 }}>
+        <Backdrop />
+      </View>
       <View
         accessibilityRole="tablist"
+        pointerEvents="box-none"
         style={{
           paddingTop: RAISE,
           paddingBottom: insets.bottom + 8,
           flexDirection: 'row',
+          paddingHorizontal: 8,
           width: '100%',
           maxWidth: columnMax,
           alignSelf: 'center',
@@ -98,7 +105,7 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
           pointerEvents="none"
           style={[
             sticker(t, 4),
-            { position: 'absolute', top: RAISE, left: 12, right: 12, bottom: insets.bottom + 8, borderRadius: 30, backgroundColor: t.surf },
+            { position: 'absolute', top: RAISE, left: 8, right: 8, bottom: insets.bottom + 8, borderRadius: 30, backgroundColor: t.surf },
           ]}
         />
         {ORDER.map((name) => {
@@ -118,12 +125,11 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
               onPress={press}
               style={
                 isScan
-                  ? { width: '20%', height: SCAN_SIZE + 8 + 20, marginTop: -RAISE, alignItems: 'center' }
+                  ? { flex: 1, height: SCAN_SIZE + 8 + 20, marginTop: -RAISE, alignItems: 'center' }
                   : {
                       // Five equal slots with Scan in the middle one, so it sits at the bar's centre.
-                      width: '20%',
-                      minHeight: MIN_TAP + 18,
-                      marginTop: 22,
+                      flex: 1,
+                      height: PILL,
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 2,
@@ -149,7 +155,7 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
               ) : (
                 <>
                   <Icon name={name} color={color} />
-                  <HissaText variant="caption" style={{ color }}>
+                  <HissaText variant="caption" numberOfLines={1} style={{ color, fontSize: 11 }}>
                     {LABELS[name]}
                   </HissaText>
                   {name === 'social' && unread > 0 && (
@@ -172,10 +178,10 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
           accessibilityRole="button"
           accessibilityLabel={LABELS.profile}
           onPress={() => router.push('/profile')}
-          style={{ width: '20%', minHeight: MIN_TAP + 18, marginTop: 22, alignItems: 'center', justifyContent: 'center', gap: 2 }}
+          style={{ flex: 1, height: PILL, alignItems: 'center', justifyContent: 'center', gap: 2 }}
         >
           <Icon name="profile" color={t.muted} />
-          <HissaText variant="caption" style={{ color: t.muted }}>
+          <HissaText variant="caption" numberOfLines={1} style={{ color: t.muted, fontSize: 11 }}>
             {LABELS.profile}
           </HissaText>
         </Pressable>

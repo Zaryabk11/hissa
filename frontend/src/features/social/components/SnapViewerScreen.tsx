@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { Image, View } from 'react-native';
 import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
 import { ApiError } from '../../../shared/api/client';
@@ -12,7 +12,7 @@ import { openSnap, reportSnap, type OpenedSnap, type ReportReason } from '../api
 import { socialContent } from '../content';
 import { reportReducer, snapDataUri, snapViewReducer } from '../snap-view';
 import { personName } from '../social-view';
-import { pokeUnread } from '../useSocialData';
+import { openedSnaps, pokeUnread } from '../useSocialData';
 
 const c = socialContent.snap;
 const REASONS: ReportReason[] = ['spam', 'inappropriate_photo', 'harassment', 'other'];
@@ -21,21 +21,23 @@ export function SnapViewerScreen() {
   const router = useRouter();
   const t = useHissaTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [view, dispatch] = useReducer(snapViewReducer, { phase: 'warn' });
+  const [view, dispatch] = useReducer(snapViewReducer, { phase: 'opening' });
   const [snap, setSnap] = useState<OpenedSnap | null>(null); // the photo lives in memory only, as a data URI
   const [reporting, setReporting] = useState(false);
   const [report, dispatchReport] = useReducer(reportReducer, 'idle');
   const started = useRef(false); // synchronous guard: state alone lets a fast double tap open twice
 
-  // The only place openSnap is called: the Open button. Never on mount, focus or refetch.
+  // Tapping a snap in the list opens it: openSnap runs once on mount, and again only from Try again.
   const onOpen = async () => {
-    if (started.current || (view.phase !== 'warn' && view.phase !== 'failed')) return;
+    if (started.current) return;
     started.current = true;
     dispatch('press');
     try {
       setSnap(await openSnap(id));
+      openedSnaps.add(id);
       dispatch('opened');
     } catch (e) {
+      if (e instanceof ApiError && e.status === 404) openedSnaps.add(id);
       dispatch(e instanceof ApiError && e.status === 404 ? 'gone' : 'failed');
       started.current = false;
     } finally {
@@ -55,19 +57,25 @@ export function SnapViewerScreen() {
     }
   };
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/inbox'));
+  useEffect(() => {
+    void onOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/social'));
 
   return (
     <HissaScreen>
         <BackHeader onPress={back} />
-        {(view.phase === 'warn' || view.phase === 'opening' || view.phase === 'failed') && (
+        {view.phase === 'opening' && (
+          <HissaText muted accessibilityRole="progressbar" style={{ marginTop: 12 }}>
+            {c.opening}
+          </HissaText>
+        )}
+        {view.phase === 'failed' && (
           <View style={{ gap: 12, marginTop: 12 }}>
-            <HissaText variant="title" accessibilityRole="header">
-              {c.warn}
-            </HissaText>
-            <HissaText muted>{c.warnBody}</HissaText>
-            {view.phase === 'failed' && <HissaText accessibilityRole="alert">{c.failedOpen}</HissaText>}
-            <PrimaryButton label={view.phase === 'opening' ? c.opening : c.openButton} disabled={view.phase === 'opening'} onPress={() => void onOpen()} />
+            <HissaText accessibilityRole="alert">{c.failedOpen}</HissaText>
+            <PrimaryButton label={c.retry} onPress={() => void onOpen()} />
           </View>
         )}
         {view.phase === 'gone' && (

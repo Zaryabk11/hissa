@@ -5,14 +5,14 @@ import { getOverview, type FriendsOverview } from './api/friends';
 import { getCelebrations, getFriendGoals, getMyGoal, type Celebration, type FriendGoal, type Goal } from './api/goals';
 import { snapsEnabled } from '../../shared/flags';
 import { getInbox } from './api/notifications';
-import { getSnapInbox } from './api/snaps';
+import { getSnapInbox, type SnapInboxItem } from './api/snaps';
 import { unreadTotal } from './snap-view';
 import { latestGuard } from './social-view';
 
 const POLL_MS = 20_000;
 const UNREAD_POLL_MS = 30_000;
 
-type Data = { username: string | null; overview: FriendsOverview | null; goal: Goal | null; celebrations: Celebration[]; friendGoals: FriendGoal[] };
+type Data = { username: string | null; overview: FriendsOverview | null; goal: Goal | null; celebrations: Celebration[]; friendGoals: FriendGoal[]; snaps: SnapInboxItem[]; inboxUnread: number };
 
 /** Social tab data. Refreshes on focus and every 20 s while focused; `username === null` means the prompt is due. */
 export function useSocialData() {
@@ -25,9 +25,17 @@ export function useSocialData() {
     const isLatest = begin();
     try {
       const { username } = await getProfile();
-      const next: Data = { username, overview: null, goal: null, celebrations: [], friendGoals: [] };
+      const next: Data = { username, overview: null, goal: null, celebrations: [], friendGoals: [], snaps: [], inboxUnread: 0 };
       if (username) {
-        [next.overview, next.goal, next.celebrations, next.friendGoals] = await Promise.all([getOverview(), getMyGoal(), getCelebrations(), getFriendGoals()]);
+        // Snaps and the unread count are extras: if they fail, the rest of the screen still loads.
+        [next.overview, next.goal, next.celebrations, next.friendGoals, next.snaps, next.inboxUnread] = await Promise.all([
+          getOverview(),
+          getMyGoal(),
+          getCelebrations(),
+          getFriendGoals(),
+          snapsEnabled ? getSnapInbox().then((r) => r.items, () => []) : [],
+          getInbox().then((r) => r.unread, () => 0),
+        ]);
       }
       if (!alive.current || !isLatest()) return;
       setData(next);
@@ -49,11 +57,21 @@ export function useSocialData() {
     }, [refresh]),
   );
 
-  return { ...data, refresh, loading: !data && !error, error };
+  // A poke (from the snap viewer) re-renders so the opened snap drops off the list now.
+  const [, rerender] = useState(0);
+  useEffect(() => {
+    const bump = () => rerender((n) => n + 1);
+    pokes.add(bump);
+    return () => void pokes.delete(bump);
+  }, []);
+
+  return { ...data, snaps: data?.snaps.filter((s) => !openedSnaps.has(s.id)), refresh, loading: !data && !error, error };
 }
 
 // The tab bar and the inbox screen share one unread count; `pokeUnread` makes the bar re-read it now.
 const pokes = new Set<() => void>();
+/** Snaps opened in this session: hidden from the list at once, without waiting for a refetch. */
+export const openedSnaps = new Set<string>();
 export const pokeUnread = () => pokes.forEach((p) => p());
 
 /** Unread inbox count (plus unopened snaps when snaps are on) for the Social tab badge: polled every 30 s, and again when `focusKey` changes or on `pokeUnread`. */
