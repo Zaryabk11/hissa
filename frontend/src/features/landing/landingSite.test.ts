@@ -75,6 +75,17 @@ describe('landing site access', () => {
     expect(html).not.toMatch(/outline:[^;}]*var\(--pk\)/);
   });
 
+  it('keeps each story section readable and sign-in reachable without JavaScript', () => {
+    const how = html.split('<!-- ===== How it works ===== -->')[1].split('<!-- ===== Features ===== -->')[0];
+    const features = html.split('<!-- ===== Features ===== -->')[1].split('<!-- ===== Dish rail + FAQ ===== -->')[0];
+    const dishes = html.split('<!-- ===== Dish rail + FAQ ===== -->')[1].split('<!-- ===== Final CTA')[0];
+    expect(how).toMatch(/<noscript>[\s\S]*?Put your plate in the frame/);
+    expect(features).toMatch(/<noscript>[\s\S]*?A budget you don&rsquo;t have to read/);
+    expect(dishes).toMatch(/<noscript>[\s\S]*?Karahi[\s\S]*?haleem/i);
+    expect(html).toMatch(/<noscript>[\s\S]*?href="\.\.\/sign-in"[^>]*>Get Hissa<\/a>/);
+    expect(html).toMatch(/#hw \.stage,#fx \.stage,#dr \.iris\{display:none!important\}/);
+  });
+
   it('hides duplicated stage content from assistive technology', () => {
     expect(html).toMatch(/id="hw-bcopy"[^>]*>/);
     expect(html).toMatch(/id="hw-bcopy"[^>]*>[\s\S]*?<a class="cta g" href="#get">Get Hissa<\/a>/);

@@ -26,6 +26,13 @@ main section{height:auto!important;margin:0!important;visibility:visible!importa
 #dr .sheet{margin:0!important}
 #dr .ans{grid-template-rows:1fr!important;visibility:visible!important}
 #dr .bub{opacity:1!important;transform:none!important}
+#hw .stage,#fx .stage,#dr .iris{display:none!important}
+a[href="#get"]{display:none!important}
+.nojs{position:relative;max-width:900px;margin:auto;padding:100px 20px 70px}
+.nojs h2{font:800 clamp(38px,7vw,72px)/1 'Bricolage Grotesque',sans-serif}
+.nojs li{margin:20px 0;font:500 18px/1.5 Figtree,sans-serif}
+#hw{background:#F4B41A}#fx{background:#FFF6DD}#dr .nojs{max-width:none;background:#1a0a05;color:#FFF6DD}
+#nojs-get{position:fixed;z-index:102;top:12px;right:22px;min-height:44px}
 *{animation:none!important;transition:none!important}
 </style></noscript>
 <script>(function(){var d=document.documentElement;if(matchMedia('(prefers-reduced-motion:reduce)').matches||innerWidth<=820)d.classList.add('fb')})()</script>
@@ -64,6 +71,7 @@ html.ld.ld-rm #hs .hs-wm canvas{visibility:visible}
 </head>
 <body id="top" data-nav="s">
 <a class="skip" href="#main">Skip to content</a>
+<noscript><a id="nojs-get" class="cta" href="../sign-in">Get Hissa</a></noscript>
 <div id="ld" role="status" aria-live="polite"><span class="ld-sr" id="ld-sr">Loading Hissa</span>
  <div class="ld-h ld-t" aria-hidden="true"><i></i></div><div class="ld-h ld-b" aria-hidden="true"><i></i></div>
  <div class="ld-c" aria-hidden="true">
@@ -893,6 +901,11 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 
 <!-- ===== How it works ===== -->
 <section id="hw" aria-label="How it works">
+ <noscript><div class="nojs"><h2>How it works</h2><ol>
+  <li><b>Snap.</b> Put your plate in the frame. Karahi, biryani, nihari, whatever is on the table. No weighing, no typing.</li>
+  <li><b>Confirm.</b> Tap what&rsquo;s right, fix what&rsquo;s off. Hissa asks when it isn&rsquo;t sure.</li>
+  <li><b>Eat.</b> Get your hissa for the plate. Log it and keep your streak.</li>
+ </ol></div></noscript>
  <div class="stage" id="hw-stage" data-navbg="s">
   <!-- Buddy end state, identical to the last frame of #bd -->
   <div class="bcopy" id="hw-bcopy">
@@ -937,6 +950,11 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 
 <!-- ===== Features ===== -->
 <section id="fx" aria-label="Features">
+ <noscript><div class="nojs"><h2>Quiet by design</h2><ol>
+  <li><b>A budget you don&rsquo;t have to read.</b> Calories stay in the background, always an estimate. You see what is left today in a katori.</li>
+  <li><b>A week, not a day.</b> Hissa reads the pattern in plain words. Miss a day? It is an empty plate.</li>
+  <li><b>Kind on a heavy day.</b> A lighter plate and a gentle word, never a red warning.</li>
+ </ol></div></noscript>
  <div class="stage" id="fx-stage">
 
   <div class="iris" id="fx-iris">
@@ -1010,6 +1028,7 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 
 <!-- ===== Dish rail + FAQ ===== -->
 <section id="dr" aria-label="Dishes and questions">
+ <noscript><div class="nojs"><h2>Your dishes, in your portions.</h2><p>Karahi, biryani, daal, nihari, aloo gosht, haleem and palak. Hissa sizes dishes in roti, katori and plate. Every number is an estimate.</p></div></noscript>
  <div class="stage" id="dr-stage">
   <div class="iris" id="dr-iris" data-navbg="k">
    <div class="hd" id="dr-hd">
