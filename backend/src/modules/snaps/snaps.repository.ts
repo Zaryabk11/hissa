@@ -1,5 +1,5 @@
 import type { Db } from '../../shared/db';
-import type { InboxRow, NewSnap, SnapRow } from './snaps.types';
+import type { InboxRow, NewSnap, OpenRow, SnapRow } from './snaps.types';
 
 const SNAP_COLUMNS = 'id, sender_id, meal_id, object_path, created_at, expires_at, deleted_at';
 const INBOX_LIMIT = 50;
@@ -82,6 +82,45 @@ export function createSnapsRepository(db: Db) {
       }));
     },
 
+    // The caller's unopened row of a snap that is not deleted. Expiry is checked by the caller
+    // (against its clock) and again by claimOpen.
+    async recipientFor(recipientId: string, snapId: string): Promise<OpenRow | null> {
+      const { data, error } = await db
+        .from('snap_recipients')
+        .select('snap_id, expires_at, snaps!inner(sender_id, object_path, created_at, deleted_at)')
+        .eq('recipient_id', recipientId)
+        .eq('snap_id', snapId)
+        .is('opened_at', null)
+        .is('snaps.deleted_at', null)
+        .maybeSingle();
+      if (error) throw error;
+      const r = data as unknown as RawOpen | null;
+      return r
+        ? {
+            snap_id: r.snap_id,
+            sender_id: r.snaps.sender_id,
+            object_path: r.snaps.object_path,
+            created_at: r.snaps.created_at,
+            expires_at: r.expires_at,
+          }
+        : null;
+    },
+
+    // The view-once guard: ONE conditional UPDATE. True only if this call changed the row, so of
+    // any number of concurrent callers exactly one wins.
+    async claimOpen(snapId: string, recipientId: string, nowIso: string): Promise<boolean> {
+      const { data, error } = await db
+        .from('snap_recipients')
+        .update({ opened_at: nowIso })
+        .eq('snap_id', snapId)
+        .eq('recipient_id', recipientId)
+        .is('opened_at', null)
+        .gt('expires_at', nowIso)
+        .select('snap_id');
+      if (error) throw error;
+      return data.length > 0;
+    },
+
     // The caller's own snap that is not deleted yet.
     async ownSnap(senderId: string, snapId: string): Promise<SnapRow | null> {
       const { data, error } = await db
@@ -120,6 +159,12 @@ export function createSnapsRepository(db: Db) {
   };
 }
 export type SnapsRepository = ReturnType<typeof createSnapsRepository>;
+
+type RawOpen = {
+  snap_id: string;
+  expires_at: string;
+  snaps: { sender_id: string; object_path: string; created_at: string };
+};
 
 type RawInbox = {
   snap_id: string;

@@ -12,7 +12,7 @@ import type { FriendsService } from '../friends';
 import type { MealsService } from '../meals';
 import type { ProfilesService } from '../profiles';
 import type { SnapsRepository } from './snaps.repository';
-import type { InboxItem, SendResult, SnapStorage } from './snaps.types';
+import type { InboxItem, OpenResult, SendResult, SnapStorage } from './snaps.types';
 
 interface SnapsDeps {
   repository: SnapsRepository;
@@ -84,6 +84,30 @@ export function createSnapsService({ repository, storage, friends, meals, profil
           : [];
       });
       return { items };
+    },
+
+    // View once. Every failure is the same 404 so nothing leaks (not a recipient, opened, expired,
+    // deleted, unfriended). Bytes are read before the claim so a storage error does not burn the
+    // snap. The object stays: the sweeper removes it after the grace period.
+    async open(userId: string, snapId: string, now = new Date()): Promise<OpenResult> {
+      const gone = () => new NotFoundError('Snap not found');
+      const nowIso = now.toISOString();
+      const row = await repository.recipientFor(userId, snapId);
+      if (!row || row.expires_at <= nowIso) throw gone();
+      if (!(await friends.areFriends(row.sender_id, userId))) throw gone();
+      const [sender] = await profiles.getCards([row.sender_id]);
+      if (!sender) throw gone();
+      const bytes = await storage.get(row.object_path);
+      if (!bytes) throw gone();
+      if (!(await repository.claimOpen(row.snap_id, userId, nowIso))) throw gone();
+      logger.info('snap.opened', { snapId: row.snap_id, viewerId: userId });
+      return {
+        image: bytes.toString('base64'),
+        mimeType: 'image/jpeg',
+        sender,
+        sentAt: row.created_at,
+        expiresAt: row.expires_at,
+      };
     },
 
     // Remove the object first: if that fails the rows stay and the sender can retry.

@@ -95,4 +95,26 @@ describe.skipIf(!container)('snaps migration', () => {
       expect(out).toContain('B|snaps|f|{image/jpeg}');
     }
   });
+
+  it('claims a recipient row once: a second conditional update changes 0 rows', async () => {
+    const claim = `update public.snap_recipients set opened_at = now()
+      where snap_id = '${snap1}' and recipient_id = '${b}' and opened_at is null and expires_at > now()
+      returning 'U';`;
+    const out = await run(`${snap(snap1, meal1)}
+      insert into public.snap_recipients(snap_id,recipient_id,expires_at) values ('${snap1}','${b}', now() + interval '1 hour');
+      ${claim} select 'N', count(*) from public.snap_recipients where opened_at is not null;
+      ${claim} select 'M', count(*) from public.snap_recipients where opened_at is not null;`);
+    expect(out.split('\n').filter((l) => l === 'U')).toHaveLength(1);
+    expect(out).toContain('N|1');
+    expect(out).toContain('M|1');
+  });
+
+  it('does not claim an expired recipient row', async () => {
+    const out = await run(`${snap(snap1, meal1)}
+      insert into public.snap_recipients(snap_id,recipient_id,expires_at) values ('${snap1}','${b}', now() - interval '1 second');
+      update public.snap_recipients set opened_at = now()
+        where snap_id = '${snap1}' and recipient_id = '${b}' and opened_at is null and expires_at > now();
+      select 'E', count(*) from public.snap_recipients where opened_at is not null;`);
+    expect(out).toContain('E|0');
+  });
 });

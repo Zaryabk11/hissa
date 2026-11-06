@@ -32,6 +32,23 @@ export type InboxRow = {
   expires_at: string;
 };
 
+// The caller's unopened recipient row of a snap that is not deleted, with the snap fields open needs.
+export type OpenRow = {
+  snap_id: string;
+  sender_id: string;
+  object_path: string;
+  created_at: string;
+  expires_at: string;
+};
+
+export type OpenResult = {
+  image: string;
+  mimeType: 'image/jpeg';
+  sender: PersonCard;
+  sentAt: string;
+  expiresAt: string;
+};
+
 export type NewSnap = {
   id: string;
   mealId: string;

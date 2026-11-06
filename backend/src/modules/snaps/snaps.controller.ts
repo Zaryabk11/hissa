@@ -17,6 +17,10 @@ export function createSnapsController(service: SnapsService) {
     async inbox(req: Request, res: Response): Promise<void> {
       res.json(await service.inbox(uid(req)));
     },
+    async open(req: Request, res: Response): Promise<void> {
+      const out = await service.open(uid(req), req.params.id as string);
+      res.set('Cache-Control', 'no-store').json(out);
+    },
     async unsend(req: Request, res: Response): Promise<void> {
       await service.unsend(uid(req), req.params.id as string);
       res.status(204).end();

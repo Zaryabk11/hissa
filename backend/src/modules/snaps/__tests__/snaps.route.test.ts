@@ -23,6 +23,13 @@ function app(userId?: string) {
     })),
     inbox: vi.fn(async () => ({ items: [] })),
     unsend: vi.fn(async () => {}),
+    open: vi.fn(async () => ({
+      image: 'aGVsbG8=',
+      mimeType: 'image/jpeg',
+      sender: { userId: 'u2', username: 'bob', displayName: 'Bob' },
+      sentAt: '2026-11-06T10:00:00.000Z',
+      expiresAt: '2026-11-07T10:00:00.000Z',
+    })),
   };
   const a = express();
   a.use(express.json());
@@ -41,7 +48,9 @@ describe('snaps routes', () => {
     await request(a).post('/api/snaps').send(body).expect(401);
     await request(a).get('/api/snaps/inbox').expect(401);
     await request(a).delete(`/api/snaps/${snap}`).expect(401);
+    await request(a).post(`/api/snaps/${snap}/open`).expect(401);
     expect(service.send).not.toHaveBeenCalled();
+    expect(service.open).not.toHaveBeenCalled();
   });
 
   it('POST / sends for the caller and answers 201', async () => {
@@ -81,5 +90,17 @@ describe('snaps routes', () => {
     await request(a).delete(`/api/snaps/${snap}`).expect(204);
     expect(service.unsend).toHaveBeenCalledWith('me', snap);
     await request(a).delete('/api/snaps/nope').expect(400);
+  });
+
+  it('POST /:id/open opens for the caller (ignoring a body user id) with no-store; a bad uuid is 400', async () => {
+    const { a, service } = app('me');
+    const res = await request(a)
+      .post(`/api/snaps/${snap}/open`)
+      .send({ userId: 'someone-else' })
+      .expect(200);
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(res.body.image).toBe('aGVsbG8=');
+    expect(service.open).toHaveBeenCalledWith('me', snap);
+    await request(a).post('/api/snaps/nope/open').expect(400);
   });
 });

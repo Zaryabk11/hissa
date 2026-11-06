@@ -7,141 +7,7 @@ import {
   ValidationError,
 } from '../../../shared/errors';
 import { logger } from '../../../shared/logger';
-import type { PersonCard } from '../../profiles';
-import { createSnapsService } from '../snaps.service';
-import type { SnapStorage } from '../snaps.types';
-
-const [me, bob, cat, dan] = ['u1', 'u2', 'u3', 'u4'];
-const NOW = new Date('2026-11-06T10:00:00Z'); // PKT 15:00 on 2026-11-06
-const HOUR = 3_600_000;
-const people: PersonCard[] = [me, bob, cat, dan].map((id) => ({
-  userId: id,
-  username: `name_${id}`,
-  displayName: `Name ${id}`,
-}));
-
-type SnapRow = {
-  id: string;
-  sender_id: string;
-  meal_id: string;
-  object_path: string;
-  created_at: string;
-  expires_at: string;
-  deleted_at: string | null;
-};
-type RecipientRow = {
-  snap_id: string;
-  recipient_id: string;
-  expires_at: string;
-  opened_at: string | null;
-};
-
-const photo = (format: 'jpeg' | 'png' | 'webp' = 'jpeg') =>
-  sharp({ create: { width: 64, height: 48, channels: 3, background: '#c33' } })
-    [format]()
-    .toBuffer()
-    .then((b) => b.toString('base64'));
-
-function setup({
-  friends = [bob, cat],
-  meals = { m1: new Date(NOW.getTime() - 5 * 60_000).toISOString() } as Record<string, string>,
-}: { friends?: string[]; meals?: Record<string, string> } = {}) {
-  const snaps: SnapRow[] = [];
-  const recipients: RecipientRow[] = [];
-  const objects = new Map<string, Buffer>();
-  const storage: SnapStorage = {
-    put: vi.fn(async (path: string, bytes: Buffer) => void objects.set(path, bytes)),
-    get: vi.fn(async (path: string) => objects.get(path) ?? null),
-    remove: vi.fn(async (paths: string[]) => paths.forEach((p) => objects.delete(p))),
-    copyToReports: vi.fn(async () => true),
-    removeReports: vi.fn(async () => {}),
-    listOlderThan: vi.fn(async () => []),
-  };
-  const repository = {
-    insertSnap: vi.fn(
-      async (
-        sender: string,
-        s: { id: string; mealId: string; objectPath: string; createdAt: string; expiresAt: string },
-      ) => {
-        if (snaps.some((x) => x.meal_id === s.mealId)) throw { code: '23505' };
-        snaps.push({
-          id: s.id,
-          sender_id: sender,
-          meal_id: s.mealId,
-          object_path: s.objectPath,
-          created_at: s.createdAt,
-          expires_at: s.expiresAt,
-          deleted_at: null,
-        });
-      },
-    ),
-    insertRecipients: vi.fn(async (snapId: string, ids: string[], expiresAt: string) => {
-      recipients.push(
-        ...ids.map((id) => ({
-          snap_id: snapId,
-          recipient_id: id,
-          expires_at: expiresAt,
-          opened_at: null,
-        })),
-      );
-    }),
-    snapForMeal: vi.fn(
-      async (sender: string, mealId: string) =>
-        snaps.find((s) => s.sender_id === sender && s.meal_id === mealId) ?? null,
-    ),
-    countSentBetween: vi.fn(
-      async (sender: string, startIso: string, endIso: string) =>
-        snaps.filter(
-          (s) => s.sender_id === sender && s.created_at >= startIso && s.created_at < endIso,
-        ).length,
-    ),
-    inboxFor: vi.fn(async (me2: string, nowIso: string) =>
-      recipients
-        .filter((r) => r.recipient_id === me2 && !r.opened_at && r.expires_at > nowIso)
-        .flatMap((r) => {
-          const s = snaps.find((x) => x.id === r.snap_id && !x.deleted_at);
-          return s
-            ? [
-                {
-                  snap_id: s.id,
-                  sender_id: s.sender_id,
-                  created_at: s.created_at,
-                  expires_at: r.expires_at,
-                },
-              ]
-            : [];
-        }),
-    ),
-    ownSnap: vi.fn(
-      async (sender: string, snapId: string) =>
-        snaps.find((s) => s.id === snapId && s.sender_id === sender && !s.deleted_at) ?? null,
-    ),
-    markDeleted: vi.fn(async (snapId: string, nowIso: string) => {
-      const s = snaps.find((x) => x.id === snapId && !x.deleted_at);
-      if (s) s.deleted_at = nowIso;
-    }),
-    deleteRecipients: vi.fn(async (_sender: string, snapId: string) => {
-      for (let i = recipients.length - 1; i >= 0; i--)
-        if (recipients[i]?.snap_id === snapId) recipients.splice(i, 1);
-    }),
-  };
-  const friendList = [...friends];
-  const service = createSnapsService({
-    repository,
-    storage,
-    friends: { friendIds: vi.fn(async () => friendList) } as never,
-    meals: {
-      getMeal: vi.fn(async (_u: string, id: string) => {
-        if (!meals[id]) throw new NotFoundError('Meal not found');
-        return { id, eatenAt: meals[id] };
-      }),
-    } as never,
-    profiles: {
-      getCards: vi.fn(async (ids: string[]) => people.filter((p) => ids.includes(p.userId))),
-    } as never,
-  });
-  return { service, repository, storage, snaps, recipients, objects, friendList };
-}
+import { bob, cat, dan, HOUR, me, NOW, photo, setup } from './snaps.fake';
 
 describe('snaps service: send', () => {
   it('stores one JPEG at <snapId>.jpg and one row per friend expiring in 24 h', async () => {
@@ -331,5 +197,80 @@ describe('snaps service: unsend', () => {
     await expect(service.unsend(me, id as string)).rejects.toThrow('storage down');
     expect(snaps[0]?.deleted_at).toBeNull();
     expect(recipients).toHaveLength(2);
+  });
+});
+
+describe('snaps service: open', () => {
+  // me sends to bob and cat; returns the snap id and the stored bytes
+  async function sent(opts?: Parameters<typeof setup>[0]) {
+    const s = setup(opts);
+    const { id } = await s.service.send(me, { mealId: 'm1', image: await photo() }, NOW);
+    const bytes = [...s.objects.values()][0] as Buffer;
+    return { ...s, id: id as string, bytes };
+  }
+  const openedAt = (rs: { recipient_id: string; opened_at: string | null }[], who: string) =>
+    rs.find((r) => r.recipient_id === who)?.opened_at;
+
+  it('returns the stored bytes as base64 once, logs ids only, and keeps the object', async () => {
+    const spies = (['info', 'warn', 'error'] as const).map((l) => vi.spyOn(logger, l));
+    const { service, id, bytes, recipients, objects, storage } = await sent();
+    const out = await service.open(bob, id, NOW);
+    expect(out).toEqual({
+      image: bytes.toString('base64'),
+      mimeType: 'image/jpeg',
+      sender: expect.objectContaining({ userId: me }),
+      sentAt: NOW.toISOString(),
+      expiresAt: new Date(NOW.getTime() + 24 * HOUR).toISOString(),
+    });
+    expect(openedAt(recipients, bob)).toBe(NOW.toISOString());
+    expect(openedAt(recipients, cat)).toBeNull();
+    expect(objects.size).toBe(1);
+    expect(storage.remove).not.toHaveBeenCalled();
+    const calls = spies.flatMap((s) => s.mock.calls);
+    expect(calls).toContainEqual(['snap.opened', { snapId: id, viewerId: bob }]);
+    expect(JSON.stringify(calls)).not.toContain(out.image.slice(0, 40));
+    spies.forEach((s) => s.mockRestore());
+    await expect(service.open(bob, id, NOW)).rejects.toThrow(NotFoundError);
+  });
+
+  it('gives the same 404 to the sender, a stranger, an unknown id, an expired row, a deleted snap and an unfriended sender', async () => {
+    const { service, id, recipients, snaps, friendList } = await sent();
+    const late = new Date(NOW.getTime() + 24 * HOUR);
+    const attempts: [string, string, Date][] = [
+      [me, id, NOW],
+      [dan, id, NOW],
+      [bob, '00000000-0000-0000-0000-000000000000', NOW],
+      [bob, id, late],
+    ];
+    for (const [who, snapId, at] of attempts)
+      await expect(service.open(who, snapId, at)).rejects.toThrow(NotFoundError);
+
+    friendList.splice(friendList.indexOf(bob), 1); // bob unfriends me
+    await expect(service.open(bob, id, NOW)).rejects.toThrow(NotFoundError);
+    (snaps[0] as { deleted_at: string | null }).deleted_at = NOW.toISOString();
+    await expect(service.open(cat, id, NOW)).rejects.toThrow(NotFoundError);
+    expect(recipients.every((r) => r.opened_at === null)).toBe(true);
+  });
+
+  it('404s when the stored object is missing, without claiming', async () => {
+    const { service, id, recipients, objects } = await sent();
+    objects.clear();
+    await expect(service.open(bob, id, NOW)).rejects.toThrow(NotFoundError);
+    expect(openedAt(recipients, bob)).toBeNull();
+  });
+
+  it('surfaces a storage error, leaves the snap unopened, and a retry succeeds', async () => {
+    const { service, storage, repository, id, recipients } = await sent();
+    vi.mocked(storage.get).mockRejectedValueOnce(new Error('storage down'));
+    await expect(service.open(bob, id, NOW)).rejects.toThrow('storage down');
+    expect(repository.claimOpen).not.toHaveBeenCalled();
+    expect(openedAt(recipients, bob)).toBeNull();
+    await expect(service.open(bob, id, NOW)).resolves.toMatchObject({ mimeType: 'image/jpeg' });
+  });
+
+  it('still opens after the meal was deleted (meal_id null)', async () => {
+    const { service, id, snaps } = await sent();
+    (snaps[0] as { meal_id: string | null }).meal_id = null;
+    await expect(service.open(bob, id, NOW)).resolves.toMatchObject({ mimeType: 'image/jpeg' });
   });
 });
