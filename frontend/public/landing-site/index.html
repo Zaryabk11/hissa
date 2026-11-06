@@ -895,10 +895,12 @@ html:not(.fb) #dr .sheet{border-top:2.5px solid var(--ink);border-radius:50% 50%
 <section id="hw" aria-label="How it works">
  <div class="stage" id="hw-stage" data-navbg="s">
   <!-- Buddy end state, identical to the last frame of #bd -->
-  <div class="bcopy" id="hw-bcopy" aria-hidden="true" inert>
-   <span class="eyebrow">Buddy</span>
-   <h2><span>Eat</span><span>with</span><span>your</span><span>people.</span></h2>
-   <!-- owner wording pending: spec 12.2 --><p>Cheer streaks, nudge gently.</p>
+  <div class="bcopy" id="hw-bcopy">
+   <div aria-hidden="true" inert>
+    <span class="eyebrow">Buddy</span>
+    <h2><span>Eat</span><span>with</span><span>your</span><span>people.</span></h2>
+    <!-- owner wording pending: spec 12.2 --><p>Cheer streaks, nudge gently.</p>
+   </div>
    <a class="cta g" href="#get">Get Hissa</a>
   </div>
   <div class="hw-pw" id="hw-pw" aria-hidden="true"></div>
@@ -1116,93 +1118,7 @@ HX.wedges=function(pw){
 };
 </script>
 <script>
-/* painting keyer: flat butter-yellow background out of a painting. Runs in a Worker (OffscreenCanvas) when available, else on the main thread. */
-function keyLib(){
-var cl=function(x){return Math.max(0,Math.min(1,x))},ease=function(x){x=cl(x);return x*x*(3-2*x)};
-function keyPix(a,W,H,P){
-  var o0=P.clean&&P.clean.fill?new Uint8ClampedArray(a):null;
-  function avg(cx,cy){var r=0,g=0,b=0,n=0;for(var yy=cy;yy<cy+14;yy++)for(var xx=cx;xx<cx+14;xx++){var i=(yy*W+xx)*4;r+=a[i];g+=a[i+1];b+=a[i+2];n++}return[r/n,g/n,b/n]}
-  var tl=avg(2,2),tr=avg(W-16,2),bl=avg(2,H-16),br=avg(W-16,H-16);
-  var T0=P.T0,T1=P.T1,dist=new Float32Array(W*H),bgc=new Float32Array(W*H*3);
-  for(var y=0;y<H;y++){var v=y/H;for(var xx=0;xx<W;xx++){var u=xx/W,i=y*W+xx,s=0;
-    for(var k=0;k<3;k++){var bv=(tl[k]*(1-u)+tr[k]*u)*(1-v)+(bl[k]*(1-u)+br[k]*u)*v;bgc[i*3+k]=bv;var df=a[i*4+k]-bv;s+=df*df}
-    dist[i]=Math.sqrt(s)}}
-  var seen=new Uint8Array(W*H),st=new Int32Array(W*H),sp=0;
-  function push(i){if(!seen[i]&&dist[i]<T1){seen[i]=1;st[sp++]=i}}
-  for(var xx=0;xx<W;xx++){push(xx);push((H-1)*W+xx)}for(var y=0;y<H;y++){push(y*W);push(y*W+W-1)}
-  /* enclosed background (handle loops) an edge flood cannot reach */
-  if(P.seeds)P.seeds.forEach(function(s){push(Math.round(s[1]*H/1024)*W+Math.round(s[0]*W/1024))});
-  while(sp){var i=st[--sp],px=i%W;if(px>0)push(i-1);if(px<W-1)push(i+1);if(i>=W)push(i-W);if(i<W*(H-1))push(i+W)}
-  /* enclosed background pockets (inside handles): small components close to the bg colour */
-  function inR(i){return !P.pr||P.pr.some(function(r){var sx=i%W,sy=(i/W)|0;return sx>=r[0]&&sx<r[2]&&sy>=r[1]&&sy<r[3]})}
-  var H0=P.H0;for(var s0=0;s0<W*H;s0++){if(seen[s0]||dist[s0]>=H0||!inR(s0))continue;var comp=[s0],hs=0;seen[s0]=2;
-    while(hs<comp.length){var ci=comp[hs++],cx=ci%W,nb=[cx>0?ci-1:-1,cx<W-1?ci+1:-1,ci>=W?ci-W:-1,ci<W*(H-1)?ci+W:-1];
-      for(var z=0;z<4;z++){var ni=nb[z];if(ni>=0&&!seen[ni]&&dist[ni]<H0&&inR(ni)){seen[ni]=2;comp.push(ni)}}}
-    if(comp.length>=P.PK)for(var z=0;z<comp.length;z++)seen[comp[z]]=0}
-  /* painted warm ground shadow touching the background: orange-yellow, grown outward a few px at a time from the keyed area */
-  if(P.sh){var dp=new Uint8Array(W*H),q=[];for(var i=0;i<W*H;i++)if(seen[i]===1){dp[i]=1;q.push(i)}
-    for(var qi=0;qi<q.length;qi++){var ci=q[qi],d0=dp[ci];if(d0>P.sh)continue;var cx=ci%W,nb=[cx>0?ci-1:-1,cx<W-1?ci+1:-1,ci>=W?ci-W:-1,ci<W*(H-1)?ci+W:-1];
-      for(var z=0;z<4;z++){var ni=nb[z];if(ni<0||dp[ni])continue;var r=a[ni*4],g=a[ni*4+1],b=a[ni*4+2];
-        if(r>200&&g>150&&b>35&&b<140&&r-b>85){dp[ni]=d0+1;seen[ni]=1;dist[ni]=0;q.push(ni)}}}}
-  var x0=W,y0=H,x1=0,y1=0;
-  for(var i=0;i<W*H;i++){if(P.cut){var qx=(i%W-P.cut[0])/P.cut[2],qy=((i/W)|0)-P.cut[1];if(qy<0&&qx*qx+qy*qy/(P.cut[3]*P.cut[3])>1){a[i*4+3]=0;continue}}
-    if(!seen[i]){a[i*4+3]=255}else{var al=seen[i]===2?0:ease((dist[i]-T0)/(T1-T0));
-      if(al<1){for(var k=0;k<3;k++){var cv=al>.02?(a[i*4+k]-(1-al)*bgc[i*3+k])/al:a[i*4+k];a[i*4+k]=Math.max(0,Math.min(255,cv))}}
-      a[i*4+3]=Math.round(al*255)}
-    if(a[i*4+3]>200){var px=i%W,py=(i/W)|0;if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py}}
-  if(P.clean)cleanA(a,W,H,P.clean,o0);
-  return {x0:x0,y0:y0,x1:x1,y1:y1};
-}
-/* alpha cleanup: fill = rects where an alpha closing restores the painted pixels (a pale rim keyed out as background); r = opening that drops hairlines and specks */
-function box(m,W,H,r,mx,dx,dy){var o=new Uint8Array(W*H),t=new Uint8Array(W*H),i,x,y,k,v;
-  for(y=0;y<H;y++)for(x=0;x<W;x++){v=mx?0:1;for(k=-r;k<=r;k++){var xx=x+k;if(xx<0||xx>=W){if(!mx)v=0;continue}var q=m[y*W+xx];if(mx){if(q){v=1;break}}else if(!q){v=0;break}}t[y*W+x]=v}
-  for(y=0;y<H;y++)for(x=0;x<W;x++){v=mx?0:1;for(k=-r;k<=r;k++){var yy=y+k;if(yy<0||yy>=H){if(!mx)v=0;continue}var q=t[yy*W+x];if(mx){if(q){v=1;break}}else if(!q){v=0;break}}o[y*W+x]=v}
-  return o}
-function cleanA(a,W,H,C,o0){var i,m;
-  if(C.fill)C.fill.forEach(function(f){var x0=f[0],y0=f[1],x1=f[2],y1=f[3],r=f[4],w=x1-x0,h=y1-y0,mk=new Uint8Array(w*h);
-    for(var y=0;y<h;y++)for(var x=0;x<w;x++)mk[y*w+x]=a[((y0+y)*W+x0+x)*4+3]>128?1:0;
-    var cl=box(box(mk,w,h,r,1),w,h,r,0);
-    for(y=0;y<h;y++)for(x=0;x<w;x++){var j=y*w+x;if(cl[j]&&!mk[j]){var p=((y0+y)*W+x0+x)*4;a[p]=o0[p];a[p+1]=o0[p+1];a[p+2]=o0[p+2];a[p+3]=255}}});
-  if(C.r){m=new Uint8Array(W*H);for(i=0;i<W*H;i++)m[i]=a[i*4+3]>24?1:0;
-    var op=box(box(m,W,H,C.r,0),W,H,C.r,1);for(i=0;i<W*H;i++)if(m[i]&&!op[i])a[i*4+3]=0}}
-async function job(bmp,P,mk,toBlob){
-  var W=bmp.width,H=bmp.height,c=mk(W,H),x=c.getContext('2d',{willReadFrequently:true});x.drawImage(bmp,0,0);
-  var dt=x.getImageData(0,0,W,H),bd=keyPix(dt.data,W,H,P);x.putImageData(dt,0,0);
-  if(!P.TW)return toBlob(c);
-  /* fit the painted bounds (steam excluded) to a common width, bottom-aligned, so the rail reads as one set */
-  var x0=bd.x0,y0=bd.y0,x1=bd.x1,y1=bd.y1,bw=x1-x0+1,bh=y1-y0+1,s=Math.min(P.TW*W/bw,.72*H/bh),m=70,
-    sx=Math.max(0,x0-m),sy=Math.max(0,y0-m),sw=Math.min(W,x1+m)-sx,sh=Math.min(H,y1+m)-sy,o=mk(W,H),ox=o.getContext('2d');
-  ox.imageSmoothingQuality='high';
-  ox.drawImage(c,sx,sy,sw,sh,(W-bw*s)/2+(sx-x0)*s,.9*H-bh*s+(sy-y0)*s,sw*s,sh*s);
-  return toBlob(o);
-}
-return {job:job,keyPix:keyPix};
-}
-/* HX.key(src,params) -> Promise<blob url>. HX.karahi(cb): the keyed karahi painting, made once and shared by every section. */
-HX.key=(function(){
-  var L=keyLib(),w=null,pend={},n=0,Q=Promise.resolve();
-  function main(src,P){
-    return fetch(src).then(function(r){return r.blob()}).then(createImageBitmap).then(function(bmp){
-      return L.job(bmp,P,function(W,H){var c=document.createElement('canvas');c.width=W;c.height=H;return c},function(c){return new Promise(function(ok){c.toBlob(ok)})})})
-      .then(function(b){return URL.createObjectURL(b)});
-  }
-  try{
-    if(window.Worker&&window.OffscreenCanvas&&window.createImageBitmap&&!/[?&]nokeyworker/.test(location.search)){
-      w=new Worker(URL.createObjectURL(new Blob(['var L=('+keyLib.toString()+')();onmessage=async function(e){var d=e.data;try{var r=await fetch(d.src);var bmp=await createImageBitmap(await r.blob());var b=await L.job(bmp,d.P,function(W,H){return new OffscreenCanvas(W,H)},function(c){return c.convertToBlob({type:"image/png"})});postMessage({id:d.id,blob:b})}catch(x){postMessage({id:d.id,err:String(x)})}}'],{type:'text/javascript'})));
-      w.onmessage=function(e){var p=pend[e.data.id];if(!p)return;delete pend[e.data.id];if(e.data.blob)p.ok(URL.createObjectURL(e.data.blob));else p.no(e.data.err)};
-      w.onerror=function(){w=null;Object.keys(pend).forEach(function(k){pend[k].no('worker')});pend={};fn.worker=false};
-    }
-  }catch(e){w=null}
-  function fn(src,P){
-    var abs=new URL(src,location.href).href;
-    if(w)return new Promise(function(ok,no){var id=++n;pend[id]={ok:ok,no:no};w.postMessage({id:id,src:abs,P:P})}).catch(function(){return main(abs,P)});
-    /* main-thread fallback, one at a time and only when the browser is idle */
-    var run=function(){return main(abs,P)};Q=Q.then(function(){return new Promise(function(r){(window.requestIdleCallback||setTimeout)(r,200)})}).then(run);return Q;
-  }
-  fn.worker=!!w;return fn;
-})();
-HX.karahi=(function(){var pr=null,P={T0:26,T1:62,H0:22,PK:6000,seeds:[[880,486],[62,600]]};
-  return function(cb){if(!pr)pr=HX.key('assets/karahi-1024.jpg',P).catch(function(){return 'assets/karahi-1024.jpg'});pr.then(cb)}})();
+HX.img=function(name){return 'assets/dishes/'+name+'.webp'};
 </script>
 
 <script>
@@ -1410,9 +1326,7 @@ var STEPS=[
 function blob(cx,cy,rx,ry,ph,amp){var pts=[],n=90;for(var i=0;i<=n;i++){var a=i/n*Math.PI*2,k=1+amp*Math.sin(3*a+ph)+amp*.7*Math.sin(5*a+ph*2.1)+amp*.5*Math.sin(7*a+ph*.4);pts.push((cx+rx*k*Math.cos(a)).toFixed(1)+' '+(cy+ry*k*Math.sin(a)).toFixed(1))}return 'M'+pts.join('L')+'Z'}
 $('#hw-tfill').setAttribute('d',blob(430,392,392,252,1,.012));$('#hw-t1').setAttribute('d',blob(430,392,392,252,1,.012));$('#hw-t2').setAttribute('d',blob(433,396,386,246,2.4,.016));
 
-var KEY=null;
-function keyImg(done){HX.karahi(function(u){KEY=u;done()})}
-function applyKey(){if(KEY)$$('img.plate').forEach(function(i){i.src=KEY})}
+function applyKey(){$$('img.plate').forEach(function(i){i.src=HX.img('karahi')})}
 
 function sceneHTML(stk){
   var av=function(i){return '<svg viewBox="0 0 120 120" aria-hidden="true"><use href="#av'+i+'"/></svg>'};
@@ -1506,10 +1420,8 @@ function up(p){
   updScene(scene,p,false);
 }
 function init(){
-  keyImg(function(){
-    if(stacked())buildStack();else{buildDesk();layout()}
-    HX.refresh();
-  });
+  if(stacked())buildStack();else{buildDesk();layout()}
+  HX.refresh();
 }
 /* handoff to Features: the end frame stays pinned underneath while Features' cream iris opens over it */
 function plateBox(){var e=$('#hw-sceneHost .plateW');if(!e)return null;var r=e.getBoundingClientRect(),sr=stage.getBoundingClientRect();return {left:r.left-sr.left,top:r.top-sr.top,width:r.width}}
@@ -1605,7 +1517,7 @@ function up(p){
   A1(p);A2(p);A3(p);copy(p);
 }
 function init(){
-  HX.karahi(function(u){fly.src=u});
+  fly.src=HX.img('karahi');
   if(FB){
     /* stacked final states: each act sits under its own feature */
     [a1,a2,a3].forEach(function(a,i){items[i].appendChild(a)});
@@ -1644,7 +1556,7 @@ var DISHES=[
 ];
 var PIX='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 $('#dr-rail').innerHTML=DISHES.map(function(x,i){
-  var a='<img'+(x.img==='thali'?' class="thali"':' id="dr-'+x.img+'"')+(x.img==='karahi'||x.img==='thali'?'':' style="opacity:0"')+' src="'+(x.img==='karahi'?PIX:'assets/'+x.img+'-1024.jpg')+'" width="1024" height="1024" alt="Painting of '+x.alt+'">';
+  var a='<img'+(x.img==='thali'?' class="thali"':' data-dish="'+x.img+'"')+' src="'+(x.img==='thali'?'assets/thali-1024.jpg':PIX)+'" loading="lazy" width="1024" height="1024" alt="Painting of '+x.alt+'">';
   return '<li class="it" style="--y:'+(i%2?'-12px':'6px')+';--r:'+[-1.2,1,-.8,1.4,-1,.8,-1.4,1][i]+'deg"><div class="art">'+a+'</div><h3>'+x.n+'</h3><p class="sub">'+x.s+'</p><div class="pt">'+x.c.map(function(c){return '<span class="c3"><svg aria-hidden="true"><use href="#'+c[0]+'"/></svg>'+c[1]+'</span>'}).join('')+'<i class="est">estimate</i></div></li>';
 }).join('');
 if(FB){var rl=$('#dr-rail');rl.tabIndex=0;rl.setAttribute('role','region')}
@@ -1655,20 +1567,9 @@ var stage=$('#dr-stage'),iris=$('#dr-iris'),hd=$('#dr-hd'),rail=$('#dr-rail'),it
 var cream=$('#dr-cream'),fhl=$('#dr-fhl'),fhr=$('#dr-fhr'),ftag=$('#dr-ftag');
 var navLs=null,ncta=null;
 
-/* the six newer paintings, keyed in a worker, trimmed and fitted to one size. palak: close the pale rim keyed out on the roti's right edge, drop the hairline of ground shadow along the bottom */
-var NEW={
- biryani:{T0:14,T1:30,H0:11,PK:20000,TW:.9},
- daal:{T0:14,T1:28,H0:10,PK:0,TW:.86},
- nihari:{T0:18,T1:36,H0:12,PK:0,TW:.9,cut:[405,532,280,136]},
- aloogosht:{T0:14,T1:30,H0:55,PK:30000,TW:.9,sh:60,pr:[[100,330,230,570],[730,290,890,480]]},
- haleem:{T0:14,T1:26,H0:10,PK:0,TW:.74},
- palak:{T0:16,T1:30,H0:11,PK:0,TW:.9,sh:60,clean:{r:2,fill:[[890,565,945,695,10]]}}
-};
 var warmed=false;
 function warm(){if(warmed)return;warmed=true;
-  HX.karahi(function(u){$('#dr-karahi').src=u});
-  var ks=Object.keys(NEW),n=0;(function nx(){if(n>=ks.length)return;var k=ks[n++];
-    HX.key('assets/'+k+'-1024.jpg',NEW[k]).then(function(u){var e=$('#dr-'+k);if(u)e.src=u;e.style.opacity=1;nx()},function(){var e=$('#dr-'+k);e.style.opacity=1;nx()})})()}
+  $$('[data-dish]',rail).forEach(function(e){e.src=HX.img(e.dataset.dish)})}
 
 /* geometry */
 var G={W:0,H:0,S:0,IW:0,fx0:0,fx1:0,ox:0,oy:0,R:900,dp:1e4,dc:1e4,fox:0,foy:0,FR:900,cd:1e4};
@@ -1723,7 +1624,7 @@ function up(p,q,w){
 /* v: vh scrolled past the handoff (rail, then FAQ); w: handoff progress 0..1 (Lenis already smooths the scroll) */
 function set(v,w){v=Math.max(0,Math.min(TOT,v));up(cl(v/RUN),cl((v-RUN)/FQ),cl(w));HX.ring(ring)}
 return {wrap:R,stage:stage,layout:layout,set:set,warm:warm,ring:ring,RUN:RUN,FQ:FQ,TOT:TOT,
-  init:function(){layout();if(HX.key.worker)setTimeout(warm,400);if(!FB)set(0,0)}};
+  init:function(){layout();if(!FB)set(0,0)}};
 })();
 </script>
 
@@ -1735,7 +1636,7 @@ var RM=HX.RM;function fb(){return HX.fb()}
 function eo(x){x=cl(x);return 1-Math.pow(1-x,3)}
 function eio(x){x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2}
 
-HX.karahi(function(u){$('#fc-kar').src=u});
+  $('#fc-kar').src=HX.img('karahi');
 
 /* table blob */
 function blob(cx,cy,rx,ry,ph,amp){var pts=[],n=90;for(var i=0;i<=n;i++){var a=i/n*Math.PI*2,k=1+amp*Math.sin(3*a+ph)+amp*.7*Math.sin(5*a+ph*2.1)+amp*.5*Math.sin(7*a+ph*.4);pts.push((cx+rx*k*Math.cos(a)).toFixed(1)+' '+(cy+ry*k*Math.sin(a)).toFixed(1))}return 'M'+pts.join('L')+'Z'}

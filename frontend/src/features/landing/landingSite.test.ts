@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
@@ -76,10 +76,24 @@ describe('landing site access', () => {
   });
 
   it('hides duplicated stage content from assistive technology', () => {
-    expect(html).toMatch(/id="hw-bcopy"[^>]*aria-hidden="true"[^>]*inert/);
+    expect(html).toMatch(/id="hw-bcopy"[^>]*>/);
+    expect(html).toMatch(/id="hw-bcopy"[^>]*>[\s\S]*?<a class="cta g" href="#get">Get Hissa<\/a>/);
+    expect(html.match(/id="hw-bcopy"[^>]*>/)?.[0]).not.toMatch(/aria-hidden|inert/);
+    expect(html).toMatch(/id="hw-bcopy"[^>]*>[\s\S]*?<div[^>]*aria-hidden="true"[^>]*inert>[\s\S]*?Cheer streaks, nudge gently\./);
     expect(html).toMatch(/id="hw-bs"[^>]*aria-hidden="true"[^>]*inert/);
     expect(html).toMatch(/id="bd"[\s\S]*?class="card c1"[^>]*aria-hidden="true"[^>]*inert/);
     expect(html).toMatch(/id="bd"[\s\S]*?class="card c2"[^>]*aria-hidden="true"[^>]*inert/);
     expect(html).toMatch(/id="bd"[\s\S]*?class="card c3"[^>]*aria-hidden="true"[^>]*inert/);
+  });
+
+  it('serves precomputed dish paintings without runtime keying', () => {
+    for (const name of ['karahi', 'biryani', 'daal', 'nihari', 'aloogosht', 'haleem', 'palak']) {
+      expect(existsSync(fileURLToPath(new URL(`../../../public/landing-site/assets/dishes/${name}.webp`, import.meta.url)))).toBe(true);
+    }
+    expect(html).toContain("HX.img=function(name){return 'assets/dishes/'+name+'.webp'}");
+    expect(html).toContain('loading="lazy"');
+    expect(html).not.toMatch(/OffscreenCanvas|nokeyworker|keyLib|HX\.key|HX\.karahi/);
+    expect(html).toContain("img.src='assets/karahi-1024.jpg'");
+    expect(html).toContain('assets/thali-1024.jpg');
   });
 });
