@@ -63,6 +63,7 @@ describe('landing site copy', () => {
 describe('landing site access', () => {
   it('has no nested CSS rules', () => {
     for (const [, css] of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
+      expect(css).not.toMatch(/^\s*&/m);
       postcss.parse(css).walkRules(rule => {
         let parent: Container | Document | undefined = rule.parent;
         while (parent) {
