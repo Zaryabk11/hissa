@@ -97,7 +97,11 @@ export function createSnapsService({ repository, storage, friends, meals, profil
     },
 
     async inbox(userId: string, now = new Date()): Promise<{ items: InboxItem[] }> {
-      const rows = await repository.inboxFor(userId, now.toISOString());
+      const [allRows, friendIds] = await Promise.all([
+        repository.inboxFor(userId, now.toISOString()),
+        friends.friendIds(userId),
+      ]);
+      const rows = allRows.filter((r) => friendIds.includes(r.sender_id)); // not an ex-friend
       const cards = await profiles.getCards([...new Set(rows.map((r) => r.sender_id))]);
       const items = rows.flatMap((r): InboxItem[] => {
         const sender = cards.find((c) => c.userId === r.sender_id);

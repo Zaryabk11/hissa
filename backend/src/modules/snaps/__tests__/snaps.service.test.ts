@@ -179,8 +179,7 @@ describe('snaps service: send', () => {
 describe('snaps service: inbox', () => {
   it('lists only my unopened live snaps with the sender card, never bytes, and is repeatable', async () => {
     const meals = { m1: NOW.toISOString(), m2: NOW.toISOString() };
-    const { service, recipients } = setup({ meals, friends: [me, cat] });
-    // the fake friend list is [me, cat] for every sender
+    const { service, recipients } = setup({ meals, friends: [me, bob, cat] });
     const image = await photo();
     await service.send(bob, { mealId: 'm1', image }, NOW);
     await service.send(cat, { mealId: 'm2', image }, NOW);
@@ -203,12 +202,24 @@ describe('snaps service: inbox', () => {
   });
 
   it('omits expired rows', async () => {
-    const { service } = setup({ friends: [me] });
+    const { service } = setup({ friends: [me, bob] });
     await service.send(bob, { mealId: 'm1', image: await photo() }, NOW);
     expect((await service.inbox(me, new Date(NOW.getTime() + 24 * HOUR - 1))).items).toHaveLength(
       1,
     );
     expect((await service.inbox(me, new Date(NOW.getTime() + 24 * HOUR))).items).toHaveLength(0);
+  });
+});
+
+describe('snaps service: inbox after unfriending', () => {
+  it("does not list a snap from someone who is no longer a friend", async () => {
+    const { service, friendList } = setup();
+    await service.send(me, { mealId: 'm1', image: await photo() }, NOW);
+    expect((await service.inbox(bob, NOW)).items).toHaveLength(1);
+    expect((await service.inbox(cat, NOW)).items).toHaveLength(1);
+    friendList.splice(friendList.indexOf(bob), 1); // bob unfriends me
+    expect((await service.inbox(bob, NOW)).items).toHaveLength(0);
+    expect((await service.inbox(cat, NOW)).items).toHaveLength(1);
   });
 });
 

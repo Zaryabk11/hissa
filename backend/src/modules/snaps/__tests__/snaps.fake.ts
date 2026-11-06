@@ -243,13 +243,17 @@ export function setup({
       ),
     ),
   };
-  // The fake friend list is the same for every sender; areFriends reads it live.
+  // The fake friend list is read live by friendIds and areFriends.
   const friendList = [...friends];
   const service = createSnapsService({
     repository,
     storage,
     friends: {
-      friendIds: vi.fn(async () => friendList),
+      // Directional: `me` is friends with everyone in the list; a member's friends are the other
+      // members plus `me`.
+      friendIds: vi.fn(async (u: string) => [
+        ...new Set([...friendList, ...(friendList.includes(u) ? [me] : [])].filter((x) => x !== u)),
+      ]),
       areFriends: vi.fn(async (a: string, b: string) => {
         await tick();
         return a !== b && (friendList.includes(a) || friendList.includes(b));
