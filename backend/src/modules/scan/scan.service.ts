@@ -2,7 +2,7 @@ import { pktDay } from '../../shared/time/pkt';
 import type { Dish, NutritionService } from '../nutrition';
 import { isAvoided, type ProfilesService } from '../profiles';
 import { GeminiUnavailableError, type GeminiClient } from './gemini.client';
-import { resizePhoto } from './resize-photo';
+import { resizePhoto } from '../../shared/image';
 import type { ScanBody } from './scan.schemas';
 import type { ScanRepository } from './scan.repository';
 import type { ScanItem, ScanResult } from './scan.types';

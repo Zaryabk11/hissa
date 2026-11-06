@@ -1,8 +1,8 @@
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
-import { ValidationError } from '../../../shared/errors';
-import { logger } from '../../../shared/logger';
-import { resizePhoto } from '../resize-photo';
+import { ValidationError } from '../../errors';
+import { logger } from '../../logger';
+import { MAX_IMAGE_BYTES, imageBodySchema, resizePhoto } from '..';
 
 const png = (width: number, height: number) =>
   sharp({ create: { width, height, channels: 3, background: '#c33' } })
@@ -35,5 +35,18 @@ describe('resizePhoto', () => {
       expect.objectContaining({ error: 'Error', message: expect.any(String) }),
     );
     warn.mockRestore();
+  });
+});
+
+describe('imageBodySchema', () => {
+  const b64 = (bytes: number) => Buffer.alloc(bytes, 1).toString('base64');
+
+  it('accepts the maximum size and rejects one byte over', () => {
+    expect(MAX_IMAGE_BYTES).toBe(6_000_000);
+    expect(
+      imageBodySchema.safeParse({ image: b64(MAX_IMAGE_BYTES), mimeType: 'image/png' }).success,
+    ).toBe(true);
+    const r = imageBodySchema.safeParse({ image: b64(MAX_IMAGE_BYTES + 1), mimeType: 'image/png' });
+    expect(r.success ? null : r.error.issues[0]?.message).toBe('image is too large');
   });
 });

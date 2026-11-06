@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_IMAGE_BYTES, scanBodySchema } from '../scan.schemas';
+import { MAX_IMAGE_BYTES } from '../../../shared/image';
+import { scanBodySchema } from '../scan.schemas';
 
 const parse = (image: string) => scanBodySchema.safeParse({ image, mimeType: 'image/jpeg' });
 const b64 = (bytes: number) => Buffer.alloc(bytes, 1).toString('base64');
