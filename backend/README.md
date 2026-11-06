@@ -35,6 +35,7 @@ Regenerate the catalog seed with `node database/scripts/build-seed.mjs`.
 | `GEMINI_MODEL`              | `gemini-flash-lite-latest` | Empty value uses default                          |
 | `GEMINI_TIMEOUT_MS`         | `10000`                    | Gemini timeout per attempt (ms), up to 3 attempts |
 | `SCAN_DAILY_CAP`            | `10`                       | Scans per user per PKT day                        |
+| `SNAPS_ENABLED`             | `false`                    | `true` mounts `/api/snaps` and starts the sweeper |
 | `DEMO_USER_ID`              | empty                      | Optional demo-only user id (see Demo history)     |
 
 The server refuses to start if a required variable is missing. `DEMO_USER_ID` is optional: only that user's weekly card may have `isSample: true`; leave it empty in production.
@@ -87,6 +88,12 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 | POST   | `/api/friends/requests/:userId/decline` | Decline a request: 204                         |
 | DELETE | `/api/friends/:userId`               | Remove a friend: 204                              |
 | POST   | `/api/friends/:userId/nudge`         | Nudge a friend who has not logged (once per day): 204 |
+| POST   | `/api/friends/:userId/cheer-streak`  | Cheer a friend who logged today on a streak of 3+ (once per day): 204 |
+| POST   | `/api/snaps`                         | Send the photo of a just-saved meal to friends: 201 (needs `SNAPS_ENABLED`) |
+| GET    | `/api/snaps/inbox`                   | Unopened snaps `{ items }`, no photo (needs `SNAPS_ENABLED`) |
+| POST   | `/api/snaps/:id/open`                | View once: base64 JPEG, then gone (needs `SNAPS_ENABLED`) |
+| POST   | `/api/snaps/:id/report`              | Report an opened snap, keeps a copy 30 days: 204 (needs `SNAPS_ENABLED`) |
+| DELETE | `/api/snaps/:id`                     | Sender unsends: 204 (needs `SNAPS_ENABLED`)       |
 | GET    | `/api/goals/mine`                    | The caller's goal, or `null`                      |
 | POST   | `/api/goals`                         | Create the one active goal: 201                   |
 | PATCH  | `/api/goals/mine`                    | Share or unshare it, or abandon it                |
@@ -113,11 +120,24 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 
 `GET /api/streaks` returns exactly `{ "streak": 0, "loggedToday": false }` for the caller. A day counts when a person saved a meal (the meal save marks it); the streak is the run of consecutive PKT days ending today, or yesterday while today is still in progress.
 
-`GET /api/friends/overview` returns `{ friends, loggedCount, incoming, outgoing }`. Each friend is exactly `userId`, `username`, `displayName`, `streak`, `loggedToday` and `nudgedToday`; nothing about calories, meal details or feelings, and no photo or snap fields (a snap photo is returned only by `POST /api/snaps/:id/open`; phase 1, behind `SNAPS_ENABLED`, not built yet). Requests, accepting a request that is not yours, adding yourself, a repeated request, nudging a friend who already logged (or nudging twice in a day) and exceeding the friend cap return 400 or 404 in the usual error shape.
+`GET /api/friends/overview` returns `{ friends, loggedCount, incoming, outgoing }`. Each friend is exactly `userId`, `username`, `displayName`, `streak`, `loggedToday` and `nudgedToday`; nothing about calories, meal details or feelings, and no photo or snap fields (a snap photo is returned only by `POST /api/snaps/:id/open`, built behind `SNAPS_ENABLED`, off by default). Requests, accepting a request that is not yours, adding yourself, a repeated request, nudging a friend who already logged (or nudging twice in a day) and exceeding the friend cap return 400 or 404 in the usual error shape.
 
 One goal is active per user: `{ "type": "streak", "target": 7, "shared": true }` or `{ "type": "window", "windowDays": 14, "target": 10, "shared": false }`. A friend sees a goal only while its owner has shared it. A meal save checks the goal after the streak mark; a failed check never fails the save.
 
-Notifications are inbox-only (kinds `friend_request`, `request_accepted`, `nudge`, `goal_reached`, `cheer`); snaps are listed at `GET /api/snaps/inbox` (phase 1, behind `SNAPS_ENABLED`, not built yet); there is no push.
+Notifications are inbox-only (kinds `friend_request`, `request_accepted`, `nudge`, `goal_reached`, `cheer`, `cheer_streak`); snaps are listed at `GET /api/snaps/inbox` (built behind `SNAPS_ENABLED`, off by default); there is no push.
+
+### Snaps
+
+Off unless `SNAPS_ENABLED=true`: the `/api/snaps` routes then do not exist (404) and the sweeper does not run. The app has its own switch, `EXPO_PUBLIC_SNAPS_ENABLED` (`frontend/.env.example`); set both. Design and lifecycle: `docs/architecture.md`, "Snaps".
+
+- `POST /api/snaps` `{ mealId, image, mimeType }` (same photo rules as scan) returns 201 `{ id, expiresAt, recipients: { friends } }`. The meal must be the caller's and at most 30 minutes old: otherwise 400; a second snap for a meal is 409; the 13th snap of a PKT day is 429; unknown or other people's meals are 404. With no friends nothing is stored and `id` and `expiresAt` are `null`.
+- `GET /api/snaps/inbox` returns `{ items: [{ id, sender, sentAt, expiresAt }] }` for snaps the caller has not opened. No photo.
+- `POST /api/snaps/:id/open` returns `{ image, mimeType: "image/jpeg", sender, sentAt, expiresAt }` once, with `Cache-Control: no-store`. Not a recipient, already opened, expired, deleted and unfriended are all the same 404. The client must not open on mount or prefetch.
+- `POST /api/snaps/:id/report` `{ reason: spam | inappropriate_photo | harassment | other }` returns 204; only a recipient who opened the snap can report. The photo is kept 30 days in a separate private bucket.
+- `DELETE /api/snaps/:id` returns 204; the sender unsends.
+- Photos live only in the private `snaps` bucket and are removed once every recipient has opened (after a 10 minute report window) or after 24 hours; the sweeper runs every 5 minutes. Photos are never logged.
+
+Snap tests: `npm test -w backend -- snaps` (route, service, race and storage-client tests run without a database; the SQL tests in `snaps.database.test.ts` need the disposable Postgres under "Optional database tests"). The migration is `database/supabase/migrations/20261106000000_snaps.sql`.
 
 ### Food and Feel
 
@@ -499,7 +519,7 @@ Every number is an estimate. Plan responses and nutrition carry `isEstimate: tru
 
 ### Privacy note
 
-A friend sees only username, display name, "logged today", the streak, nudge state, a goal the user chose to share, and the view-once snap photo of each logged meal; never calories, meal details or feelings. A follower of a public account sees only that account's snaps, username, display name, bio and follower count. Accounts are private by default and only friends cheer. Snap photos live only in the private `snaps` bucket, are returned only by `POST /api/snaps/:id/open` (no URLs), are deleted once every recipient has opened them or after 24 hours, and are never logged. The one exception is a photo someone reports: it is kept up to 30 days in a separate private bucket for review. Under-18s cannot have a public account. Gemini never sees snaps. Snaps and the streak cheer are phase 1 behind `SNAPS_ENABLED`; public accounts, following, food cheers and custom goals are designed, not built (`docs/superpowers/specs/2026-11-06-snaps-follows-cheers-design.md`). The shapes above are the whole contract; direct database access to the friend, goal, follow, snap, block, report and notification tables is closed, and clients must not write meals or check-ins to Supabase themselves.
+A friend sees only username, display name, "logged today", the streak, nudge state, a goal the user chose to share, and the view-once snap photo of each logged meal; never calories, meal details or feelings. A follower of a public account sees only that account's snaps, username, display name, bio and follower count. Accounts are private by default and only friends cheer. Snap photos live only in the private `snaps` bucket, are returned only by `POST /api/snaps/:id/open` (no URLs), are deleted once every recipient has opened them or after 24 hours, and are never logged. The one exception is a photo someone reports: it is kept up to 30 days in a separate private bucket for review. Under-18s cannot have a public account. Gemini never sees snaps. Snaps and the streak cheer are built behind `SNAPS_ENABLED` (off by default); public accounts, following, food cheers and custom goals are designed, not built (`docs/superpowers/specs/2026-11-06-snaps-follows-cheers-design.md`). The shapes above are the whole contract; direct database access to the friend, goal, follow, snap, block, report and notification tables is closed, and clients must not write meals or check-ins to Supabase themselves.
 
 ## How a scan becomes a saved meal
 
