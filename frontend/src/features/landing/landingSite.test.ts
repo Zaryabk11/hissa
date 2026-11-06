@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import postcss, { type Container, type Document } from 'postcss';
 import { describe, expect, it } from 'vitest';
 
 const html = readFileSync(fileURLToPath(new URL('../../../public/landing-site/index.html', import.meta.url)), 'utf8');
@@ -60,6 +61,18 @@ describe('landing site copy', () => {
 });
 
 describe('landing site access', () => {
+  it('has no nested CSS rules', () => {
+    for (const [, css] of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
+      postcss.parse(css).walkRules(rule => {
+        let parent: Container | Document | undefined = rule.parent;
+        while (parent) {
+          expect(parent.type, rule.selector).not.toBe('rule');
+          parent = parent.parent;
+        }
+      });
+    }
+  });
+
   it('has descriptive metadata and a local saffron favicon', () => {
     expect(html).toContain('<title>Hissa · One more roti is fine</title>');
     expect(html).toContain('<meta name="description" content="Snap your plate. Hissa tells you your portion in roti and katori, like a friend at the dastarkhwan, not a diet app.">');
