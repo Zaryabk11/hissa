@@ -12,6 +12,9 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { raat } from '../../shared/theme/hissaTokens';
 import { HissaThemeProvider } from '../../shared/theme/HissaThemeProvider';
+import { Card } from '../../shared/ui/hissa/Card';
+import { Dabbu } from '../../shared/ui/hissa/Dabbu';
+import { SpeechBubble } from '../../shared/ui/hissa/SpeechBubble';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { getCatalog, scanPhoto } from '../core/api';
@@ -21,17 +24,18 @@ import { scanContent as c } from './content';
 import { isNoPlateResult, reviewItemsFromScan } from './scanPayload';
 import { setItems, setManualReason, useScan } from './store';
 
-const PHOTO = 300;
 const BAND = 130;
 const BAR_MS = 20_000; // the bar eases toward 92% over this long, then waits for the real answer
 const MATCHING_AFTER_S = 4;
 const SLOW_AFTER_S = 12;
 
-/** Screen h. The captured photo with a lime sweep while the API recognises the plate. */
+/** Screen h. The captured photo with a saffron sweep while the API recognises the plate. */
 export function ScanningScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const PHOTO = Math.min(300, width - 40, height * 0.38);
+  const top = Math.max(insets.top, 24) + 84;
   const { photoUri, image, mimeType } = useScan();
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -89,28 +93,34 @@ export function ScanningScreen() {
   return (
     <HissaThemeProvider theme={raat}>
       <View accessible accessibilityRole="progressbar" accessibilityLabel={c.scanning.title} accessibilityState={{ busy: !error }} style={{ flex: 1, backgroundColor: raat.bg }}>
-        <View style={{ marginTop: Math.max(insets.top, 24) + 150, alignSelf: 'center' }}>
+        <View style={{ marginTop: top, alignSelf: 'center' }}>
           {photoUri && (
-            <Image accessibilityLabel={c.scanning.photo} source={{ uri: photoUri }} style={{ width: PHOTO, height: PHOTO, borderRadius: PHOTO / 2, borderWidth: 1, borderColor: 'rgba(255,255,255,.4)' }} />
+            <Image accessibilityLabel={c.scanning.photo} source={{ uri: photoUri }} style={{ width: PHOTO, height: PHOTO, borderRadius: PHOTO / 2, borderWidth: 3, borderColor: raat.line }} />
           )}
         </View>
         <Animated.View
           pointerEvents="none"
-          style={[{ position: 'absolute', left: 0, right: 0, top: reduced ? Math.max(insets.top, 24) + 150 + PHOTO / 2 - BAND : 0, height: BAND, backgroundColor: 'rgba(212,255,58,.25)', borderBottomWidth: 3, borderBottomColor: raat.pri }, sweep]}
+          style={[{ position: 'absolute', left: 0, right: 0, top: reduced ? top + PHOTO / 2 - BAND : 0, height: BAND, backgroundColor: `${raat.tur}40`, borderBottomWidth: 3, borderBottomColor: raat.tur }, sweep]}
         />
-        <View style={{ position: 'absolute', left: 20, right: 20, alignSelf: 'center', maxWidth: 440, bottom: Math.max(insets.bottom, 24) + 40, borderRadius: 24, backgroundColor: raat.surf, borderWidth: 1, borderColor: raat.hair, padding: 20, alignItems: 'center' }}>
-          <HissaText variant="title" accessibilityRole="header" style={{ fontSize: 22, lineHeight: 28 }}>
-            {error ?? c.scanning.title}
-          </HissaText>
+        <View style={{ position: 'absolute', top: insets.top + 12, left: 20, right: 84, flexDirection: 'row', alignItems: 'center' }}>
+          <Dabbu mood="think" size={56} />
+          <SpeechBubble>{c.scanning.title}</SpeechBubble>
+        </View>
+        <Card style={{ position: 'absolute', left: 20, right: 20, alignSelf: 'center', maxWidth: 440, bottom: Math.max(insets.bottom, 24) + 40, alignItems: 'center' }}>
+          {error && (
+            <HissaText variant="label" accessibilityRole="alert">
+              {error}
+            </HissaText>
+          )}
           <HissaText variant="caption" style={{ marginTop: 4 }}>
             {error ? <PrimaryButton label="Retry scan" onPress={() => { setError(null); setSeconds(0); setAttempt((n) => n + 1); }} /> : stage}
           </HissaText>
           {!error && (
             <View style={{ alignSelf: 'stretch', height: 6, borderRadius: 3, marginTop: 16, overflow: 'hidden', backgroundColor: raat.hair }}>
-              <Animated.View style={[{ height: 6, borderRadius: 3, backgroundColor: raat.pri }, fill]} />
+              <Animated.View style={[{ height: 6, borderRadius: 3, backgroundColor: raat.tur }, fill]} />
             </View>
           )}
-        </View>
+        </Card>
         <View style={{ position: 'absolute', top: insets.top + 12, right: 20 }}>
           <CloseButton onPhoto onPress={() => router.back()} />
         </View>

@@ -2,7 +2,7 @@
 export const scanContent = {
   close: 'Close',
   camera: {
-    frame: 'Put your plate in the frame',
+    frame: 'Frame the whole plate.',
     take: 'Take photo',
     gallery: 'Choose from gallery',
     asking: {
@@ -23,7 +23,7 @@ export const scanContent = {
     pick: 'Pick a photo',
   },
   scanning: {
-    title: 'Looking at your plate',
+    title: 'Reading your plate.',
     sub: 'A few seconds, hang on',
     matching: 'Matching what I see to your dishes',
     slow: 'Still working, this one is taking a little longer',

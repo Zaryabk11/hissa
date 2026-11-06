@@ -6,6 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { raat } from '../../shared/theme/hissaTokens';
 import { HissaThemeProvider } from '../../shared/theme/HissaThemeProvider';
+import { Card } from '../../shared/ui/hissa/Card';
+import { Dabbu } from '../../shared/ui/hissa/Dabbu';
+import { SpeechBubble } from '../../shared/ui/hissa/SpeechBubble';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { CloseButton } from './CloseButton';
@@ -19,14 +22,16 @@ const webHasNoCamera = isWeb && typeof navigator !== 'undefined' && !navigator.m
 
 function Panel({ title, body, children }: { title: string; body: string; children: ReactNode }) {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 32, gap: 12 }}>
-      <HissaText variant="title" accessibilityRole="header" style={{ textAlign: 'center' }}>
-        {title}
-      </HissaText>
-      <HissaText muted style={{ textAlign: 'center' }}>
-        {body}
-      </HissaText>
-      <View style={{ gap: 8, marginTop: 16 }}>{children}</View>
+    <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 20, alignSelf: 'center', width: '100%', maxWidth: 480 }}>
+      <Card style={{ gap: 12 }}>
+        <HissaText variant="value" accessibilityRole="header" style={{ textAlign: 'center' }}>
+          {title}
+        </HissaText>
+        <HissaText muted style={{ textAlign: 'center' }}>
+          {body}
+        </HissaText>
+        <View style={{ gap: 8, marginTop: 8 }}>{children}</View>
+      </Card>
     </View>
   );
 }
@@ -37,9 +42,9 @@ function GalleryButton({ onPress }: { onPress: () => void }) {
       accessibilityRole="button"
       accessibilityLabel={c.camera.gallery}
       onPress={onPress}
-      style={{ width: 48, height: 48, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: 48, height: 48, borderRadius: 12, borderWidth: 2, borderColor: raat.ink, alignItems: 'center', justifyContent: 'center' }}
     >
-      <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={raat.ink} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
         <Rect x={4} y={5} width={16} height={14} rx={2} />
         <Circle cx={9} cy={10} r={1.5} />
         <Path d="M4 17l5-4 4 3 3-2 4 3" />
@@ -106,11 +111,12 @@ export function CameraScreen() {
         {body}
         {live && (
           <>
-            <View pointerEvents="none" style={{ ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 24 }}>
-              <View style={{ width: 300, height: 300, borderRadius: 150, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,.8)' }} />
-              <HissaText variant="button" style={{ fontSize: 16, lineHeight: 24, color: '#FFFFFF' }}>
-                {c.camera.frame}
-              </HissaText>
+            <View pointerEvents="none" style={{ ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 'min(300px, 80vw)' as unknown as number, aspectRatio: 1, borderRadius: 999, borderWidth: 3, borderStyle: 'dashed', borderColor: raat.tur }} />
+            </View>
+            <View style={{ position: 'absolute', top: insets.top + 12, left: 20, right: 84, flexDirection: 'row', alignItems: 'center' }}>
+              <Dabbu mood="curious" size={56} />
+              <SpeechBubble>{c.camera.frame}</SpeechBubble>
             </View>
             <View style={{ position: 'absolute', left: 0, right: 0, bottom: Math.max(insets.bottom, 24) + 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 40 }}>
               <GalleryButton onPress={choose} />
@@ -118,9 +124,9 @@ export function CameraScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={c.camera.take}
                 onPress={take}
-                style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 4, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 4, borderColor: raat.ink, alignItems: 'center', justifyContent: 'center' }}
               >
-                <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: '#FFFFFF' }} />
+                <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: raat.tur }} />
               </Pressable>
               <View style={{ width: 48 }} />
             </View>
