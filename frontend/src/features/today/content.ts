@@ -5,10 +5,13 @@ export const todayContent = {
   ring: {
     left: 'left',
     forToday: 'for today',
-    estimate: 'About, an estimate',
+    about: 'About',
+    estimate: 'estimate',
     label: (n: string, unit: string) => `About ${n} kcal ${unit}, an estimate`,
-    atBudget: "You're at today's budget. A lighter plate next is a kind choice.",
+    atBudget: 'You have eaten well today. A lighter plate keeps you balanced.',
+    next: 'Log your next plate when you are ready.',
   },
+  view: { day: 'Day', week: 'Week' },
   meals: {
     title: 'Meals today',
     kcal: (n: string) => `About ${n} kcal, an estimate`,
@@ -41,8 +44,8 @@ export const todayContent = {
     cta: 'Check in',
   },
   empty: {
-    title: 'Your plate starts here',
-    body: 'Snap what is in front of you. Hissa will suggest a portion.',
+    title: 'No meals logged yet',
+    body: 'Scan your first plate.',
     cta: 'Scan my plate',
   },
   refresh: {

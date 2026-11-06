@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
+import { Card } from '../../../shared/ui/hissa/Card';
 import { Bone } from '../../../shared/ui/hissa/Bone';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import { getWeek, type WeekDay } from '../api/week';
@@ -40,21 +41,12 @@ export function WeekCard({ budget, refreshKey }: { budget: number; refreshKey: n
   );
 
   const view = days ? weekView(days, budget) : null;
-  // Over budget is a soft tint with a lime edge, never red.
+  // Over budget is a soft tint with an accent edge, never red.
   const barColor = (state: string, isToday: boolean) =>
     state === 'empty' ? t.hair : state === 'over' ? t.tint : isToday ? t.tur : t.rim;
 
   return (
-    <View
-      style={{
-        padding: 16,
-        borderRadius: 18,
-        backgroundColor: t.surf,
-        borderWidth: 1,
-        borderColor: t.hair,
-        gap: 12,
-      }}
-    >
+    <Card style={{ gap: 12 }}>
       <HissaText variant="label" accessibilityRole="header">
         {c.week.title}
       </HissaText>
@@ -145,6 +137,6 @@ export function WeekCard({ budget, refreshKey }: { budget: number; refreshKey: n
           {c.week.seeAll}
         </HissaText>
       </Pressable>
-    </View>
+    </Card>
   );
 }

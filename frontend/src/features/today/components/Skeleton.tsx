@@ -34,7 +34,7 @@ export function TodaySkeleton() {
           <Bone width={40} height={40} radius={20} />
         </View>
         <View style={{ alignItems: 'center', marginTop: 12 }}>
-          <View style={{ width: 220, height: 220, borderRadius: 110, borderWidth: 10, borderColor: t.hair, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 220, height: 220, borderRadius: 110, borderWidth: 6, borderStyle: 'dotted', borderColor: t.hair, alignItems: 'center', justifyContent: 'center' }}>
             <Bone width={110} height={40} radius={10} />
           </View>
         </View>
