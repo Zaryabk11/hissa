@@ -11,6 +11,8 @@ import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { dishById, CATALOG } from '../nutrition/catalog';
 import { kcalForItems, portionText } from '../nutrition/engine';
 import { getPlan, saveMeal } from '../core/api';
+import { snapsEnabled } from '../../shared/flags';
+import { afterSave } from './sendSnap';
 import { CloseButton } from './CloseButton';
 import { scanContent as c } from './content';
 import { mealPayload, stepQty } from './scanPayload';
@@ -164,7 +166,7 @@ type Open = { id: string; mode: 'ask' | 'swap' } | 'add' | null;
 export function ReviewScreen() {
   const router = useRouter();
   const t = useHissaTheme();
-  const { photoUri, items, manualReason } = useScan();
+  const { photoUri, image, items, manualReason } = useScan();
   useEffect(() => { if (!photoUri) router.replace('/(tabs)/scan'); }, [photoUri, router]);
   const [open, setOpen] = useState<Open>(null);
   const [busy, setBusy] = useState<'save' | 'plan' | null>(null);
@@ -186,7 +188,8 @@ export function ReviewScreen() {
     setBusy('save');
     setError(null);
     try {
-      await saveMeal(mealPayload(items).items);
+      const meal = await saveMeal(mealPayload(items).items);
+      afterSave(meal.id);
       router.navigate('/(tabs)/today');
     } catch {
       setError('Could not confirm the save. Check Today before trying again.');
@@ -212,6 +215,7 @@ export function ReviewScreen() {
   return (
     <HissaScreen actionBar={
         <View style={{ gap: 8 }}>
+          {snapsEnabled && image && <HissaText variant="caption">{c.review.snapNotice}</HissaText>}
           <PrimaryButton label={busy === 'plan' ? 'Working…' : c.review.cta} disabled={!canContinue || !!busy} onPress={() => void showPlan()} />
           <PrimaryButton outline label={busy === 'save' ? 'Saving…' : c.review.save} disabled={!canContinue || !!busy} onPress={() => void save()} />
         </View>

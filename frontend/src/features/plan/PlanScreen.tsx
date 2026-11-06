@@ -9,6 +9,9 @@ import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { useScan } from '../scan/store';
 import { portionText } from '../nutrition/engine';
 import { saveMeal } from '../core/api';
+import { snapsEnabled } from '../../shared/flags';
+import { scanContent } from '../scan/content';
+import { afterSave } from '../scan/sendSnap';
 import { mealPayload } from '../scan/scanPayload';
 import { fmt } from '../today/format';
 import { planContent as c } from './content';
@@ -22,7 +25,7 @@ export function PlanScreen() {
   const t = useHissaTheme();
   const insets = useSafeAreaInsets();
   const { split, columnMax } = useColumnLayout();
-  const { photoUri, items: reviewed, plan } = useScan();
+  const { photoUri, image, items: reviewed, plan } = useScan();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const rows = (plan?.items ?? []).map((i) => ({ name: i.name, portion: portionText({ dishId: i.slug, qty: i.units }) }));
@@ -33,7 +36,8 @@ export function PlanScreen() {
     setBusy(true);
     setError(null);
     try {
-      await saveMeal(mealPayload(reviewed, plan.items).items);
+      const meal = await saveMeal(mealPayload(reviewed, plan.items).items);
+      afterSave(meal.id);
       router.navigate('/(tabs)/today');
     } catch {
       setError('Could not confirm the save. Check Today before trying again.');
@@ -132,6 +136,7 @@ export function PlanScreen() {
               paddingBottom: Math.max(insets.bottom, 34),
             }}
           >
+            {snapsEnabled && image && <HissaText variant="caption">{scanContent.review.snapNotice}</HissaText>}
             <PrimaryButton label={busy ? 'Saving…' : c.ate} disabled={rows.length === 0 || busy} onPress={() => void ate()} />
             <PrimaryButton outline label={c.adjust} onPress={() => router.back()} />
           </View>
