@@ -594,6 +594,31 @@ describe('snaps service: sweep', () => {
     vi.restoreAllMocks();
   });
 
+  it('warns once when a stage keeps failing the same way, then drops to debug', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    const debug = vi.spyOn(logger, 'debug').mockImplementation(() => {});
+    const { service, storage } = await sent();
+    vi.mocked(storage.listOlderThan).mockRejectedValue(new Error('bucket not found'));
+    const stageWarns = () =>
+      warn.mock.calls.filter(([, meta]) => (meta as { stage?: string }).stage === 'orphans');
+    for (let i = 1; i <= 3; i++) expect((await service.sweep(at(i * 5 * MIN))).failed).toBe(1);
+    expect(stageWarns()).toHaveLength(1);
+    expect(debug).toHaveBeenCalledWith(
+      'snap.delete_failed',
+      expect.objectContaining({ stage: 'orphans', message: 'bucket not found' }),
+    );
+    expect(debug).toHaveBeenCalledTimes(2);
+    // a different failure warns again, and so does the same one after a good run
+    vi.mocked(storage.listOlderThan).mockRejectedValue(new Error('timeout'));
+    await service.sweep(at(20 * MIN));
+    expect(stageWarns()).toHaveLength(2);
+    vi.mocked(storage.listOlderThan).mockResolvedValueOnce([]);
+    await service.sweep(at(25 * MIN));
+    await service.sweep(at(30 * MIN));
+    expect(stageWarns()).toHaveLength(3);
+    vi.restoreAllMocks();
+  });
+
   it('never logs bytes or who opened the snap', async () => {
     const spies = (['info', 'warn', 'error'] as const).map((l) => vi.spyOn(logger, l));
     const { service, id, objects } = await sent();

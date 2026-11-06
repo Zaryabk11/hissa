@@ -45,6 +45,7 @@ async function inChunks(items: string[], pick: (chunk: string[]) => Promise<stri
 
 // Business rules for snaps. Photo bytes are never logged and never returned by the inbox.
 export function createSnapsService({ repository, storage, friends, meals, profiles }: SnapsDeps) {
+  const lastStageError = new Map<string, string>(); // per process: see sweep's `stage`
   return {
     async send(
       userId: string,
@@ -195,12 +196,19 @@ export function createSnapsService({ repository, storage, friends, meals, profil
           logger.warn('snap.delete_failed', { ...meta, message: message(e) });
         }
       };
+      // A stage that keeps failing the same way (buckets missing, migration not applied) warns
+      // once, then logs at debug; a new message, or a good run in between, warns again.
       const stage = async (name: string, work: () => Promise<void>) => {
         try {
           await work();
+          lastStageError.delete(name);
         } catch (e) {
           failed++;
-          logger.warn('snap.delete_failed', { stage: name, message: message(e) });
+          const meta = { stage: name, message: message(e) };
+          const repeat = lastStageError.get(name) === meta.message;
+          lastStageError.set(name, meta.message);
+          if (repeat) logger.debug('snap.delete_failed', meta);
+          else logger.warn('snap.delete_failed', meta);
         }
       };
 

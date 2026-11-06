@@ -135,6 +135,7 @@ Off unless `SNAPS_ENABLED=true`: the `/api/snaps` routes and `POST /api/friends/
 - `POST /api/snaps/:id/open` returns `{ image, mimeType: "image/jpeg", sender, sentAt, expiresAt }` once, with `Cache-Control: no-store`. Not a recipient, already opened, expired, deleted and unfriended are all the same 404. The client must not open on mount or prefetch.
 - `POST /api/snaps/:id/report` `{ reason: spam | inappropriate_photo | harassment | other }` returns 204; only a recipient who opened the snap can report. The photo is kept 30 days in a separate private bucket.
 - `DELETE /api/snaps/:id` returns 204; the sender unsends.
+- The sweeper runs whether or not `SNAPS_ENABLED` is on (only the routes are gated). A stage that keeps failing the same way (for example the buckets do not exist yet) warns once, then logs at debug; set `LOG_LEVEL=debug` to see every repeat.
 - Photos live only in the private `snaps` bucket and are removed once every recipient has opened (after a 10 minute report window) or after 24 hours; the sweeper runs every 5 minutes. Photos are never logged.
 
 Snap tests: `npm test -w backend -- snaps` (route, service, race and storage-client tests run without a database; the SQL tests in `snaps.database.test.ts` need the disposable Postgres under "Optional database tests"). The migration is `database/supabase/migrations/20261106000000_snaps.sql`.

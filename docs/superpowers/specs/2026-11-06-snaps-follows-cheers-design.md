@@ -88,7 +88,7 @@ Migrations are shipped per phase (section 13); the two names below are indicativ
 
 **Logged** (via `shared/logger`): `snap.created {snapId, senderId, friends, followers}`, `snap.opened {snapId, viewerId}`, `snap.object_deleted {snapId, reason}`, `snap.reported {snapId, reportId, evidenceKept}`, `snap.sweep {deleted, failed}`, warning `snap.delete_failed`. Never logged: bytes, base64, request bodies (confirm the error handler logs no bodies; unverified).
 
-**Sweeper.** No cron exists. `pg_cron` can expire rows but cannot safely delete Storage files (deleting `storage.objects` rows leaves the file). With an always-on server (D11), use an in-process `setInterval` every 5 min plus at start, calling `snapsService.sweep(now)`; conditional claims make several instances safe. A restart catches up, because the sweep selects by state, not by schedule. To keep tests timer-free, `createModuleRouters` should return `{ routers, jobs }` and `server.ts` starts `jobs`. The sweep also hard-deletes snap rows 7 days after expiry. **Builder note / my call**
+**Sweeper.** No cron exists. `pg_cron` can expire rows but cannot safely delete Storage files (deleting `storage.objects` rows leaves the file). With an always-on server (D11), use an in-process `setInterval` every 5 min plus at start, calling `snapsService.sweep(now)`; conditional claims make several instances safe. A restart catches up, because the sweep selects by state, not by schedule. To keep tests timer-free, `createModuleRouters` should return `{ routers, jobs }` and `server.ts` starts `jobs`. The sweep also hard-deletes snap rows 7 days after expiry. **The sweeper always runs, whatever `SNAPS_ENABLED` says; only the routes are gated.** The deletion promises (one view, 24 hours, 30 days for a reported copy) must hold for photos stored before the flag was turned off. With the flag off and the buckets missing (migration not applied) every stage fails soft: a stage failure warns once, then logs at debug (`LOG_LEVEL=debug` to see it) while it repeats unchanged, so a 5 minute interval does not flood the log. **Builder note / my call**
 
 ## 7. API
 
@@ -138,7 +138,7 @@ New: `follows` (`-> profiles, notifications`), `snaps` (`-> friends, follows, me
 
 | Module | Change |
 |---|---|
-| `shared` | `TooManyRequestsError`; `image/` (moved); `app.ts` parser condition; `server.ts` starts jobs; config `SNAPS_ENABLED` (default false: the `snaps` and `follows` routers answer 404 and no job starts when off) |
+| `shared` | `TooManyRequestsError`; `image/` (moved); `app.ts` parser condition; `server.ts` starts jobs; config `SNAPS_ENABLED` (default false: the `snaps` and `follows` routers answer 404 when off; the sweep job always runs, see Sweeper) |
 | `profiles` | columns in repo and types; `Profile.isPublic/bio`; service `setPublicFields`, `getPublicProfile`, `searchPublic`, `publicIds`; `index.ts` exports `PublicProfile` |
 | `follows` | full module (phase 2); exports `FollowsService` with `followerIds`, `isFollowing`, `followerCount` |
 | `snaps` | full module plus `snap-storage.client.ts`, `snaps.sweeper.ts` |
