@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Backend rules (enforced by `npm run lint`): routes -> controller -> service -> repository; modules import each other only through `index.ts`; external APIs behind injected clients; every query scoped to the caller (service role bypasses RLS). New module names go in the `modules` array of `backend/eslint.config.mjs`. Helper files (not `*.routes|controller|service|repository|client|schemas|types.ts`) are unchecked: keep them free of cross-module imports.
-- New tables: RLS on, no policies, `revoke all ... from anon, authenticated`. Buckets `snaps` and `snap-reports`: `public=false`, about 500 KB limit, `image/jpeg` only, created behind `to_regclass('storage.buckets') is not null`. No signed URLs ever. Migration name sorts after `20261105000000_macro_targets.sql`.
+- New tables: RLS on, no policies, `revoke all ... from anon, authenticated`. Buckets `snaps` and `snap-reports`: `public=false`, 1 MiB (1048576 bytes) limit, `image/jpeg` only, created behind `to_regclass('storage.buckets') is not null`. No signed URLs ever. Migration name sorts after `20261105000000_macro_targets.sql`.
 - Limits (my call, spec section 6): snap only for a meal with `eatenAt` within 30 min; one snap per meal; 12 snaps per sender per PKT day (`pktDay`); TTL 24 h; 10 min grace after last open before the object is removed; sweep every 5 min plus at start; orphan objects removed at 25 h; snap rows hard-deleted 7 days after expiry; reported photo kept 30 days in `snap-reports`.
 - Re-encode with `resizePhoto` (JPEG, 1024 px, no metadata). Open returns `Cache-Control: no-store`. Every open failure is a 404 (no oracle). The sender is never told who opened.
 - Never log bytes, base64 or request bodies. Log names: `snap.created`, `snap.opened`, `snap.object_deleted`, `snap.reported`, `snap.sweep`, warn `snap.delete_failed`.
@@ -180,7 +180,7 @@ Each line has its test in the owning task.
 ## Self-review notes
 
 - Spec coverage: phase 1 items all mapped (bucket/storage client Tasks 3-4, per-recipient view-once Task 5, EXIF Task 4, atomic claim Task 5, sweeper Task 7, flag Tasks 2/4/9/10, inbox not consumed Task 10, viewer Task 10, photo upload at save Task 9, streak cheer Task 8, report Task 6, docs Tasks 1/11).
-- Gaps in the spec noted for the owner: zero-recipient response shape (`id: null`) is my choice; no unsend UI is specified (API only here); backend `cheer-streak` is not flag-gated (spec gates only snaps/follows routers); the spec says no `snap` notification kind, so "inbox kind snap" is the separate `GET /api/snaps/inbox` list.
+- Gaps in the spec noted for the owner: zero-recipient response shape (`id: null`) is my choice; no unsend UI is specified (API only here); backend `cheer-streak` was not flag-gated at first (spec gates only snaps/follows routers); it was gated afterwards on `SNAPS_ENABLED` (commit da09877); the spec says no `snap` notification kind, so "inbox kind snap" is the separate `GET /api/snaps/inbox` list.
 
 ## Later plans (out of scope here)
 
