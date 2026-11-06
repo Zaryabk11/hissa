@@ -33,3 +33,5 @@ graphify-out/
 /video
 
 .playwright-mcp
+
+.claude/worktrees/
