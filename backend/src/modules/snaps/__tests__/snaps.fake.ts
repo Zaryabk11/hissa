@@ -180,6 +180,14 @@ export function setup({
       for (let i = recipients.length - 1; i >= 0; i--)
         if (recipients[i]?.snap_id === snapId) recipients.splice(i, 1);
     }),
+    // Hard delete of the sender's own snap (recipients cascade).
+    deleteSnap: vi.fn(async (sender: string, snapId: string) => {
+      const i = snaps.findIndex((x) => x.id === snapId && x.sender_id === sender);
+      if (i < 0) return;
+      snaps.splice(i, 1);
+      for (let j = recipients.length - 1; j >= 0; j--)
+        if (recipients[j]?.snap_id === snapId) recipients.splice(j, 1);
+    }),
     // Mirrors the real query: my opened row of any snap (deleted or not).
     recipientOpened: vi.fn(async (recipientId: string, snapId: string) => {
       const r = recipients.find(

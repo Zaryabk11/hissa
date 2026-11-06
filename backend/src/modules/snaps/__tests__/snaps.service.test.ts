@@ -123,6 +123,47 @@ describe('snaps service: send', () => {
     expect(objects.size).toBe(0);
   });
 
+  it('when the recipients insert fails removes the object and the row, so a retry succeeds', async () => {
+    const { service, repository, snaps, recipients, objects } = setup();
+    repository.insertRecipients.mockRejectedValueOnce(new Error('network'));
+    await expect(service.send(me, { mealId: 'm1', image: await photo() }, NOW)).rejects.toThrow(
+      'network',
+    );
+    expect(objects.size).toBe(0);
+    expect(snaps).toHaveLength(0);
+    const again = await service.send(me, { mealId: 'm1', image: await photo() }, NOW);
+    expect(again.id).toEqual(expect.any(String));
+    expect(snaps).toHaveLength(1);
+    expect(recipients).toHaveLength(2);
+  });
+
+  it('rethrows the original error when the cleanup delete also fails, and logs it', async () => {
+    const warn = vi.spyOn(logger, 'warn');
+    const { service, repository } = setup();
+    repository.insertRecipients.mockRejectedValueOnce(new Error('network'));
+    repository.deleteSnap.mockRejectedValueOnce(new Error('db down'));
+    await expect(service.send(me, { mealId: 'm1', image: await photo() }, NOW)).rejects.toThrow(
+      'network',
+    );
+    expect(warn).toHaveBeenCalledWith('snap.delete_failed', expect.anything());
+    warn.mockRestore();
+  });
+
+  it('logs snap.delete_failed when removing the object fails during cleanup', async () => {
+    const warn = vi.spyOn(logger, 'warn');
+    const { service, repository, storage } = setup();
+    repository.insertRecipients.mockRejectedValueOnce(new Error('network'));
+    vi.mocked(storage.remove).mockRejectedValueOnce(new Error('storage down'));
+    await expect(service.send(me, { mealId: 'm1', image: await photo() }, NOW)).rejects.toThrow(
+      'network',
+    );
+    expect(warn).toHaveBeenCalledWith(
+      'snap.delete_failed',
+      expect.objectContaining({ message: 'storage down' }),
+    );
+    warn.mockRestore();
+  });
+
   it('never logs image data', async () => {
     const spies = (['info', 'warn', 'error'] as const).map((l) => vi.spyOn(logger, l));
     const { service } = setup();

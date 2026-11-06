@@ -80,9 +80,13 @@ export function createSnapsService({ repository, storage, friends, meals, profil
         snapInserted = true;
         await repository.insertRecipients(id, recipientIds, expiresAt);
       } catch (e) {
-        // Do not leave an orphan object (or a recipient-less snap) behind.
-        await storage.remove([objectPath]).catch(() => {});
-        if (snapInserted) await repository.markDeleted(id, now.toISOString()).catch(() => {});
+        // Do not leave an orphan object or a recipient-less snap behind. The row is deleted, not
+        // soft-deleted, so it stops holding the meal's unique slot and the app's retry can succeed.
+        // A failed cleanup is left to the sweeper (orphan object; the row expires and is purged).
+        const failed = (e2: unknown) =>
+          logger.warn('snap.delete_failed', { snapId: id, message: message(e2) });
+        await storage.remove([objectPath]).catch(failed);
+        if (snapInserted) await repository.deleteSnap(userId, id).catch(failed);
         if ((e as { code?: string }).code === '23505')
           throw new ConflictError('A snap was already sent for this meal');
         throw e;

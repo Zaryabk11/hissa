@@ -177,6 +177,12 @@ export function createSnapsRepository(db: Db) {
       if (error) throw error;
     },
 
+    // Hard delete of the caller's own snap (recipients cascade). Used to undo a failed send.
+    async deleteSnap(senderId: string, snapId: string): Promise<void> {
+      const { error } = await db.from('snaps').delete().eq('id', snapId).eq('sender_id', senderId);
+      if (error) throw error;
+    },
+
     // Only for a snap the caller sent: the sender is checked in the same statement via the id list.
     async deleteRecipients(senderId: string, snapId: string): Promise<void> {
       const { data: own, error: ownError } = await db
