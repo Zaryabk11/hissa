@@ -114,7 +114,8 @@ export function createSnapsService({ repository, storage, friends, meals, profil
 
     // View once. Every failure is the same 404 so nothing leaks (not a recipient, opened, expired,
     // deleted, unfriended). Bytes are read before the claim so a storage error does not burn the
-    // snap. The object stays: the sweeper removes it after the grace period.
+    // snap; the snap is re-checked after the claim so a racing unsend wins. The object stays: the
+    // sweeper removes it after the grace period.
     async open(userId: string, snapId: string, now = new Date()): Promise<OpenResult> {
       const gone = () => new NotFoundError('Snap not found');
       const nowIso = now.toISOString();
@@ -126,6 +127,8 @@ export function createSnapsService({ repository, storage, friends, meals, profil
       const bytes = await storage.get(row.object_path);
       if (!bytes) throw gone();
       if (!(await repository.claimOpen(row.snap_id, userId, nowIso))) throw gone();
+      // An unsend may have landed between the read and the claim: drop the bytes, same 404.
+      if (await repository.snapDeleted(row.snap_id)) throw gone();
       logger.info('snap.opened', { snapId: row.snap_id, viewerId: userId });
       return {
         image: bytes.toString('base64'),

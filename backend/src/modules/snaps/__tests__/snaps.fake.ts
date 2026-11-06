@@ -168,6 +168,10 @@ export function setup({
       r.opened_at = nowIso;
       return true;
     }),
+    snapDeleted: vi.fn(async (snapId: string) => {
+      await tick();
+      return !!snaps.find((x) => x.id === snapId)?.deleted_at;
+    }),
     ownSnap: vi.fn(
       async (sender: string, snapId: string) =>
         snaps.find((s) => s.id === snapId && s.sender_id === sender && !s.deleted_at) ?? null,

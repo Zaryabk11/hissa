@@ -154,6 +154,18 @@ export function createSnapsRepository(db: Db) {
       return data.length > 0;
     },
 
+    // True when the snap is marked deleted (or gone): the re-check after a claim, for an unsend
+    // that landed between the read and the claim.
+    async snapDeleted(snapId: string): Promise<boolean> {
+      const { data, error } = await db
+        .from('snaps')
+        .select('deleted_at')
+        .eq('id', snapId)
+        .maybeSingle();
+      if (error) throw error;
+      return !data || data.deleted_at !== null;
+    },
+
     // The caller's own snap that is not deleted yet.
     async ownSnap(senderId: string, snapId: string): Promise<SnapRow | null> {
       const { data, error } = await db

@@ -212,7 +212,7 @@ describe('snaps service: inbox', () => {
 });
 
 describe('snaps service: inbox after unfriending', () => {
-  it("does not list a snap from someone who is no longer a friend", async () => {
+  it('does not list a snap from someone who is no longer a friend', async () => {
     const { service, friendList } = setup();
     await service.send(me, { mealId: 'm1', image: await photo() }, NOW);
     expect((await service.inbox(bob, NOW)).items).toHaveLength(1);
@@ -318,6 +318,16 @@ describe('snaps service: open', () => {
     (snaps[0] as { deleted_at: string | null }).deleted_at = NOW.toISOString();
     await expect(service.open(cat, id, NOW)).rejects.toThrow(NotFoundError);
     expect(recipients.every((r) => r.opened_at === null)).toBe(true);
+  });
+
+  it('404s and returns no bytes when the snap is unsent between the read and the claim', async () => {
+    const { service, repository, snaps, id } = await sent();
+    vi.mocked(repository.claimOpen).mockImplementationOnce(async () => {
+      (snaps[0] as { deleted_at: string | null }).deleted_at = NOW.toISOString(); // unsend lands
+      return true;
+    });
+    await expect(service.open(bob, id, NOW)).rejects.toThrow(NotFoundError);
+    expect(repository.snapDeleted).toHaveBeenCalledWith(id);
   });
 
   it('404s when the stored object is missing, without claiming', async () => {
