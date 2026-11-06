@@ -50,13 +50,13 @@ create unique index notifications_one_cheer_streak_per_day on public.notificatio
 -- Snap photos now live in the private snaps bucket, not on the meal.
 alter table public.meals drop column photo_path;
 
--- No signed URLs: the backend streams bytes. ~500 KB, JPEG only.
+-- No signed URLs: the backend streams bytes. 1 MB, JPEG only.
 do $$
 begin
   if to_regclass('storage.buckets') is not null then
     insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-    values ('snaps', 'snaps', false, 512000, array['image/jpeg']),
-           ('snap-reports', 'snap-reports', false, 512000, array['image/jpeg'])
+    values ('snaps', 'snaps', false, 1048576, array['image/jpeg']),
+           ('snap-reports', 'snap-reports', false, 1048576, array['image/jpeg'])
     on conflict (id) do nothing;
   end if;
 end $$;

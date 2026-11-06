@@ -89,10 +89,10 @@ describe.skipIf(!container)('snaps migration', () => {
     }
     if ((await sql(`select to_regclass('storage.buckets') is not null`)) === 't') {
       const out = await run(
-        `select 'B', id, public, allowed_mime_types::text from storage.buckets where id in ('snaps','snap-reports') order by id;`,
+        `select 'B', id, public, file_size_limit, allowed_mime_types::text from storage.buckets where id in ('snaps','snap-reports') order by id;`,
       );
-      expect(out).toContain('B|snap-reports|f|{image/jpeg}');
-      expect(out).toContain('B|snaps|f|{image/jpeg}');
+      expect(out).toContain('B|snap-reports|f|1048576|{image/jpeg}');
+      expect(out).toContain('B|snaps|f|1048576|{image/jpeg}');
     }
   });
 
