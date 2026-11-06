@@ -4,6 +4,7 @@ import { ActivityIndicator, Platform } from 'react-native';
 import { CursorRing } from '../src/features/landing/components/CursorRing';
 import { hydrateAnswers } from '../src/features/onboarding/store';
 import { SessionProvider, useSession } from '../src/shared/auth/session';
+import { IrisProvider } from '../src/shared/ui/hissa/IrisTransition';
 import { HissaRoot } from '../src/shared/ui/hissa/HissaRoot';
 import { HissaScreen } from '../src/shared/ui/hissa/HissaScreen';
 
@@ -45,7 +46,9 @@ function Routes() {
 export default function RootLayout() {
   return (
     <SessionProvider>
-      <Routes />
+      <IrisProvider>
+        <Routes />
+      </IrisProvider>
       {/* One ring for every screen: it hides the native cursor, so it must not live on a single route. */}
       {Platform.OS === 'web' && <CursorRing />}
     </SessionProvider>
