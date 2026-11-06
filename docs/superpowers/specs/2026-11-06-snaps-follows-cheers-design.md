@@ -84,7 +84,7 @@ Migrations are shipped per phase (section 13); the two names below are indicativ
 
 **Guarantees.** No recipient reads a photo twice through the API. Nobody reads it after `expires_at` (every read filters in code, whatever the sweeper does). Bytes leave the `snaps` bucket within about 15 minutes of the last open (10 min grace plus one 5 min sweep) or within one sweep of expiry, while the API process runs; the sweeper also removes bucket objects older than 25 h with no live row. The only copy that outlives this is a reported photo, 30 days. Remove first, mark `deleted_at` second, so a crash retries and never records a false deletion. A response lost in transit consumes the snap. **Not guaranteed:** what a recipient's phone keeps (screenshots). **Unverified, and a release gate (not a blocker to start phase 1):** whether hosted Supabase backups, PITR or bucket versioning keep deleted Storage objects. The builder checks the hosted project's settings before any release. This is why photos are not `bytea` in Postgres (WAL and backups would keep them).
 
-**Sender unsend:** `DELETE /api/snaps/:id` removes recipients and object at once (faces or house numbers in frame). **Builder note / my call**
+**Sender unsend:** `DELETE /api/snaps/:id` removes unopened recipients and the object at once (faces or house numbers in frame). **Builder note / my call**
 
 **Logged** (via `shared/logger`): `snap.created {snapId, senderId, friends, followers}`, `snap.opened {snapId, viewerId}`, `snap.object_deleted {snapId, reason}`, `snap.reported {snapId, reportId, evidenceKept}`, `snap.sweep {deleted, failed}`, warning `snap.delete_failed`. Never logged: bytes, base64, request bodies (confirm the error handler logs no bodies; unverified).
 

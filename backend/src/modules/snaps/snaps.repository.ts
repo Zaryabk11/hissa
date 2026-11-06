@@ -183,7 +183,8 @@ export function createSnapsRepository(db: Db) {
       if (error) throw error;
     },
 
-    // Only for a snap the caller sent: the sender is checked in the same statement via the id list.
+    // Unopened rows only, so a recipient who already opened the snap can still report it. Only for
+    // a snap the caller sent: the sender is checked first via the id list.
     async deleteRecipients(senderId: string, snapId: string): Promise<void> {
       const { data: own, error: ownError } = await db
         .from('snaps')
@@ -192,7 +193,11 @@ export function createSnapsRepository(db: Db) {
         .eq('sender_id', senderId);
       if (ownError) throw ownError;
       if (!own.length) return;
-      const { error } = await db.from('snap_recipients').delete().eq('snap_id', snapId);
+      const { error } = await db
+        .from('snap_recipients')
+        .delete()
+        .eq('snap_id', snapId)
+        .is('opened_at', null);
       if (error) throw error;
     },
 

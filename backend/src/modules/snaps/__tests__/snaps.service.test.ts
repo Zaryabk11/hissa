@@ -234,6 +234,19 @@ describe('snaps service: unsend', () => {
     await expect(service.unsend(me, id as string)).rejects.toThrow(NotFoundError);
   });
 
+  it('keeps the opener row so they can still report (metadata only), drops unopened rows', async () => {
+    const { service, recipients, reports, reportObjects } = setup();
+    const { id } = await service.send(me, { mealId: 'm1', image: await photo() }, NOW);
+    await service.open(bob, id as string, NOW);
+    await service.unsend(me, id as string, NOW);
+    expect(recipients.map((r) => r.recipient_id)).toEqual([bob]);
+    await service.report(bob, id as string, 'spam', NOW);
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({ evidence_path: null, evidence_expires_at: null });
+    expect(reportObjects.size).toBe(0);
+    await expect(service.report(cat, id as string, 'spam', NOW)).rejects.toThrow(NotFoundError);
+  });
+
   it('leaves the rows intact when the storage remove fails', async () => {
     const { service, storage, snaps, recipients } = setup();
     const { id } = await service.send(me, { mealId: 'm1', image: await photo() }, NOW);

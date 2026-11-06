@@ -176,9 +176,10 @@ export function setup({
       const s = snaps.find((x) => x.id === snapId && !x.deleted_at);
       if (s) s.deleted_at = nowIso;
     }),
+    // Mirrors the real delete: unopened rows only, so an opener can still report.
     deleteRecipients: vi.fn(async (_sender: string, snapId: string) => {
       for (let i = recipients.length - 1; i >= 0; i--)
-        if (recipients[i]?.snap_id === snapId) recipients.splice(i, 1);
+        if (recipients[i]?.snap_id === snapId && !recipients[i]?.opened_at) recipients.splice(i, 1);
     }),
     // Hard delete of the sender's own snap (recipients cascade).
     deleteSnap: vi.fn(async (sender: string, snapId: string) => {
