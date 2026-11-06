@@ -3,14 +3,14 @@ import { hissaFonts } from '../../theme/hissaTokens';
 import { useHissaTheme } from '../../theme/HissaThemeProvider';
 
 const variants: Record<string, TextStyle> = {
-  title: { fontFamily: hissaFonts.display700, fontSize: 32, lineHeight: 38 },
+  title: { fontFamily: hissaFonts.display800, fontSize: 32, lineHeight: 36, textTransform: 'uppercase', letterSpacing: -0.5 },
   eyebrow: { fontFamily: hissaFonts.body600, fontSize: 14, lineHeight: 20 },
   body: { fontFamily: hissaFonts.body400, fontSize: 16, lineHeight: 24 },
   label: { fontFamily: hissaFonts.body600, fontSize: 16, lineHeight: 24 },
   caption: { fontFamily: hissaFonts.body400, fontSize: 14, lineHeight: 20 },
-  button: { fontFamily: hissaFonts.body500, fontSize: 16, lineHeight: 20 },
-  value: { fontFamily: hissaFonts.display700, fontSize: 22, lineHeight: 28, fontVariant: ['tabular-nums'] },
-  hero: { fontFamily: hissaFonts.display700, fontSize: 56, lineHeight: 60, fontVariant: ['tabular-nums'] },
+  button: { fontFamily: hissaFonts.body700, fontSize: 16, lineHeight: 20 },
+  value: { fontFamily: hissaFonts.display800, fontSize: 22, lineHeight: 28, fontVariant: ['tabular-nums'] },
+  hero: { fontFamily: hissaFonts.display800, fontSize: 56, lineHeight: 58, letterSpacing: -1.5, fontVariant: ['tabular-nums'] },
 };
 const mutedVariants = ['eyebrow', 'caption'];
 

@@ -5,7 +5,7 @@ import { useLandingFonts } from '../../../features/landing/hooks/useLandingFonts
 import { HissaThemeProvider, useHissaTheme } from '../../theme/HissaThemeProvider';
 
 function Bar() {
-  return <StatusBar style={useHissaTheme().name === 'graphite' ? 'light' : 'dark'} />;
+  return <StatusBar style={useHissaTheme().name === 'raat' ? 'light' : 'dark'} />;
 }
 
 /** Root of a Hissa app route group: waits for the fonts (shared with the landing), then provides the theme. */

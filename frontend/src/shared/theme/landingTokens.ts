@@ -54,6 +54,7 @@ export const landingFonts = {
   body400: 'Figtree_400Regular',
   body500: 'Figtree_500Medium',
   body600: 'Figtree_600SemiBold',
+  body700: 'Figtree_700Bold',
 } as const;
 
 // Sizes are { min, vw, max }: clamp(min, vw% of viewport width, max), resolved with fluid().

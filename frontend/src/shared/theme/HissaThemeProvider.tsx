@@ -1,13 +1,12 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
-import { graphite, paper, type HissaTheme } from './hissaTokens';
+import { pickTheme, raat, type HissaTheme } from './hissaTokens';
 
-const ThemeContext = createContext<HissaTheme>(graphite);
+const ThemeContext = createContext<HissaTheme>(raat);
 
-/** Follows the system colour scheme (dark is Graphite, light is Paper) unless `theme` forces one, as the camera does. */
+/** Follows the system colour scheme (light is Dhoop, dark is Raat) unless `theme` forces one, as the camera does. */
 export function HissaThemeProvider({ children, theme }: { children: ReactNode; theme?: HissaTheme }) {
-  const scheme = useColorScheme();
-  return <ThemeContext.Provider value={theme ?? (scheme === 'light' ? paper : graphite)}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={pickTheme(useColorScheme(), theme)}>{children}</ThemeContext.Provider>;
 }
 
 export const useHissaTheme = () => useContext(ThemeContext);

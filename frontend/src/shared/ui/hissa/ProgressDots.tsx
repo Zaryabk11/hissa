@@ -11,7 +11,7 @@ export function ProgressDots({ step, total }: { step: number; total: number }) {
       style={{ flex: 1, flexDirection: 'row', gap: 8 }}
     >
       {Array.from({ length: total }, (_, i) => (
-        <View key={i} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i < step ? t.pri : t.hair }} />
+        <View key={i} style={{ flex: 1, height: 8, borderRadius: 4, borderWidth: 2, borderColor: t.line, backgroundColor: i < step ? t.pri : t.surf }} />
       ))}
     </View>
   );

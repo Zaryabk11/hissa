@@ -4,7 +4,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import { graphite } from '../../shared/theme/hissaTokens';
+import { raat } from '../../shared/theme/hissaTokens';
 import { HissaThemeProvider } from '../../shared/theme/HissaThemeProvider';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
@@ -100,8 +100,8 @@ export function CameraScreen() {
   }
 
   return (
-    <HissaThemeProvider theme={graphite}>
-      <View style={{ flex: 1, backgroundColor: graphite.bg }}>
+    <HissaThemeProvider theme={raat}>
+      <View style={{ flex: 1, backgroundColor: raat.bg }}>
         {live && <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" onMountError={() => setMountFailed(true)} />}
         {body}
         {live && (

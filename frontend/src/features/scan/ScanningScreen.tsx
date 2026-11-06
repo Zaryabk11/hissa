@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { graphite } from '../../shared/theme/hissaTokens';
+import { raat } from '../../shared/theme/hissaTokens';
 import { HissaThemeProvider } from '../../shared/theme/HissaThemeProvider';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
@@ -87,8 +87,8 @@ export function ScanningScreen() {
   const stage = seconds >= SLOW_AFTER_S ? c.scanning.slow : seconds >= MATCHING_AFTER_S ? c.scanning.matching : c.scanning.sub;
 
   return (
-    <HissaThemeProvider theme={graphite}>
-      <View accessible accessibilityRole="progressbar" accessibilityLabel={c.scanning.title} accessibilityState={{ busy: !error }} style={{ flex: 1, backgroundColor: graphite.bg }}>
+    <HissaThemeProvider theme={raat}>
+      <View accessible accessibilityRole="progressbar" accessibilityLabel={c.scanning.title} accessibilityState={{ busy: !error }} style={{ flex: 1, backgroundColor: raat.bg }}>
         <View style={{ marginTop: Math.max(insets.top, 24) + 150, alignSelf: 'center' }}>
           {photoUri && (
             <Image accessibilityLabel={c.scanning.photo} source={{ uri: photoUri }} style={{ width: PHOTO, height: PHOTO, borderRadius: PHOTO / 2, borderWidth: 1, borderColor: 'rgba(255,255,255,.4)' }} />
@@ -96,9 +96,9 @@ export function ScanningScreen() {
         </View>
         <Animated.View
           pointerEvents="none"
-          style={[{ position: 'absolute', left: 0, right: 0, top: reduced ? Math.max(insets.top, 24) + 150 + PHOTO / 2 - BAND : 0, height: BAND, backgroundColor: 'rgba(212,255,58,.25)', borderBottomWidth: 3, borderBottomColor: graphite.pri }, sweep]}
+          style={[{ position: 'absolute', left: 0, right: 0, top: reduced ? Math.max(insets.top, 24) + 150 + PHOTO / 2 - BAND : 0, height: BAND, backgroundColor: 'rgba(212,255,58,.25)', borderBottomWidth: 3, borderBottomColor: raat.pri }, sweep]}
         />
-        <View style={{ position: 'absolute', left: 20, right: 20, alignSelf: 'center', maxWidth: 440, bottom: Math.max(insets.bottom, 24) + 40, borderRadius: 24, backgroundColor: graphite.surf, borderWidth: 1, borderColor: graphite.hair, padding: 20, alignItems: 'center' }}>
+        <View style={{ position: 'absolute', left: 20, right: 20, alignSelf: 'center', maxWidth: 440, bottom: Math.max(insets.bottom, 24) + 40, borderRadius: 24, backgroundColor: raat.surf, borderWidth: 1, borderColor: raat.hair, padding: 20, alignItems: 'center' }}>
           <HissaText variant="title" accessibilityRole="header" style={{ fontSize: 22, lineHeight: 28 }}>
             {error ?? c.scanning.title}
           </HissaText>
@@ -106,8 +106,8 @@ export function ScanningScreen() {
             {error ? <PrimaryButton label="Retry scan" onPress={() => { setError(null); setSeconds(0); setAttempt((n) => n + 1); }} /> : stage}
           </HissaText>
           {!error && (
-            <View style={{ alignSelf: 'stretch', height: 6, borderRadius: 3, marginTop: 16, overflow: 'hidden', backgroundColor: graphite.hair }}>
-              <Animated.View style={[{ height: 6, borderRadius: 3, backgroundColor: graphite.pri }, fill]} />
+            <View style={{ alignSelf: 'stretch', height: 6, borderRadius: 3, marginTop: 16, overflow: 'hidden', backgroundColor: raat.hair }}>
+              <Animated.View style={[{ height: 6, borderRadius: 3, backgroundColor: raat.pri }, fill]} />
             </View>
           )}
         </View>

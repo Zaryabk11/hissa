@@ -43,12 +43,12 @@ export function Bone({
         height,
         borderRadius: radius,
         backgroundColor: t.surf,
-        borderWidth: border ? 1 : 0,
-        borderColor: t.hair,
+        borderWidth: border ? 2 : 0,
+        borderColor: t.line,
         overflow: 'hidden',
       }}
     >
-      <Animated.View style={[{ flex: 1, backgroundColor: t.hair }, style]} />
+      <Animated.View style={[{ flex: 1, backgroundColor: t.surf2 }, style]} />
     </View>
   );
 }

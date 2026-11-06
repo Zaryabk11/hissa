@@ -5,6 +5,7 @@ import { useRouter, type Tabs } from 'expo-router';
 import { useHissaTheme } from '../../theme/HissaThemeProvider';
 import { MIN_TAP } from '../../theme/hissaTokens';
 import { useUnread } from '../../../features/social/useSocialData';
+import { sticker } from './sticker';
 import { useColumnLayout } from './HissaScreen';
 import { HissaText } from './HissaText';
 
@@ -78,14 +79,14 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
   const unread = useUnread(state.index);
   if (state.routes[state.index].name === 'scan') return null; // the camera is full screen
   return (
-    <View style={{ backgroundColor: t.bg, flexDirection: 'row' }}>
+    <View style={{ flexDirection: 'row' }}>
       {split && <View style={{ flex: 1 }} />}
       <View style={{ flex: 1 }}>
       <View
         accessibilityRole="tablist"
         style={{
           paddingTop: RAISE,
-          paddingBottom: insets.bottom,
+          paddingBottom: insets.bottom + 8,
           flexDirection: 'row',
           width: '100%',
           maxWidth: columnMax,
@@ -95,16 +96,10 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
         {/* The bar surface starts RAISE px down, so the raised Scan button still sits inside this view's bounds (touch on Android). */}
         <View
           pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: RAISE,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: t.surf,
-            borderTopWidth: 1,
-            borderTopColor: t.hair,
-          }}
+          style={[
+            sticker(t, 4),
+            { position: 'absolute', top: RAISE, left: 12, right: 12, bottom: insets.bottom + 8, borderRadius: 30, backgroundColor: t.surf },
+          ]}
         />
         {ORDER.map((name) => {
           const i = state.routes.findIndex((r) => r.name === name);
@@ -113,7 +108,7 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
           const focused = state.index === i;
           const press = () => navigateToTab(route.key);
           const isScan = name === 'scan';
-          const color = focused ? t.pri : t.muted;
+          const color = focused ? t.tur : t.muted;
           return (
             <Pressable
               key={route.key}
@@ -142,11 +137,11 @@ export function TabBar({ state, navigateToTab, insets }: BarProps) {
                     height: SCAN_SIZE + 8,
                     borderRadius: 99,
                     backgroundColor: t.pri,
-                    borderWidth: 4,
-                    borderColor: t.bg,
+                    borderWidth: 2,
+                    borderColor: t.line,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 8px 24px rgba(0,0,0,.18)',
+                    boxShadow: `3px 3px 0 ${t.drop}`,
                   }}
                 >
                   <Icon name="scan" color={t.onPri} />
