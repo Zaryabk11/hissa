@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 
 const desktop = [[1920, 1080], [1440, 900], [1280, 720]];
 const stops = [0, 40, 75, 100, 130, 170, 230, 290, 300, 340, 400, 480, 530, 560, 640, 760, 830, 860, 900, 980, 1060, 1100, 1160, 1250, 1340, 1400, 1480, 1520, 1700, 1760, 1850];
-const stages = '#hs .hs-stage, #bd .stage, #hw .stage, #fx .stage, #dr .stage, #fc .fc-stage';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../public/landing-site');
 let server;
@@ -56,12 +55,29 @@ async function scroll(page, y) {
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
-async function visibleStages(page) {
-  return page.locator(stages).evaluateAll(els => els.filter(el => getComputedStyle(el).visibility === 'visible' && el.getBoundingClientRect().top < innerHeight && el.getBoundingClientRect().bottom > 0).map(el => el.id));
+async function stageState(page) {
+  return page.evaluate(() => {
+    const box = id => document.querySelector(id).getBoundingClientRect();
+    const b = box('#bd'), c = box('#hw'), f = box('#fx'), d = box('#dr');
+    const pf = Math.max(0, Math.min(1, -f.top / innerHeight / 2.5));
+    const u = -d.top / innerHeight * 100;
+    const onScreen = id => { const r = box(id); return r.top < innerHeight && r.bottom > 0; };
+    const expected = [
+      [b.top > 1, '#hs-stage'],
+      [b.top <= 1 && c.top > 1, '#bd-stage'],
+      [c.top <= 1 && (f.top > 1 || pf < .2), '#hw-stage'],
+      [f.top <= 1 && u < 100, '#fx-stage'],
+      [d.top <= 1, '#dr-stage'],
+      [true, '#fc-stage'],
+    ].filter(([show, id]) => show && onScreen(id)).map(([, id]) => id.slice(1));
+    const actual = [...document.querySelectorAll('#hs .hs-stage, #bd .stage, #hw .stage, #fx .stage, #dr .stage, #fc .fc-stage')]
+      .filter(el => { const r = el.getBoundingClientRect(); return getComputedStyle(el).visibility === 'visible' && r.top < innerHeight && r.bottom > 0; }).map(el => el.id);
+    return { expected, actual };
+  });
 }
 
 async function capture(page, path) {
-  await page.screenshot({ path, animations: 'disabled', mask: [page.locator('canvas'), page.locator('.up')] });
+  await page.screenshot({ path, animations: 'disabled' });
 }
 
 async function tour(browser, out) {
@@ -74,8 +90,8 @@ async function tour(browser, out) {
       for (let i = 0; i < positions.length; i++) {
         await scroll(page, positions[i]);
         if (w !== 390) {
-          const visible = await visibleStages(page);
-          if (visible.length !== 1) throw new Error(`${w}x${h} at ${positions[i]}px: visible stages ${JSON.stringify(visible)}`);
+          const { expected, actual } = await stageState(page);
+          if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${w}x${h} at ${positions[i]}px: stages ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
         }
         await capture(page, join(out, `tour-${w}x${h}-${String(i).padStart(2, '0')}.png`));
       }
@@ -103,22 +119,31 @@ async function seams(browser, out) {
   const page = await open(browser, { w: 1280, h: 720, rm: false });
   try {
     await page.waitForTimeout(5000);
+    // Master frame(): Buddy/How switch at wrapper top; How stays through the
+    // first .2 of Features; Features stays until the dish iris reaches 100vh.
     const points = [
-      ['idea-buddy', '#bd'], ['buddy-how', '#hw'], ['how-features', '#fx'],
-      ['features-dishes', '#dr'], ['dishes-faq', '#dr'], ['final-footer', '#ft'],
+      ['idea-buddy', '#bd', 0, true],
+      ['buddy-how', '#hw', 0, true],
+      ['how-features', '#fx', .5, true],
+      ['features-dishes', '#dr', 1, true],
+      ['dishes-faq-iris', '#dr', 3, true],
+      ['final-footer-scroll', '#ft', 0, false],
     ];
-    for (const [name, selector] of points) {
-      const at = await page.locator(selector).evaluate((el, name) => el.getBoundingClientRect().top + scrollY + (name === 'dishes-faq' ? 300 * innerHeight / 100 : 0), name);
-      const beforeAt = Math.max(0, at - 2);
-      await scroll(page, beforeAt);
-      const a = await page.screenshot({ animations: 'disabled', mask: [page.locator('canvas'), page.locator('.up')] });
+    const report = [];
+    for (const [name, selector, vh, limit] of points) {
+      const at = await page.locator(selector).evaluate((el, vh) => el.getBoundingClientRect().top + scrollY + vh * innerHeight, vh);
+      await scroll(page, Math.max(0, at - 1));
+      const a = await page.screenshot({ animations: 'disabled' });
       await writeFile(join(out, `seam-${name}-before.png`), a);
-      await scroll(page, at + 2);
-      const b = await page.screenshot({ animations: 'disabled', mask: [page.locator('canvas'), page.locator('.up')] });
+      await scroll(page, at + 1);
+      const b = await page.screenshot({ animations: 'disabled' });
       await writeFile(join(out, `seam-${name}-after.png`), b);
       const ratio = await diff(page, a, b);
-      if (ratio >= .005) throw new Error(`${name}: ${(ratio * 100).toFixed(2)}% pixels changed (limit 0.5%)`);
+      report.push({ name, at, changedPercent: +(ratio * 100).toFixed(3), thresholdPercent: limit ? .5 : null });
     }
+    await writeFile(join(out, 'seam-report.json'), JSON.stringify(report, null, 2));
+    const failures = report.filter(row => row.thresholdPercent !== null && row.changedPercent >= row.thresholdPercent);
+    if (failures.length) throw new Error(failures.map(row => `${row.name}: ${row.changedPercent}%`).join(', '));
     if (page.pageErrors.length) throw new Error(page.pageErrors.join('\n'));
   } finally { await page.context().close(); }
 }
@@ -167,8 +192,11 @@ async function modes(browser, out) {
     if (resize.pageErrors.length) throw new Error(resize.pageErrors.join('\n'));
     await capture(resize, join(out, 'mode-resize-700.png'));
   } finally { await resize.context().close(); }
+}
 
-  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+async function noWebGL(chromium, out) {
+  const noGlBrowser = await chromium.launch({ headless: true, args: ['--disable-gpu', '--disable-webgl'] });
+  const context = await noGlBrowser.newContext({ viewport: { width: 1280, height: 720 } });
   await context.addInitScript(() => {
     const get = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (kind, ...args) { return kind === 'webgl' || kind === 'webgl2' || kind === 'experimental-webgl' ? null : get.call(this, kind, ...args); };
@@ -180,34 +208,114 @@ async function modes(browser, out) {
     await gl.goto(`${await serve()}/index.html`);
     await gl.locator('html:not(.ld)').waitFor({ timeout: 12500 });
     if (errors.length) throw new Error(errors.join('\n'));
-    const wordmark = await gl.locator('#hs-wmc').evaluate(canvas => {
+    await gl.waitForFunction(() => [...document.querySelectorAll('#hs-wmc, #fc-wm')].every(canvas => {
+      if (!canvas.width || !canvas.height) return false;
       const copy = document.createElement('canvas'); copy.width = canvas.width; copy.height = canvas.height;
       const ctx = copy.getContext('2d'); ctx.drawImage(canvas, 0, 0);
       const pixels = ctx.getImageData(0, 0, copy.width, copy.height).data;
       for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) return true;
       return false;
-    });
-    if (!wordmark) throw new Error('WebGL-disabled wordmark is blank');
+    }), null, { timeout: 5000 }).catch(() => { throw new Error('WebGL-disabled hero or footer wordmark is blank'); });
+    if (errors.length) throw new Error(errors.join('\n'));
     await capture(gl, join(out, 'mode-no-webgl.png'));
-  } finally { await context.close(); }
+  } finally { await context.close(); await noGlBrowser.close(); }
+}
 
+async function dish404(browser, out) {
   const missing = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  await missing.route('**/assets/*nihari*', route => route.fulfill({ status: 404, body: '' }));
+  let blocked = 0;
+  await missing.route('**/assets/*nihari*', route => { blocked++; return route.fulfill({ status: 404, body: '' }); });
   const page = await missing.newPage();
   const missingErrors = [];
   page.on('pageerror', error => missingErrors.push(error.message));
   try {
     await page.goto(`${await serve()}/index.html`);
-    await page.evaluate(() => document.querySelector('#dr').scrollIntoView());
     await page.locator('html:not(.ld)').waitFor({ timeout: 12500 });
+    await page.evaluate(() => document.querySelector('#dr').scrollIntoView());
+    await page.waitForFunction(() => document.querySelector('#dr-nihari')?.style.opacity === '1', null, { timeout: 12000 });
+    if (!blocked) throw new Error('dish 404 route was not exercised');
+    if (await page.locator('#dr-rail .it').count() < 8) throw new Error('dish rail is incomplete after 404');
     if (missingErrors.length) throw new Error(missingErrors.join('\n'));
     await capture(page, join(out, 'mode-dish-404.png'));
   } finally { await missing.close(); }
 }
 
+async function throttle(browser, out) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const page = await context.newPage();
+  const cdp = await context.newCDPSession(page);
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await page.addInitScript(() => {
+    window.__cls = 0;
+    new PerformanceObserver(list => {
+      for (const e of list.getEntries()) if (!e.hadRecentInput && window.__handoffAt && e.startTime >= window.__handoffAt) window.__cls += e.value;
+    }).observe({ type: 'layout-shift', buffered: true });
+    setTimeout(() => { window.__at6 = Number(document.querySelector('#ld-n')?.textContent ?? (window.LD?.done ? 100 : 0)); }, 6000);
+    const timer = setInterval(() => {
+      if (window.LD?.done) { window.__handoffAt = performance.now(); clearInterval(timer); }
+    }, 50);
+  });
+  try {
+    await cdp.send('Network.enable');
+    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: 50 * 1024, uploadThroughput: 20 * 1024 });
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await page.goto(`${await serve()}/index.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForFunction(() => window.__at6 !== undefined, null, { timeout: 15000 });
+    await page.locator('html:not(.ld)').waitFor({ timeout: 15000 });
+    await page.waitForFunction(() => window.__handoffAt !== undefined, null, { timeout: 1000 });
+    await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(1000);
+    const result = await page.evaluate(() => {
+      const resources = performance.getEntriesByType('resource');
+      const navigation = performance.getEntriesByType('navigation')[0];
+      const bytes = e => e.transferSize || e.encodedBodySize || 0;
+      const htmlBytes = navigation ? bytes(navigation) : 0;
+      return {
+        percentAt6Seconds: window.__at6,
+        handoffMs: Math.round(window.__handoffAt),
+        cls: +window.__cls.toFixed(4),
+        gateBytes: htmlBytes + resources.filter(e => e.responseEnd <= window.__handoffAt).reduce((n, e) => n + bytes(e), 0),
+        totalBytes: htmlBytes + resources.reduce((n, e) => n + bytes(e), 0),
+      };
+    });
+    await writeFile(join(out, 'throttle-report.json'), JSON.stringify(result, null, 2));
+    if (result.percentAt6Seconds < 100 || result.handoffMs >= 10500 || result.cls >= .02 || result.gateBytes > 650000 || result.totalBytes > 1600000 || errors.length) {
+      throw new Error(`${JSON.stringify(result)}${errors.length ? `; console/page errors: ${errors.join(' | ')}` : ''}`);
+    }
+  } finally {
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }).catch(() => {});
+    await context.close();
+  }
+}
+
+async function matrix(type, name, out) {
+  const browser = await type.launch({ headless: true });
+  try {
+    for (const [w, h, rm] of [[1280, 720, false], [390, 844, true]]) {
+      const page = await open(browser, { w, h, rm });
+      try {
+        const max = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+        for (const y of [0, max / 2, max]) {
+          await scroll(page, y);
+          if (!rm) {
+            const { expected, actual } = await stageState(page);
+            if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${name} ${w}px at ${y}: stages ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
+          }
+        }
+        if (await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)) throw new Error(`${name} ${w}px horizontal overflow`);
+        if (page.pageErrors.length) throw new Error(page.pageErrors.join('\n'));
+        await capture(page, join(out, `matrix-${name}-${w}x${h}.png`));
+      } finally { await page.context().close(); }
+    }
+  } finally { await browser.close(); }
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const require = createRequire(import.meta.url);
-  const { chromium } = require('playwright');
+  const types = require('playwright');
+  const { chromium } = types;
   const out = process.argv[2];
   const only = process.argv[3] === '--only' ? process.argv[4] : undefined;
   if (!out || (only && !['tour', 'seams', 'modes'].includes(only))) throw new Error('usage: node frontend/scripts/landing-tour.mjs <outDir> [--only seams|tour|modes]');
@@ -221,7 +329,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try {
     if (!only || only === 'tour') await check('tour', () => tour(browser, out));
     if (!only || only === 'seams') await check('seams', () => seams(browser, out));
-    if (!only || only === 'modes') await check('modes', () => modes(browser, out));
+    if (!only || only === 'modes') {
+      await check('modes', () => modes(browser, out));
+      await check('WebGL unavailable', () => noWebGL(chromium, out));
+      await check('dish 404', () => dish404(browser, out));
+    }
+    if (!only) await check('Slow 4G and 4x CPU', () => throttle(browser, out));
+    if (!only) for (const name of ['firefox', 'webkit']) await check(name, () => matrix(types[name], name, out));
     await check('iframe CTAs and no-JS copy', async () => {
     const page = await open(browser, { embed: true });
     const frame = page.frameLocator('iframe');
@@ -229,12 +343,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     for (const selector of links) {
       await page.evaluate(() => { window.__msgs.length = 0; });
       await frame.locator(selector).evaluate(link => link.click());
+      await page.waitForFunction(() => window.__msgs.length === 1, null, { timeout: 1000 });
       const messages = await page.evaluate(() => window.__msgs);
       if (messages.length !== 1 || messages[0] !== 'hissa:explore') throw new Error(`${selector}: ${JSON.stringify(messages)}`);
     }
     for (const selector of ['.pill a', '.ft-links a[href]', '.ft-links a[aria-disabled]']) {
       await page.evaluate(() => { window.__msgs.length = 0; });
       await frame.locator(selector).first().evaluate(link => link.click());
+      await page.waitForTimeout(50);
       if (await page.evaluate(() => window.__msgs.length)) throw new Error(`${selector} posted a host message`);
     }
     if (page.pageErrors.length) throw new Error(page.pageErrors.join('\n'));
@@ -243,6 +359,21 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const text = await noJs.locator('body').innerText();
     if (!text.includes('One more roti is fine.') || !text.includes('Fair questions')) throw new Error('No-JS copy is hidden');
     await noJs.context().close();
+    });
+    await check('WebView CTA', async () => {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+      await context.addInitScript(() => { window.__nativeMessages = []; window.ReactNativeWebView = { postMessage: value => window.__nativeMessages.push(value) }; });
+      try {
+        const page = await context.newPage();
+        await page.goto(`${await serve()}/index.html`);
+        await page.locator('html:not(.ld)').waitFor({ timeout: 12500 });
+        for (const selector of ['#nav-cta', '.hs-copy .cta', '#get']) {
+          await page.evaluate(() => { window.__nativeMessages.length = 0; });
+          await page.locator(selector).evaluate(link => link.click());
+          const messages = await page.evaluate(() => window.__nativeMessages);
+          if (messages.length !== 1 || messages[0] !== 'hissa:explore') throw new Error(`${selector}: ${JSON.stringify(messages)}`);
+        }
+      } finally { await context.close(); }
     });
   } finally {
     await browser.close();
