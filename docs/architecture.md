@@ -14,7 +14,7 @@ hissa/
   backend/src/
     app.ts, server.ts
     shared/            config, db, errors, middleware, logger, time (PKT day)
-    modules/<name>/    auth profiles scan nutrition plan meals streaks notifications friends goals feel recipes
+    modules/<name>/    auth profiles scan nutrition plan meals streaks notifications friends goals feel recipes follows snaps
   backend/scripts/     synthetic-question-data.ts, train-question-ranker.ts, draft-recipes.ts, recipe-draft-guard.ts, sample-questions.ts (offline, not in the build)
   database/
     data/catalog.csv   the dish catalog (78 dishes), see data-sources.md
@@ -82,7 +82,7 @@ Over the daily cap (10 scans per user per PKT day, `SCAN_DAILY_CAP`) or when Gem
 
 ## Database
 
-RLS is on for every table. The backend uses the service role (bypasses RLS) and must scope every query to the authenticated user. Direct clients read only their own `streak_days`. Friends receive only username, display name, current logged flag, streak, nudge state and a goal the user chose to share through the authenticated API, never historical rows or meals.
+RLS is on for every table. The backend uses the service role (bypasses RLS) and must scope every query to the authenticated user. Direct clients read only their own `streak_days`. Friends receive only username, display name, current logged flag, streak, nudge state and a goal the user chose to share through the authenticated API, never historical rows or meals. The one addition is the snap photo: it is returned only by `POST /api/snaps/:id/open`, never as a URL, and is deleted once every recipient has opened it or after 24 hours; a photo someone reports is kept 30 days for review. Snaps and the streak cheer are phase 1 behind `SNAPS_ENABLED`; public accounts, following, food cheers and custom goals are designed, not built (`docs/superpowers/specs/2026-11-06-snaps-follows-cheers-design.md`).
 
 Migrations in `database/supabase/migrations/`:
 

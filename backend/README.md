@@ -113,11 +113,11 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 
 `GET /api/streaks` returns exactly `{ "streak": 0, "loggedToday": false }` for the caller. A day counts when a person saved a meal (the meal save marks it); the streak is the run of consecutive PKT days ending today, or yesterday while today is still in progress.
 
-`GET /api/friends/overview` returns `{ friends, loggedCount, incoming, outgoing }`. Each friend is exactly `userId`, `username`, `displayName`, `streak`, `loggedToday` and `nudgedToday`; nothing about meals, photos, calories or feelings. Requests, accepting a request that is not yours, adding yourself, a repeated request, nudging a friend who already logged (or nudging twice in a day) and exceeding the friend cap return 400 or 404 in the usual error shape.
+`GET /api/friends/overview` returns `{ friends, loggedCount, incoming, outgoing }`. Each friend is exactly `userId`, `username`, `displayName`, `streak`, `loggedToday` and `nudgedToday`; nothing about calories, meal details or feelings, and no photo or snap fields (a snap photo is returned only by `POST /api/snaps/:id/open`). Requests, accepting a request that is not yours, adding yourself, a repeated request, nudging a friend who already logged (or nudging twice in a day) and exceeding the friend cap return 400 or 404 in the usual error shape.
 
 One goal is active per user: `{ "type": "streak", "target": 7, "shared": true }` or `{ "type": "window", "windowDays": 14, "target": 10, "shared": false }`. A friend sees a goal only while its owner has shared it. A meal save checks the goal after the streak mark; a failed check never fails the save.
 
-Notifications are inbox-only (kinds `friend_request`, `request_accepted`, `nudge`, `goal_reached`, `cheer`); there is no push.
+Notifications are inbox-only (kinds `friend_request`, `request_accepted`, `nudge`, `goal_reached`, `cheer`); snaps are listed at `GET /api/snaps/inbox`; there is no push.
 
 ### Food and Feel
 
@@ -499,7 +499,7 @@ Every number is an estimate. Plan responses and nutrition carry `isEstimate: tru
 
 ### Privacy note
 
-A friend sees only username, display name, "logged today", the streak, nudge state and a goal the user chose to share, never meals, photos, calories or feelings. The shapes above are the whole contract; direct database access to the friend, goal and notification tables is closed, and clients must not write meals or check-ins to Supabase themselves.
+A friend sees only username, display name, "logged today", the streak, nudge state, a goal the user chose to share, and the view-once snap photo of each logged meal; never calories, meal details or feelings. A follower of a public account sees only that account's snaps, username, display name, bio and follower count. Accounts are private by default and only friends cheer. Snap photos live only in the private `snaps` bucket, are returned only by `POST /api/snaps/:id/open` (no URLs), are deleted once every recipient has opened them or after 24 hours, and are never logged. The one exception is a photo someone reports: it is kept up to 30 days in a separate private bucket for review. Under-18s cannot have a public account. Gemini never sees snaps. Snaps and the streak cheer are phase 1 behind `SNAPS_ENABLED`; public accounts, following, food cheers and custom goals are designed, not built (`docs/superpowers/specs/2026-11-06-snaps-follows-cheers-design.md`). The shapes above are the whole contract; direct database access to the friend, goal, follow, snap, block, report and notification tables is closed, and clients must not write meals or check-ins to Supabase themselves.
 
 ## How a scan becomes a saved meal
 

@@ -31,7 +31,7 @@ flowchart TD
   gemini --> confirm["User confirms or corrects"]
   confirm --> plan["Plan fits portions to the daily budget"]
   plan --> save["Save meal"]
-  save --> streak["Personal streak, friends see logged today"]
+  save --> streak["Personal streak, friends see logged today and a view-once snap"]
   save --> checkin["Check-in 90 min later"]
   checkin --> pattern["Weekly pattern card"]
   avoid["Avoid list"] -.->|flags| confirm
@@ -41,7 +41,7 @@ flowchart TD
   often["Dishes eaten often"] --> rank
   rank --> recipes["Recipes for you"]
   recipes --> nfm["Not for me hides a recipe"]
-  streak --> friends["Friends see logged today, streak and shared goal only"]
+  streak --> friends["Friends see logged today, streak, shared goal and a view-once snap photo; no calories or feelings"]
   draft["Offline Gemini recipe drafts"] --> review["Human review"]
   review --> recipes
 ```
@@ -63,7 +63,7 @@ Photo -> Gemini picks dishes from OUR catalog (structured output with an enum pl
 
 ### 2. Duo Streaks
 
-Friends are added by username. A day counts when a person saves at least one meal; each person has their own streak, which resets at midnight PKT if a day is missed. A user can set one habit goal (a streak or N days in a window) and choose to share it; friends can cheer a reached goal and nudge a friend who has not logged (one nudge per friend per day). A friend sees only username, display name, "logged today", the streak, nudge state and a shared goal, never meals, photos or calories. Notifications are an in-app inbox only, with no push.
+Friends are added by username. A day counts when a person saves at least one meal; each person has their own streak, which resets at midnight PKT if a day is missed. A user can set one habit goal (a streak or N days in a window) and choose to share it; friends can cheer a reached goal and nudge a friend who has not logged (one nudge per friend per day). A friend sees only username, display name, "logged today", the streak, nudge state, a goal the user chose to share, and the view-once snap photo of each logged meal; never calories, meal details or feelings. A follower of a public account sees only that account's snaps, username, display name, bio and follower count. Accounts are private by default and only friends cheer. Snap photos live only in the private `snaps` bucket, are returned only by `POST /api/snaps/:id/open` (no URLs), are deleted once every recipient has opened them or after 24 hours, and are never logged. The one exception is a photo someone reports: it is kept up to 30 days in a separate private bucket for review. Under-18s cannot have a public account. Gemini never sees snaps. Snaps and the streak cheer are phase 1 behind `SNAPS_ENABLED`; public accounts, following, food cheers and custom goals are designed, not built (`docs/superpowers/specs/2026-11-06-snaps-follows-cheers-design.md`). Notifications are an in-app inbox only, with no push.
 
 ### 3. Food and Feel
 
