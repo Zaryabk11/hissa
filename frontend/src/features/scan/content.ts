@@ -49,6 +49,7 @@ export const scanContent = {
     estimate: (n: string) => `About ${n} kcal, an estimate`,
     cta: 'Show my plan',
     save: 'Add to today',
+    snapNotice: 'This photo goes to your friends for one view. Hissa deletes it after everyone has opened it or after 24 hours. If someone reports it, Hissa keeps it for up to 30 days.',
     empty: 'Nothing left on the plate. Add a dish to continue.',
   },
   noPlate: {
