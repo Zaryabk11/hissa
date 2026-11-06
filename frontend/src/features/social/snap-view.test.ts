@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FriendRow } from './api/friends';
 import type { NotificationItem } from './api/notifications';
-import { canCheerStreak, snapAge, snapDataUri, snapViewReducer, snapExpiresIn, unreadTotal, type SnapView } from './snap-view';
+import { canCheerStreak, reportReducer, snapAge, snapDataUri, snapViewReducer, snapExpiresIn, unreadTotal, type SnapView } from './snap-view';
 import { notificationLine } from './social-view';
 
 const warn: SnapView = { phase: 'warn' };
@@ -68,5 +68,21 @@ describe('cheer_streak notification', () => {
   it('reads "<name> cheered your streak"', () => {
     const n: NotificationItem = { id: '1', kind: 'cheer_streak', actor: { userId: 'u', username: 'ayesha', displayName: null }, goalTitle: null, createdAt: '2026-11-06T00:00:00Z', read: false };
     expect(notificationLine(n)).toBe('ayesha cheered your streak');
+  });
+});
+
+describe('reportReducer', () => {
+  it('sent hides the button path: no further sends', () => {
+    const sent = reportReducer(reportReducer('idle', 'send'), 'sent');
+    expect(sent).toBe('sent');
+    expect(reportReducer(sent, 'send')).toBe('sent');
+  });
+  it('failed allows a retry', () => {
+    const failed = reportReducer(reportReducer('idle', 'send'), 'failed');
+    expect(failed).toBe('failed');
+    expect(reportReducer(failed, 'send')).toBe('sending');
+  });
+  it('ignores a second send while sending', () => {
+    expect(reportReducer('sending', 'send')).toBe('sending');
   });
 });

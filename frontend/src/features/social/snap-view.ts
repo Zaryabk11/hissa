@@ -26,3 +26,11 @@ export function snapExpiresIn(expiresAt: string, now = Date.now()): string {
 export const canCheerStreak = (row: FriendRow) => row.loggedToday && row.streak >= 3;
 
 export const unreadTotal = (notificationsUnread: number, snaps: number) => notificationsUnread + snaps;
+
+export type ReportState = 'idle' | 'sending' | 'sent' | 'failed';
+
+/** Report button state: a failed send can be retried, a sent report hides the button. */
+export function reportReducer(state: ReportState, event: 'send' | 'sent' | 'failed'): ReportState {
+  if (event === 'send') return state === 'idle' || state === 'failed' ? 'sending' : state;
+  return state === 'sending' ? event : state;
+}

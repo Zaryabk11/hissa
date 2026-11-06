@@ -9,7 +9,7 @@ import { PrimaryButton } from '../../../shared/ui/hissa/PrimaryButton';
 import { BackHeader } from '../../history/components/BackHeader';
 import { openSnap, reportSnap, type OpenedSnap, type ReportReason } from '../api/snaps';
 import { socialContent } from '../content';
-import { snapDataUri, snapViewReducer } from '../snap-view';
+import { reportReducer, snapDataUri, snapViewReducer } from '../snap-view';
 import { personName } from '../social-view';
 import { pokeUnread } from '../useSocialData';
 
@@ -22,7 +22,7 @@ export function SnapViewerScreen() {
   const [view, dispatch] = useReducer(snapViewReducer, { phase: 'warn' });
   const [snap, setSnap] = useState<OpenedSnap | null>(null); // the photo lives in memory only, as a data URI
   const [reporting, setReporting] = useState(false);
-  const [reportNote, setReportNote] = useState<string | null>(null);
+  const [report, dispatchReport] = useReducer(reportReducer, 'idle');
   const started = useRef(false); // synchronous guard: state alone lets a fast double tap open twice
 
   // The only place openSnap is called: the Open button. Never on mount, focus or refetch.
@@ -42,12 +42,14 @@ export function SnapViewerScreen() {
   };
 
   const onReport = async (reason: ReportReason) => {
+    if (report === 'sending') return;
     setReporting(false);
+    dispatchReport('send');
     try {
       await reportSnap(id, reason);
-      setReportNote(c.reported);
+      dispatchReport('sent');
     } catch {
-      setReportNote(c.reportFailed);
+      dispatchReport('failed');
     }
   };
 
@@ -83,7 +85,8 @@ export function SnapViewerScreen() {
               resizeMode="contain"
               style={{ width: '100%', aspectRatio: 3 / 4, borderRadius: 14 }}
             />
-            {reportNote && <HissaText accessibilityRole="alert">{reportNote}</HissaText>}
+            {report === 'sent' && <HissaText accessibilityRole="alert">{c.reported}</HissaText>}
+            {report === 'failed' && <HissaText accessibilityRole="alert">{c.reportFailed}</HissaText>}
             {reporting ? (
               <View style={{ gap: 8 }}>
                 <HissaText variant="label">{c.reportTitle}</HissaText>
@@ -95,7 +98,7 @@ export function SnapViewerScreen() {
                 </View>
               </View>
             ) : (
-              !reportNote && <Pill variant="quiet" label={c.report} onPress={() => setReporting(true)} />
+              report !== 'sent' && <Pill variant="quiet" label={c.report} disabled={report === 'sending'} onPress={() => setReporting(true)} />
             )}
           </View>
         )}
