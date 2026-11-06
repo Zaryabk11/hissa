@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
+import { Card } from '../../shared/ui/hissa/Card';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
@@ -73,9 +74,9 @@ export function RecipesScreen() {
     <HissaScreen>
       {header}
       {recipes.length === 0 ? (
-        <HissaText muted style={{ marginTop: 28 }}>
-          {c.empty}
-        </HissaText>
+        <Card style={{ marginTop: 28 }}>
+          <HissaText muted>{c.empty}</HissaText>
+        </Card>
       ) : (
         <View style={{ marginTop: 20, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {recipes.map((r) => (
