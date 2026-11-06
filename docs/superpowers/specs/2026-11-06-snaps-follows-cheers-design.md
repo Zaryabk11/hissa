@@ -124,7 +124,7 @@ Open is `POST` because it changes state and must not be prefetched or cached. Th
 
 **Cheers**
 - Food: above; notifies the sender with `cheer_food` and `snap_id`; no photo or meal detail ("cheered your plate"). Once per snap per friend, allowed from open until `expires_at`. Followers get 404 (D2).
-- Streak: `POST /api/friends/:userId/cheer-streak` -> 204. Friends only; target logged today and streak >= 3; one per cheerer, target, PKT day. 404 not friends; 400 not logged or streak < 3; 409 repeat. Template: `nudge`. **Builder note / my call** on the 3.
+- Streak: `POST /api/friends/:userId/cheer-streak` -> 204. Friends only; target logged today and streak >= 3; one per cheerer, target, PKT day. 404 not friends; 400 not logged or streak < 3; 409 repeat. Template: `nudge`. Behind `SNAPS_ENABLED`: the route is not registered when the flag is off (404); the other friends routes are unaffected. **Builder note / my call** on the 3.
 - Goal: unchanged (`goal_cheers`).
 - `NotificationsService.notify` maps any unique violation to "Already nudged today"; make the message depend on `kind`.
 

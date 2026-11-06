@@ -37,6 +37,7 @@ export function createModuleRouters(deps: { db: Db; config: Config }): {
     streaks: streaks.service,
     profiles: profiles.service,
     notifications: notifications.service,
+    cheerStreakEnabled: deps.config.SNAPS_ENABLED,
   });
   const goals = createGoalsModule({
     ...deps,

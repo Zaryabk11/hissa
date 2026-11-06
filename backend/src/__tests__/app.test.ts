@@ -99,6 +99,12 @@ describe('app snaps wiring', () => {
     expect(res.status).toBe(404);
   });
 
+  it('answers 404 for cheer-streak when the flag is off and reaches it when on', async () => {
+    const path = '/api/friends/not-a-uuid/cheer-streak';
+    expect((await request(createApp(config(false))).post(path)).status).toBe(404);
+    expect((await request(createApp(config(true))).post(path)).status).toBe(400);
+  });
+
   it('keeps the sweep job running when the flag is off, so stored photos are still deleted', () => {
     const jobs = createApp(config(false)).locals.jobs as { name: string }[];
     expect(jobs.map((j) => j.name)).toEqual(['snaps.sweep']);

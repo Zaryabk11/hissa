@@ -88,7 +88,7 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 | POST   | `/api/friends/requests/:userId/decline` | Decline a request: 204                         |
 | DELETE | `/api/friends/:userId`               | Remove a friend: 204                              |
 | POST   | `/api/friends/:userId/nudge`         | Nudge a friend who has not logged (once per day): 204 |
-| POST   | `/api/friends/:userId/cheer-streak`  | Cheer a friend who logged today on a streak of 3+ (once per day): 204 |
+| POST   | `/api/friends/:userId/cheer-streak`  | Cheer a friend who logged today on a streak of 3+ (once per day): 204 (needs `SNAPS_ENABLED`) |
 | POST   | `/api/snaps`                         | Send the photo of a just-saved meal to friends: 201 (needs `SNAPS_ENABLED`) |
 | GET    | `/api/snaps/inbox`                   | Unopened snaps `{ items }`, no photo (needs `SNAPS_ENABLED`) |
 | POST   | `/api/snaps/:id/open`                | View once: base64 JPEG, then gone (needs `SNAPS_ENABLED`) |
@@ -128,7 +128,7 @@ Notifications are inbox-only (kinds `friend_request`, `request_accepted`, `nudge
 
 ### Snaps
 
-Off unless `SNAPS_ENABLED=true`: the `/api/snaps` routes then do not exist (404), but the sweeper keeps running so already-stored photos and reported copies are still deleted on schedule. The app has its own switch, `EXPO_PUBLIC_SNAPS_ENABLED` (`frontend/.env.example`); set both. Design and lifecycle: `docs/architecture.md`, "Snaps".
+Off unless `SNAPS_ENABLED=true`: the `/api/snaps` routes and `POST /api/friends/:userId/cheer-streak` then do not exist (404), but the sweeper keeps running so already-stored photos and reported copies are still deleted on schedule. The app has its own switch, `EXPO_PUBLIC_SNAPS_ENABLED` (`frontend/.env.example`); set both. Design and lifecycle: `docs/architecture.md`, "Snaps".
 
 - `POST /api/snaps` `{ mealId, image, mimeType }` (same photo rules as scan) returns 201 `{ id, expiresAt, recipients: { friends } }`. The meal must be the caller's and at most 30 minutes old: otherwise 400; a second snap for a meal is 409; the 13th snap of a PKT day is 429; unknown or other people's meals are 404. With no friends nothing is stored and `id` and `expiresAt` are `null`.
 - `GET /api/snaps/inbox` returns `{ items: [{ id, sender, sentAt, expiresAt }] }` for snaps the caller has not opened. No photo.
