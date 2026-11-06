@@ -44,3 +44,9 @@ export class ServiceUnavailableError extends AppError {
     super(503, 'auth_unavailable', message);
   }
 }
+
+export class TooManyRequestsError extends AppError {
+  constructor(message: string) {
+    super(429, 'too_many_requests', message);
+  }
+}

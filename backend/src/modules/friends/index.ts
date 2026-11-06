@@ -17,11 +17,13 @@ export function createFriendsModule({
   streaks,
   profiles,
   notifications,
+  cheerStreakEnabled,
 }: {
   db: Db;
   streaks: StreaksService;
   profiles: ProfilesService;
   notifications: NotificationsService;
+  cheerStreakEnabled: boolean;
 }): {
   router: Router;
   service: FriendsService;
@@ -32,6 +34,6 @@ export function createFriendsModule({
     profiles,
     notifications,
   });
-  const router = createFriendsRouter(createFriendsController(service));
+  const router = createFriendsRouter(createFriendsController(service), { cheerStreakEnabled });
   return { router, service };
 }

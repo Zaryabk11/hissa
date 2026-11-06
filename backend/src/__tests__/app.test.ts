@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../app';
+import { loadConfig } from '../shared/config';
 
 // Auth itself is covered in shared/middleware/__tests__/auth.test.ts.
 vi.mock('../shared/middleware/auth', () => ({
@@ -71,5 +72,41 @@ describe('app', () => {
   it('unknown routes return 404', async () => {
     const res = await request(createApp()).get('/api/nope');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('app snaps wiring', () => {
+  const config = (snaps: boolean) =>
+    ({ ...loadConfig(), SNAPS_ENABLED: snaps }) as ReturnType<typeof loadConfig>;
+
+  it('keeps the 100 KB parser on /api/friends', async () => {
+    const res = await request(createApp(config(true)))
+      .post('/api/friends/requests')
+      .send({ pad: 'a'.repeat(200_000) });
+    expect(res.status).toBe(413);
+  });
+
+  it('lets /api/snaps take a body over 100 KB but under 8 MB (rejected by validation, not size)', async () => {
+    const res = await request(createApp(config(true)))
+      .post('/api/snaps')
+      .send({ image: 'a'.repeat(2_000_000) });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('validation_error');
+  });
+
+  it('answers 404 for the snaps routes when the flag is off', async () => {
+    const res = await request(createApp(config(false))).get('/api/snaps/inbox');
+    expect(res.status).toBe(404);
+  });
+
+  it('answers 404 for cheer-streak when the flag is off and reaches it when on', async () => {
+    const path = '/api/friends/not-a-uuid/cheer-streak';
+    expect((await request(createApp(config(false))).post(path)).status).toBe(404);
+    expect((await request(createApp(config(true))).post(path)).status).toBe(400);
+  });
+
+  it('keeps the sweep job running when the flag is off, so stored photos are still deleted', () => {
+    const jobs = createApp(config(false)).locals.jobs as { name: string }[];
+    expect(jobs.map((j) => j.name)).toEqual(['snaps.sweep']);
   });
 });

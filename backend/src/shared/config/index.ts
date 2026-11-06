@@ -15,6 +15,8 @@ const envSchema = z.object({
   GEMINI_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
   // Optional demo-only account id: the only user whose weekly card may be labelled sample data.
   DEMO_USER_ID: z.preprocess((v) => (v === '' ? undefined : v), z.uuid().optional()),
+  // Snaps feature flag: only the exact string 'true' turns it on.
+  SNAPS_ENABLED: z.preprocess((v) => v === 'true', z.boolean()),
   SCAN_DAILY_CAP: z.coerce.number().int().positive().default(10),
 });
 

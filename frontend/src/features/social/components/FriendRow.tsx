@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import { Pill } from '../../../shared/ui/hissa/Pill';
+import { snapsEnabled } from '../../../shared/flags';
 import type { FriendRow as Row } from '../api/friends';
 import type { FriendGoal } from '../api/goals';
 import { socialContent as c } from '../content';
+import { canCheerStreak } from '../snap-view';
 import { canNudge, friendStatus, personName } from '../social-view';
 import { Avatar, StreakPill } from './Avatar';
 
-export function FriendRow({ row, goal, busy, onNudge, onRemove }: { row: Row; goal?: FriendGoal; busy: boolean; onNudge: () => void; onRemove: () => void }) {
+export function FriendRow({ row, goal, busy, onNudge, onCheerStreak, onRemove }: { row: Row; goal?: FriendGoal; busy: boolean; onNudge: () => void; onCheerStreak: () => void; onRemove: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const status = friendStatus(row);
   const name = personName(row);
@@ -26,6 +28,7 @@ export function FriendRow({ row, goal, busy, onNudge, onRemove }: { row: Row; go
       </View>
       {goal && <HissaText variant="caption">{c.friendGoal(goal.title, goal.progress, goal.target)}</HissaText>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>
+        {snapsEnabled && canCheerStreak(row) && <Pill variant="filled" disabled={busy} label={c.cheerStreak} onPress={onCheerStreak} />}
         {canNudge(row) && <Pill variant="filled" disabled={busy} label={c.nudge} onPress={onNudge} />}
         {confirm ? (
           <>

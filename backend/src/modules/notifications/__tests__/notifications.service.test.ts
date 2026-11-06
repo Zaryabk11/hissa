@@ -34,6 +34,18 @@ describe('notifications service', () => {
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
+  it('notify words the conflict by kind', async () => {
+    const { service, repository } = setup();
+    repository.insert.mockRejectedValueOnce({ code: '23505' });
+    await expect(
+      service.notify({ userId: 'u2', kind: 'nudge', actorId: 'a1', day: '2026-11-04' }),
+    ).rejects.toThrow('Already nudged today');
+    repository.insert.mockRejectedValueOnce({ code: '23505' });
+    await expect(
+      service.notify({ userId: 'u2', kind: 'cheer_streak', actorId: 'a1', day: '2026-11-04' }),
+    ).rejects.toThrow('Already cheered today');
+  });
+
   it('notify passes other errors through', async () => {
     const { service, repository } = setup();
     repository.insert.mockRejectedValueOnce(new Error('boom'));

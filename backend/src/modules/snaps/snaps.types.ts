@@ -1,0 +1,87 @@
+import type { PersonCard } from '../profiles';
+
+// The only way code reaches the snap buckets. Paths are `<snapId>.jpg`.
+export interface SnapStorage {
+  put(path: string, bytes: Buffer): Promise<void>;
+  // null when the object is missing
+  get(path: string): Promise<Buffer | null>;
+  // idempotent: a missing object is not an error
+  remove(paths: string[]): Promise<void>;
+  // false when the source object is gone
+  copyToReports(path: string, dest: string): Promise<boolean>;
+  removeReports(paths: string[]): Promise<void>;
+  // object names created before cutoff, in the snaps and snap-reports buckets
+  listOlderThan(cutoff: Date): Promise<string[]>;
+  listReportsOlderThan(cutoff: Date): Promise<string[]>;
+}
+
+// A live snap the sweeper should remove now.
+export type DueSnap = { id: string; object_path: string; expires_at: string };
+
+// A row of public.snaps as the repository reads it.
+export type SnapRow = {
+  id: string;
+  sender_id: string;
+  meal_id: string | null;
+  object_path: string;
+  created_at: string;
+  expires_at: string;
+  deleted_at: string | null;
+};
+
+// An unopened, live recipient row joined with its snap.
+export type InboxRow = {
+  snap_id: string;
+  sender_id: string;
+  created_at: string;
+  expires_at: string;
+};
+
+// The caller's unopened recipient row of a snap that is not deleted, with the snap fields open needs.
+export type OpenRow = {
+  snap_id: string;
+  sender_id: string;
+  object_path: string;
+  created_at: string;
+  expires_at: string;
+};
+
+export type OpenResult = {
+  image: string;
+  mimeType: 'image/jpeg';
+  sender: PersonCard;
+  sentAt: string;
+  expiresAt: string;
+};
+
+export type NewSnap = {
+  id: string;
+  mealId: string;
+  objectPath: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+export type SendResult = {
+  id: string | null;
+  expiresAt: string | null;
+  recipients: { friends: number };
+};
+
+export type InboxItem = { id: string; sender: PersonCard; sentAt: string; expiresAt: string };
+
+export type ReportReason = 'spam' | 'inappropriate_photo' | 'harassment' | 'other';
+
+// The caller's opened recipient row, with what a report needs from the snap.
+export type OpenedRow = { sender_id: string; object_path: string };
+
+export type NewReport = {
+  id: string;
+  reporter_id: string;
+  target_id: string;
+  snap_id: string;
+  reason: ReportReason;
+  created_at: string;
+  evidence_path: string | null;
+  evidence_expires_at: string | null;
+};

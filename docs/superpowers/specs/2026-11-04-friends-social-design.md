@@ -11,7 +11,7 @@ This is phase 1 of four. The order agreed is:
 
 1. **Friends core (this document)**: usernames, friend requests, friends list with streaks, nudges, notifications, habit goals, celebrations.
 2. Board: a ranking of friends and of everyone, by streak and days logged.
-3. Public profiles and Following: opt-in creators who share meals; followers see them.
+3. Public profiles and Following: see `2026-11-06-snaps-follows-cheers-design.md`.
 4. Macro targets and recipes: custom macro targets, a desi recipe set tagged by a Python script, ranking by likes and dislikes.
 
 ## The demo moment (what success looks like)
@@ -36,17 +36,17 @@ On demo day, with two or three accounts on phones:
 
 ## Non-goals (phase 1)
 
-Squads or named groups. Feeds, chat or comments. The Board. Public profiles and following. Macro targets and recipes. Push notifications and daily reminders. Invite links and contact import. Realtime sockets. Weight or health-outcome goals.
+Squads or named groups. Feeds, chat or comments. The Board. Macro targets and recipes. Push notifications and daily reminders. Invite links and contact import. Realtime sockets. Weight or health-outcome goals.
 
 ## Anti-goals
 
-- A friend ever seeing meals, photos, calories, feelings or body data. Even by accident in an API response.
+- A friend ever seeing calories, feelings or body data, or meal details. Even by accident in an API response. (Superseded for the snap photo of each logged meal by `2026-11-06-snaps-follows-cheers-design.md`.)
 - Nudges becoming harassment: no unlimited nudging, nobody forced to stay in someone's list.
 - Any number shown as a fact. Every number in the app stays labelled an estimate, and nothing here is medical advice.
 
 ## Privacy rules (extend the existing buddy rule to all friends)
 
-A friend sees only: username, display name, "logged today", streak, nudge state, and a goal the user chose to share (its title and progress). Never meals, photos, calories, feelings. Clients never write friendship, goal, notification or nudge data directly to Supabase; everything goes through the API, scoped to the authenticated user (the backend uses the service role, which bypasses row-level security).
+A friend sees only: username, display name, "logged today", streak, nudge state, and a goal the user chose to share (its title and progress). Never calories, meal details or feelings. (Superseded: the view-once snap photo of each logged meal is now visible to friends; see `2026-11-06-snaps-follows-cheers-design.md`.) Clients never write friendship, goal, notification or nudge data directly to Supabase; everything goes through the API, scoped to the authenticated user (the backend uses the service role, which bypasses row-level security).
 
 `docs/architecture.md` and `CLAUDE.md` need their buddy wording updated to "friends".
 
@@ -95,10 +95,10 @@ A friend sees only: username, display name, "logged today", streak, nudge state,
 ### Habit goals
 
 - A user has at most one active goal; after one is reached or abandoned they can set a new one at once **[call]**. A goal counts only days logged on or after the day it was created, so a long existing streak does not complete it instantly; a "N days in a row" goal needs a fresh run of N days starting on or after creation **[call]**. Types for phase 1: "log N days in a row" and "log M days within the next D days" **[call]**. The user can create, edit and abandon a goal.
-- Progress is computed by the backend from `streak_days`, not typed in **[call]**. (The owner said users can "update their goal status"; this is my reading: they set and change the goal, the app tracks progress honestly.)
+- Progress is computed by the backend from `streak_days`, not typed in, except custom goals **[call]**. (The owner said users can "update their goal status"; this is my reading: they set and change the goal, the app tracks progress honestly.)
 - Sharing is opt-in per goal, off by default. Friends see the title and progress of a shared goal only.
 - When a meal save pushes a goal past its target, the goal is marked reached once, and friends are told if it was shared **[call]**: a celebration card stays at the top of their friends list for 48 hours **[call]**; the event also lands in their inbox.
-- Cheers: only a direct friend can cheer, once per celebration. If a friend is removed, their cheer disappears from view **[call]**; the achiever sees the cheer count and who cheered, in the inbox only.
+- Cheers: only a direct friend can cheer, once per celebration, once per snap per friend, and once per friend per streak day. If a friend is removed, their cheer disappears from view **[call]**; the achiever sees the cheer count and who cheered, in the inbox only.
 - No goals about weight, calories or macros in this phase; macro goals arrive with phase 4.
 
 ### Screens (frontend)

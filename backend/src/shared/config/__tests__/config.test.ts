@@ -47,4 +47,12 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...minimalEnv, DEMO_USER_ID: id }).DEMO_USER_ID).toBe(id);
     expect(() => loadConfig({ ...minimalEnv, DEMO_USER_ID: 'not-an-id' })).toThrow(/DEMO_USER_ID/);
   });
+
+  it('enables SNAPS_ENABLED only for the string "true"', () => {
+    expect(loadConfig(minimalEnv).SNAPS_ENABLED).toBe(false);
+    expect(loadConfig({ ...minimalEnv, SNAPS_ENABLED: '' }).SNAPS_ENABLED).toBe(false);
+    expect(loadConfig({ ...minimalEnv, SNAPS_ENABLED: 'false' }).SNAPS_ENABLED).toBe(false);
+    expect(loadConfig({ ...minimalEnv, SNAPS_ENABLED: '1' }).SNAPS_ENABLED).toBe(false);
+    expect(loadConfig({ ...minimalEnv, SNAPS_ENABLED: 'true' }).SNAPS_ENABLED).toBe(true);
+  });
 });

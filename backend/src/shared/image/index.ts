@@ -1,6 +1,9 @@
 import sharp from 'sharp';
-import { ValidationError } from '../../shared/errors';
-import { logger } from '../../shared/logger';
+import { z } from 'zod';
+import { ValidationError } from '../errors';
+import { logger } from '../logger';
+
+export const MAX_IMAGE_BYTES = 6_000_000;
 
 const MAX_SIDE = 1024;
 // Reject images that decode to a huge bitmap (sharp's default is about 268 MP).
@@ -21,3 +24,14 @@ export async function resizePhoto(input: Buffer): Promise<Buffer> {
     throw new ValidationError('Unreadable image');
   }
 }
+
+// Shared request body for endpoints that take a base64 photo.
+export const imageBodySchema = z.object({
+  image: z
+    .string()
+    .min(1, 'image is required')
+    .refine((s) => !s.startsWith('data:'), 'Send raw base64 without a data: prefix')
+    .refine((s) => Buffer.from(s, 'base64').length > 0, 'image is empty')
+    .refine((s) => Buffer.byteLength(s, 'base64') <= MAX_IMAGE_BYTES, 'image is too large'),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+});

@@ -1,6 +1,7 @@
 import type { Router } from 'express';
 import type { Config } from '../shared/config';
 import type { Db } from '../shared/db';
+import type { Job } from '../shared/jobs';
 import { createAuthModule } from './auth';
 import { createFeelModule } from './feel';
 import { createFriendsModule } from './friends';
@@ -12,11 +13,15 @@ import { createPlanModule } from './plan';
 import { createProfilesModule } from './profiles';
 import { createRecipesModule } from './recipes';
 import { createScanModule } from './scan';
+import { createSnapsModule } from './snaps';
 import { createStreaksModule } from './streaks';
 
 // Registry: every module is built once (later tasks inject one module's service into another)
-// and mounted at /api/<name>.
-export function createModuleRouters(deps: { db: Db; config: Config }): Record<string, Router> {
+// and mounted at /api/<name>. `jobs` are background tasks the server starts .
+export function createModuleRouters(deps: { db: Db; config: Config }): {
+  routers: Record<string, Router>;
+  jobs: Job[];
+} {
   const auth = createAuthModule(deps);
   const profiles = createProfilesModule(deps);
   const nutrition = createNutritionModule(deps);
@@ -32,6 +37,7 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
     streaks: streaks.service,
     profiles: profiles.service,
     notifications: notifications.service,
+    cheerStreakEnabled: deps.config.SNAPS_ENABLED,
   });
   const goals = createGoalsModule({
     ...deps,
@@ -60,8 +66,14 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
     feel: feel.service,
     nutrition: nutrition.service,
   });
+  const snaps = createSnapsModule({
+    ...deps,
+    friends: friends.service,
+    meals: meals.service,
+    profiles: profiles.service,
+  });
 
-  return {
+  const routers: Record<string, Router> = {
     auth: auth.router,
     profiles: profiles.router,
     scan: scan.router,
@@ -75,4 +87,7 @@ export function createModuleRouters(deps: { db: Db; config: Config }): Record<st
     feel: feel.router,
     recipes: recipes.router,
   };
+  // The sweeper always runs so photos stored before the flag was turned off are still deleted.
+  if (!deps.config.SNAPS_ENABLED) return { routers, jobs: snaps.jobs };
+  return { routers: { ...routers, snaps: snaps.router }, jobs: snaps.jobs };
 }

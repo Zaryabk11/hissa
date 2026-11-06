@@ -3,7 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getProfile } from '../core/api';
 import { getOverview, type FriendsOverview } from './api/friends';
 import { getCelebrations, getFriendGoals, getMyGoal, type Celebration, type FriendGoal, type Goal } from './api/goals';
+import { snapsEnabled } from '../../shared/flags';
 import { getInbox } from './api/notifications';
+import { getSnapInbox } from './api/snaps';
+import { unreadTotal } from './snap-view';
 import { latestGuard } from './social-view';
 
 const POLL_MS = 20_000;
@@ -53,11 +56,13 @@ export function useSocialData() {
 const pokes = new Set<() => void>();
 export const pokeUnread = () => pokes.forEach((p) => p());
 
-/** Unread inbox count for the Social tab badge: polled every 30 s, and again when `focusKey` changes or on `pokeUnread`. */
+/** Unread inbox count (plus unopened snaps when snaps are on) for the Social tab badge: polled every 30 s, and again when `focusKey` changes or on `pokeUnread`. */
 export function useUnread(focusKey: unknown) {
   const [unread, setUnread] = useState(0);
+  const [snaps, setSnaps] = useState(0);
   const load = useCallback(() => {
     getInbox().then((r) => setUnread(r.unread), () => undefined);
+    if (snapsEnabled) getSnapInbox().then((r) => setSnaps(r.items.length), () => undefined);
   }, []);
   useEffect(() => {
     load();
@@ -69,5 +74,5 @@ export function useUnread(focusKey: unknown) {
     };
   }, [load]);
   useEffect(load, [load, focusKey]);
-  return unread;
+  return unreadTotal(unread, snaps);
 }
