@@ -3,6 +3,11 @@ import { useCallback, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { ApiError } from '../../shared/api/client';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
+import { Card } from '../../shared/ui/hissa/Card';
+import { Dabbu } from '../../shared/ui/hissa/Dabbu';
+import { useIrisNavigate } from '../../shared/ui/hissa/IrisTransition';
+import { Segmented } from '../../shared/ui/hissa/Segmented';
+import { SpeechBubble } from '../../shared/ui/hissa/SpeechBubble';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
@@ -30,40 +35,18 @@ const fetchAll = () =>
     getDueCheckin().catch(() => null),
   ]);
 
-function Card({
-  children,
-  onPress,
-  label,
-}: {
-  children: React.ReactNode;
-  onPress?: () => void;
-  label?: string;
-}) {
-  const t = useHissaTheme();
-  const style = {
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: t.surf,
-    borderWidth: 1,
-    borderColor: t.hair,
-    gap: 4,
-  } as const;
-  return onPress ? (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={style}
-    >
-      {children}
+function Tap({ children, onPress, label }: { children: React.ReactNode; onPress: () => void; label: string }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ minHeight: 44 }}>
+      <Card style={{ gap: 4 }}>{children}</Card>
     </Pressable>
-  ) : (
-    <View style={style}>{children}</View>
   );
 }
 
 export function TodayScreen() {
   const router = useRouter();
+  const iris = useIrisNavigate();
+  const [view, setView] = useState<'day' | 'week'>('day');
   const t = useHissaTheme();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -119,8 +102,15 @@ export function TodayScreen() {
   if (error)
     return (
       <HissaScreen>
-        <HissaText accessibilityRole="alert">{error}</HissaText>
-        <View style={{ marginTop: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 24 }}>
+          <Dabbu mood="oops" size={88} />
+          <SpeechBubble>
+            <HissaText accessibilityRole="alert" variant="label">
+              {error}
+            </HissaText>
+          </SpeechBubble>
+        </View>
+        <View style={{ marginTop: 24 }}>
           <PrimaryButton
             label={c.retry}
             onPress={() => {
@@ -142,6 +132,8 @@ export function TodayScreen() {
     carbsG: profile.carbsTargetG,
     fatG: profile.fatTargetG,
   });
+  const bubble = empty ? `${c.empty.title}. ${c.empty.body}` : ring.atBudget ? c.ring.atBudget : c.ring.next;
+  const shown = ring.shown.toLocaleString('en-US');
 
   return (
     <HissaScreen onRefresh={refresh} refreshing={refreshing}>
@@ -156,8 +148,8 @@ export function TodayScreen() {
             height: 44,
             borderRadius: 22,
             backgroundColor: t.surf,
-            borderWidth: 1,
-            borderColor: t.hair,
+            borderWidth: 2,
+            borderColor: t.line,
             alignItems: 'center',
             justifyContent: 'center',
           }}
@@ -170,124 +162,126 @@ export function TodayScreen() {
       <HissaText variant="title" accessibilityRole="header" style={{ marginTop: 4 }}>
         {c.greeting(profile.displayName)}
       </HissaText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+        <Dabbu mood={empty ? 'wave' : ring.atBudget ? 'content' : 'idle'} size={88} />
+        <SpeechBubble>{bubble}</SpeechBubble>
+      </View>
       {notice && (
         <HissaText accessibilityRole="alert" muted style={{ marginTop: 8 }}>
           {notice}
         </HissaText>
       )}
-      <View style={{ alignItems: 'center', marginTop: 24 }}>
-        <BudgetRing
-          fraction={ring.fraction}
-          label={c.ring.label(ring.shown.toLocaleString('en-US'), ring.caption)}
-        >
-          <HissaText variant="hero">{ring.shown.toLocaleString('en-US')}</HissaText>
-          <HissaText variant="button">{ring.caption}</HissaText>
-          <HissaText variant="caption">{c.ring.estimate}</HissaText>
-        </BudgetRing>
+      <View style={{ marginTop: 16 }}>
+        <Segmented
+          options={[
+            { value: 'day', label: c.view.day },
+            { value: 'week', label: c.view.week },
+          ]}
+          value={view}
+          onChange={setView}
+        />
       </View>
-      {ring.atBudget && (
-        <HissaText style={{ marginTop: 16, textAlign: 'center' }}>{c.ring.atBudget}</HissaText>
-      )}
-
-      {macros && (
-        <View style={{ marginTop: 20 }}>
-          <Card>
-            <HissaText variant="label">{`${c.macros.title} (${c.macros.estimate})`}</HissaText>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              {macros.map((m) => (
-                <View key={m.label} accessible accessibilityLabel={`${m.label}: about ${m.text}, an estimate`}>
-                  <HissaText variant="caption">{m.label}</HissaText>
-                  <HissaText variant="button">{m.text}</HissaText>
-                </View>
-              ))}
-            </View>
-          </Card>
-        </View>
-      )}
 
       {due && (
         <View style={{ marginTop: 20 }}>
-          <Card
-            onPress={() => router.push('/(tabs)/feel')}
-            label={`${c.checkin.title} ${c.checkin.cta}`}
-          >
+          <Tap onPress={() => router.push('/(tabs)/feel')} label={`${c.checkin.title} ${c.checkin.cta}`}>
             <HissaText variant="label">{c.checkin.title}</HissaText>
             <HissaText variant="caption">{c.checkin.body}</HissaText>
-          </Card>
+          </Tap>
         </View>
       )}
 
-      {empty ? (
-        <View
-          style={{
-            marginTop: 28,
-            padding: 24,
-            borderRadius: 24,
-            borderWidth: 1,
-            borderStyle: 'dashed',
-            borderColor: t.rim,
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <HissaText variant="title" accessibilityRole="header">
-            {c.empty.title}
-          </HissaText>
-          <HissaText muted style={{ textAlign: 'center' }}>
-            {c.empty.body}
-          </HissaText>
-          <View style={{ alignSelf: 'stretch' }}>
-            <PrimaryButton label={c.empty.cta} onPress={() => router.push('/(tabs)/scan')} />
-          </View>
+      {view === 'week' ? (
+        <View style={{ marginTop: 20 }}>
+          <WeekCard budget={profile.dailyCalorieBudget} refreshKey={weekKey} />
         </View>
       ) : (
-        <View style={{ marginTop: 28, gap: 10 }}>
-          <HissaText variant="label" accessibilityRole="header">
-            {c.meals.title}
-          </HissaText>
-          {today.meals.map((meal) => {
-            const confirmed = meal.items.filter(
-              (item) => item.confirmedDish && item.confirmedPortion,
-            );
-            const names = confirmed
-              .map((item) => dishById(item.confirmedDish!)?.name ?? item.confirmedDish)
-              .join(', ');
-            return (
-              <Card key={meal.id}>
-                <HissaText variant="label">{names}</HissaText>
-                <HissaText variant="caption">
-                  {new Date(meal.eatenAt).toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                  })}
-                </HissaText>
-                {confirmed.map((item, i) => (
-                  <HissaText key={i} muted>
-                    {portionText({ dishId: item.confirmedDish!, qty: item.confirmedPortion! })}{' '}
-                    {dishById(item.confirmedDish!)?.name ?? item.confirmedDish}
-                  </HissaText>
-                ))}
-                <HissaText variant="caption">
-                  {c.meals.kcal(Math.round(meal.totalCalories).toLocaleString('en-US'))}
-                </HissaText>
-              </Card>
-            );
-          })}
-        </View>
-      )}
+        <>
+          <View style={{ alignItems: 'center', marginTop: 24 }}>
+            <BudgetRing fraction={ring.fraction} label={c.ring.label(shown, ring.caption)}>
+              <HissaText variant="caption">{c.ring.about}</HissaText>
+              <HissaText variant="hero">{shown}</HissaText>
+              <HissaText variant="button">{`kcal ${ring.caption}`}</HissaText>
+              <HissaText variant="caption">{c.ring.estimate}</HissaText>
+            </BudgetRing>
+          </View>
 
-      <View style={{ marginTop: 20 }}>
-        <WeekCard budget={profile.dailyCalorieBudget} refreshKey={weekKey} />
-      </View>
+          {macros && (
+            <View style={{ marginTop: 20 }}>
+              <Card>
+                <HissaText variant="label">{`${c.macros.title} (${c.macros.estimate})`}</HissaText>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                  {macros.map((m) => (
+                    <View key={m.label} accessible accessibilityLabel={`${m.label}: about ${m.text}, an estimate`}>
+                      <HissaText variant="caption">{m.label}</HissaText>
+                      <HissaText variant="button">{m.text}</HissaText>
+                    </View>
+                  ))}
+                </View>
+              </Card>
+            </View>
+          )}
+
+          {empty ? (
+            <View style={{ marginTop: 24 }}>
+              <Card tone="surf2" style={{ alignItems: 'center', gap: 12 }}>
+                <HissaText variant="label" accessibilityRole="header">
+                  {c.empty.title}
+                </HissaText>
+                <HissaText muted style={{ textAlign: 'center' }}>
+                  {c.empty.body}
+                </HissaText>
+                <View style={{ alignSelf: 'stretch' }}>
+                  <PrimaryButton label={c.empty.cta} onPress={() => iris.push('/(tabs)/scan')} />
+                </View>
+              </Card>
+            </View>
+          ) : (
+            <View style={{ marginTop: 24, gap: 12 }}>
+              <HissaText variant="label" accessibilityRole="header">
+                {c.meals.title}
+              </HissaText>
+              {today.meals.map((meal) => {
+                const confirmed = meal.items.filter(
+                  (item) => item.confirmedDish && item.confirmedPortion,
+                );
+                const names = confirmed
+                  .map((item) => dishById(item.confirmedDish!)?.name ?? item.confirmedDish)
+                  .join(', ');
+                return (
+                  <Card key={meal.id} style={{ gap: 4 }}>
+                    <HissaText variant="label">{names}</HissaText>
+                    <HissaText variant="caption">
+                      {new Date(meal.eatenAt).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </HissaText>
+                    {confirmed.map((item, i) => (
+                      <HissaText key={i} muted>
+                        {portionText({ dishId: item.confirmedDish!, qty: item.confirmedPortion! })}{' '}
+                        {dishById(item.confirmedDish!)?.name ?? item.confirmedDish}
+                      </HissaText>
+                    ))}
+                    <HissaText variant="caption">
+                      {c.meals.kcal(Math.round(meal.totalCalories).toLocaleString('en-US'))}
+                    </HissaText>
+                  </Card>
+                );
+              })}
+            </View>
+          )}
+        </>
+      )}
 
       <TodayRecipes refreshKey={weekKey} />
 
       {card.kind === 'streak' && (
         <View style={{ marginTop: 20 }}>
-          <Card onPress={() => router.push('/(tabs)/social')} label={c.streak.open}>
+          <Tap onPress={() => router.push('/(tabs)/social')} label={c.streak.open}>
             <HissaText variant="label">{c.streak.days(card.streak)}</HissaText>
             <HissaText variant="caption">{card.loggedToday ? c.streak.logged : c.streak.notYet}</HissaText>
-          </Card>
+          </Tap>
         </View>
       )}
     </HissaScreen>
