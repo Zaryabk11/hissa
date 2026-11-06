@@ -5,6 +5,7 @@ import { ApiError } from '../../shared/api/client';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { hissaRadii } from '../../shared/theme/hissaTokens';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
+import { sticker } from '../../shared/ui/hissa/sticker';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { getCatalog, type ApiMeal } from '../core/api';
@@ -40,7 +41,7 @@ function Square({ glyph, label, onPress, disabled }: { glyph: string; label: str
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
       onPress={disabled ? undefined : onPress}
-      style={{ width: 48, height: 48, borderRadius: hissaRadii.control, borderWidth: 1, borderColor: t.hair, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.4 : 1 }}
+      style={[sticker(t, 2), { width: 48, height: 48, borderRadius: hissaRadii.control, backgroundColor: t.surf2, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.4 : 1 }]}
     >
       <HissaText variant="label" style={{ fontSize: 22, lineHeight: 28 }}>
         {glyph}
@@ -53,7 +54,7 @@ function DishRow({ line, editing, canRemove, onStep, onRemove }: { line: Line; e
   const t = useHissaTheme();
   const name = dishName(line.dishId);
   return (
-    <View style={{ padding: 16, borderRadius: 18, backgroundColor: t.surf, borderWidth: 1, borderColor: t.hair, gap: 4 }}>
+    <View style={[sticker(t, 3), { padding: 16, borderRadius: 26, backgroundColor: t.surf, gap: 4 }]}>
       <HissaText variant="label">{name}</HissaText>
       <HissaText muted>{c.detail.portion(portionText(line) || String(line.qty))}</HissaText>
       <HissaText variant="caption">{kcalLabel(kcalForItem(line))}</HissaText>
@@ -251,7 +252,7 @@ export function MealDetailScreen() {
         ))}
         {editing && shown.length === 1 && <HissaText variant="caption">{c.detail.keepOne}</HissaText>}
       </View>
-      <View accessible accessibilityLabel={`${c.detail.total}: ${kcalLabel(total)}`} style={{ marginTop: 20, padding: 16, borderRadius: 18, backgroundColor: t.tint, gap: 2 }}>
+      <View accessible accessibilityLabel={`${c.detail.total}: ${kcalLabel(total)}`} style={[sticker(t, 3), { marginTop: 20, padding: 16, borderRadius: 26, backgroundColor: t.tint, gap: 2 }]}>
         <HissaText variant="label" style={{ color: t.tintInk }}>
           {c.detail.total}
         </HissaText>
@@ -260,7 +261,7 @@ export function MealDetailScreen() {
         </HissaText>
       </View>
       {confirming && !editing && (
-        <View accessibilityRole="alert" style={{ marginTop: 24, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: t.rim, gap: 12 }}>
+        <View accessibilityRole="alert" style={[sticker(t, 3), { marginTop: 24, padding: 16, borderRadius: 26, backgroundColor: t.surf, gap: 12 }]}>
           <HissaText>{c.del.ask}</HissaText>
           <PrimaryButton label={c.del.no} disabled={!!busy} onPress={() => setConfirming(false)} />
           <PrimaryButton outline label={busy === 'delete' ? c.del.deleting : c.del.yes} disabled={!!busy} onPress={() => void remove()} />

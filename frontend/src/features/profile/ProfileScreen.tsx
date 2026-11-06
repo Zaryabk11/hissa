@@ -1,9 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { TextInput, View } from 'react-native';
 import { useSession } from '../../shared/auth/session';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { hissaFonts, hissaRadii } from '../../shared/theme/hissaTokens';
+import { Card } from '../../shared/ui/hissa/Card';
+import { sticker } from '../../shared/ui/hissa/sticker';
+import { BackHeader } from '../history/components/BackHeader';
+import { StepperRow } from '../onboarding/Stepper';
 import { Chip, OptionCard } from '../../shared/ui/hissa/Choice';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
@@ -30,92 +34,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         {title}
       </HissaText>
       {children}
-    </View>
-  );
-}
-
-function StepButton({
-  glyph,
-  label,
-  onPress,
-}: {
-  glyph: string;
-  label: string;
-  onPress: () => void;
-}) {
-  const t = useHissaTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={{
-        width: 48,
-        height: 48,
-        borderRadius: hissaRadii.control,
-        borderWidth: 1,
-        borderColor: t.hair,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <HissaText variant="label" style={{ fontSize: 22, lineHeight: 28 }}>
-        {glyph}
-      </HissaText>
-    </Pressable>
-  );
-}
-
-function StepperRow({
-  label,
-  shown,
-  unit,
-  onChange,
-}: {
-  label: string;
-  shown: string;
-  unit: string;
-  onChange: (d: number) => void;
-}) {
-  const t = useHissaTheme();
-  const what = label.toLowerCase();
-  return (
-    <View
-      accessible
-      accessibilityRole="adjustable"
-      accessibilityLabel={`${label}, ${shown} ${unit}`.trim()}
-      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-      onAccessibilityAction={(e) => onChange(e.nativeEvent.actionName === 'increment' ? 1 : -1)}
-      style={{
-        height: 72,
-        paddingLeft: 16,
-        paddingRight: 12,
-        borderRadius: hissaRadii.control,
-        backgroundColor: t.surf,
-        borderWidth: 1,
-        borderColor: t.hair,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-      }}
-    >
-      <HissaText variant="button" muted style={{ flex: 1 }}>
-        {label}
-      </HissaText>
-      <StepButton glyph="-" label={c.body.decrease(what)} onPress={() => onChange(-1)} />
-      <View
-        style={{
-          minWidth: 76,
-          flexDirection: 'row',
-          alignItems: 'baseline',
-          justifyContent: 'center',
-          gap: 4,
-        }}
-      >
-        <HissaText variant="value">{shown}</HissaText>
-        {unit !== '' && <HissaText variant="caption">{unit}</HissaText>}
-      </View>
-      <StepButton glyph="+" label={c.body.increase(what)} onPress={() => onChange(1)} />
     </View>
   );
 }
@@ -204,16 +122,7 @@ export function ProfileScreen() {
     }
   }, [profile, form, saving]);
 
-  const header = (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={c.back}
-      onPress={back}
-      style={{ minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', paddingRight: 12 }}
-    >
-      <HissaText variant="button">{`< ${c.back}`}</HissaText>
-    </Pressable>
-  );
+  const header = <BackHeader onPress={back} />;
 
   if (loadError)
     return (
@@ -265,26 +174,22 @@ export function ProfileScreen() {
         {c.title}
       </HissaText>
 
-      <View
-        accessible
-        accessibilityLabel={`${c.budget.label}: about ${profile.dailyCalorieBudget} ${c.budget.unit}, an estimate`}
-        style={{
-          marginTop: 20,
-          padding: 20,
-          borderRadius: 24,
-          backgroundColor: t.surf,
-          borderWidth: 1,
-          borderColor: t.hair,
-          gap: 2,
-        }}
+      <Card
+        tone="turt"
+        style={{ marginTop: 20, padding: 20, gap: 2 }}
       >
+        <View
+          accessible
+          accessibilityLabel={`${c.budget.label}: about ${profile.dailyCalorieBudget} ${c.budget.unit}, an estimate`}
+        >
         <HissaText variant="label">{c.budget.label}</HissaText>
         <HissaText variant="hero">{profile.dailyCalorieBudget.toLocaleString('en-US')}</HissaText>
         <HissaText variant="caption">{`${c.budget.unit}. ${c.budget.estimate}`}</HissaText>
         <HissaText variant="caption" style={{ marginTop: 4 }}>
           {c.budget.note}
         </HissaText>
-      </View>
+        </View>
+      </Card>
       {message && (
         <HissaText
           accessibilityRole={message.alert ? 'alert' : undefined}
@@ -304,17 +209,15 @@ export function ProfileScreen() {
           placeholderTextColor={t.muted}
           maxLength={NAME_MAX}
           autoCapitalize="words"
-          style={{
+          style={[sticker(t, 2), {
             minHeight: 52,
             paddingHorizontal: 16,
             borderRadius: hissaRadii.control,
             backgroundColor: t.surf,
-            borderWidth: 1,
-            borderColor: t.hair,
             color: t.ink,
             fontFamily: hissaFonts.body400,
             fontSize: 16,
-          }}
+          }]}
         />
       </Section>
 
@@ -334,18 +237,24 @@ export function ProfileScreen() {
 
       <Section title={c.body.title}>
         <StepperRow
+          decrease={c.body.decrease('age')}
+          increase={c.body.increase('age')}
           label={c.body.age.label}
           shown={String(form.age)}
           unit={c.body.age.unit}
           onChange={(d) => change({ age: clamp(form.age + d, ...BOUNDS.age) })}
         />
         <StepperRow
+          decrease={c.body.decrease('height')}
+          increase={c.body.increase('height')}
           label={c.body.height.label}
           shown={feetInches(form.heightIn)}
           unit={c.body.height.unit}
           onChange={(d) => change({ heightIn: clamp(form.heightIn + d, ...BOUNDS.heightIn) })}
         />
         <StepperRow
+          decrease={c.body.decrease('weight')}
+          increase={c.body.increase('weight')}
           label={c.body.weight.label}
           shown={String(form.weightKg)}
           unit={c.body.weight.unit}
@@ -389,17 +298,15 @@ export function ProfileScreen() {
             placeholderTextColor={t.muted}
             keyboardType="number-pad"
             maxLength={4}
-            style={{
+            style={[sticker(t, 2), {
               minHeight: 52,
               paddingHorizontal: 16,
               borderRadius: hissaRadii.control,
               backgroundColor: t.surf,
-              borderWidth: 1,
-              borderColor: t.hair,
               color: t.ink,
               fontFamily: hissaFonts.body400,
               fontSize: 16,
-            }}
+            }]}
           />
         ))}
       </Section>

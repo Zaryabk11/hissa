@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { ApiError } from '../../shared/api/client';
+import { Card } from '../../shared/ui/hissa/Card';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
@@ -119,23 +120,23 @@ export function RecipeDetailScreen() {
       <HissaText variant="caption">{[tag, c.estimate].filter(Boolean).join(' · ')}</HissaText>
       {recipe.avoided && <HissaText variant="caption">{c.detail.avoided}</HissaText>}
 
-      <HissaText variant="label" accessibilityRole="header" style={{ marginTop: 24 }}>
-        {c.detail.ingredients}
-      </HissaText>
-      <View style={{ marginTop: 8, gap: 4 }}>
+      <Card style={{ marginTop: 20, gap: 4 }}>
+        <HissaText variant="label" accessibilityRole="header">
+          {c.detail.ingredients}
+        </HissaText>
         {recipe.ingredients.map((i, n) => (
           <HissaText key={n}>{`${i.quantity} ${i.item}`}</HissaText>
         ))}
-      </View>
+      </Card>
 
-      <HissaText variant="label" accessibilityRole="header" style={{ marginTop: 24 }}>
-        {c.detail.steps}
-      </HissaText>
-      <View style={{ marginTop: 8, gap: 8 }}>
+      <Card style={{ marginTop: 16, gap: 8 }}>
+        <HissaText variant="label" accessibilityRole="header">
+          {c.detail.steps}
+        </HissaText>
         {recipe.steps.map((s, n) => (
           <HissaText key={n}>{`${n + 1}. ${s}`}</HissaText>
         ))}
-      </View>
+      </Card>
 
       <View style={{ marginTop: 28, gap: 8 }}>
         {failed && <HissaText accessibilityRole="alert">{c.detail.actionError}</HissaText>}

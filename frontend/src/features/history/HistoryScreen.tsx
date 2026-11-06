@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { HissaScreen } from '../../shared/ui/hissa/HissaScreen';
+import { sticker } from '../../shared/ui/hissa/sticker';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../shared/ui/hissa/PrimaryButton';
 import { getCatalog } from '../core/api';
@@ -104,7 +105,7 @@ export function HistoryScreen() {
         </HissaText>
       )}
       {rows.length === 0 ? (
-        <View style={{ marginTop: 28, padding: 24, borderRadius: 24, borderWidth: 1, borderStyle: 'dashed', borderColor: t.rim, alignItems: 'center', gap: 12 }}>
+        <View style={{ marginTop: 28, padding: 24, borderRadius: 26, borderWidth: 2, borderStyle: 'dashed', borderColor: t.line, backgroundColor: t.surf, alignItems: 'center', gap: 12 }}>
           <HissaText variant="title" accessibilityRole="header">
             {c.empty.title}
           </HissaText>
@@ -128,7 +129,7 @@ export function HistoryScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={c.openMeal(`${m.time}, ${m.names}, ${m.kcal}`)}
                 onPress={() => router.push(`/meals/${m.id}`)}
-                style={{ minHeight: 44, padding: 16, borderRadius: 18, backgroundColor: t.surf, borderWidth: 1, borderColor: t.hair, gap: 4 }}
+                style={[sticker(t, 3), { minHeight: 44, padding: 16, borderRadius: 26, backgroundColor: t.surf, gap: 4 }]}
               >
                 <HissaText variant="label">{m.names}</HissaText>
                 <HissaText variant="caption">{m.time}</HissaText>

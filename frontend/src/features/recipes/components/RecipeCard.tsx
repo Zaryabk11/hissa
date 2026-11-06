@@ -1,5 +1,6 @@
 import { Pressable, View } from 'react-native';
 import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
+import { sticker } from '../../../shared/ui/hissa/sticker';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import type { RecipeCard as Recipe } from '../api/recipes';
 import { recipesContent as c } from '../content';
@@ -14,7 +15,7 @@ export function RecipeCard({ recipe, onPress, width }: { recipe: Recipe; onPress
       accessibilityRole="button"
       accessibilityLabel={c.open(`${recipe.title}, ${line}`)}
       onPress={onPress}
-      style={{ width, minHeight: 44, padding: 16, borderRadius: 18, backgroundColor: t.surf, borderWidth: 1, borderColor: t.hair, gap: 4 }}
+      style={[sticker(t, 3), { width, minHeight: 44, padding: 16, borderRadius: 26, backgroundColor: t.surf, gap: 4 }]}
     >
       <HissaText variant="label">{recipe.title}</HissaText>
       <HissaText variant="caption">{line}</HissaText>

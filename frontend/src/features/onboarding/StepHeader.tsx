@@ -4,7 +4,9 @@ import Svg, { Path } from 'react-native-svg';
 import { useHissaTheme } from '../../shared/theme/HissaThemeProvider';
 import { MIN_TAP } from '../../shared/theme/hissaTokens';
 import { HissaText } from '../../shared/ui/hissa/HissaText';
+import { Dabbu, type DabbuMood } from '../../shared/ui/hissa/Dabbu';
 import { ProgressDots } from '../../shared/ui/hissa/ProgressDots';
+import { SpeechBubble } from '../../shared/ui/hissa/SpeechBubble';
 import { backFallback } from './backTarget';
 import { onboardingContent as c, TOTAL_STEPS } from './content';
 
@@ -13,6 +15,7 @@ export function StepHeader({ step }: { step: number }) {
   const t = useHissaTheme();
   const router = useRouter();
   const back = () => (router.canGoBack() ? router.back() : router.replace(backFallback(Platform.OS)));
+  const say = c.says[step - 1];
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -29,7 +32,11 @@ export function StepHeader({ step }: { step: number }) {
         </Pressable>
         <ProgressDots step={step} total={TOTAL_STEPS} />
       </View>
-      <HissaText variant="eyebrow" style={{ marginTop: 28 }}>
+      <View style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center' }}>
+        <Dabbu mood={say.mood as DabbuMood} size={72} />
+        <SpeechBubble>{say.text}</SpeechBubble>
+      </View>
+      <HissaText variant="eyebrow" style={{ marginTop: 20 }}>
         {c.step(step)}
       </HissaText>
     </View>

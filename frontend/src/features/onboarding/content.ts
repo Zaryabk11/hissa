@@ -4,6 +4,14 @@ export const TOTAL_STEPS = 5;
 export const onboardingContent = {
   back: 'Back',
   step: (n: number) => `Step ${n} of ${TOTAL_STEPS}`,
+  // Dabbu's line and mood for steps 1 to 5.
+  says: [
+    { mood: 'wave', text: 'Hello. Let us set up your plate.' },
+    { mood: 'curious', text: 'Only used to estimate your budget.' },
+    { mood: 'think', text: 'Pick the days that sound like yours.' },
+    { mood: 'idle', text: 'Skip anything you do not eat.' },
+    { mood: 'happy', text: 'This is your estimate.' },
+  ],
   goal: {
     title: 'What brings you to Hissa?',
     sub: 'Pick the one that fits best. You can change it later.',
