@@ -2419,6 +2419,7 @@ var live=false,kicks=[];
 function setLive(v){if(v===live)return;live=v;if(v)kicks.forEach(function(k){k()})}
 
 function GL(cv,fs){var gl=cv.getContext('webgl',{premultipliedAlpha:true,alpha:true});
+  if(!gl)return null;
   function sh(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o}
   var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,'attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0.,1.);}'));
   gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);gl.useProgram(p);
@@ -2440,7 +2441,9 @@ function art(cv,host){
   'float sim=smoothstep(.28,.36,v.y)*smoothstep(.62,.5,v.y)*smoothstep(.1,.2,v.x)*smoothstep(.8,.65,v.x);'+
   'uv+=(vec2(n(v*40.+t*1.3),n(v*40.-t*1.1))-.5)*.0035*sim;uv+=(m-.5)*vec2(.014,-.014)*(1.-steam*.3);'+
   'vec3 c=texture2D(uT,uv).rgb;float d=distance(c,bg);float a=smoothstep(.11,.30,d);'+
-  'a=max(a,smoothstep(.10,.30,c.b-bg.b)*.7*smoothstep(.38,.5,v.y));gl_FragColor=vec4(c*a,a);}'),gl=g.gl;
+  'a=max(a,smoothstep(.10,.30,c.b-bg.b)*.7*smoothstep(.38,.5,v.y));gl_FragColor=vec4(c*a,a);}');
+  if(!g){var fallback=new Image();fallback.onload=function(){cv.getContext('2d').drawImage(fallback,0,0,cv.width,cv.height);window.LD&&LD.mark('art')};fallback.onerror=function(){window.LD&&LD.mark('art')};fallback.src=HX.img('karahi');return}
+  var gl=g.gl;
   var mx=.5,my=.5,tx=.5,ty=.5,t0=performance.now(),tl=g.u('t'),ml=g.u('m'),bl=g.u('bg'),ready=false,run=false;
   host.addEventListener('pointermove',function(e){var r=cv.getBoundingClientRect();tx=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));ty=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))});
   function draw(){mx+=(tx-mx)*.06;my+=(ty-my)*.06;gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
@@ -2464,6 +2467,7 @@ async function cubes(cv){
   [[22,22,'#C8102E',32],[14,14,'#0B6B3A',32],[7,7,'#1a0a05',28],[0,0,'#ffffff',3]].forEach(function(l){x.fillStyle=x.strokeStyle=l[2];x.lineWidth=l[3];x.strokeText('حصہ',W/2-30+l[0],H*.74+l[1]);x.fillText('حصہ',W/2-30+l[0],H*.74+l[1])});
   if(RM){cv.getContext('2d').drawImage(src,0,0);window.LD&&LD.mark('wm');return}
   var gl=cv.getContext('webgl',{premultipliedAlpha:true,alpha:true});
+  if(!gl){cv.getContext('2d').drawImage(src,0,0);window.LD&&LD.mark('wm');return}
   function sh(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o}
   var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,'attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0.,1.);}'));
   gl.attachShader(p,sh(gl.FRAGMENT_SHADER,'precision highp float;uniform sampler2D uT;uniform vec2 m,res;uniform float act;varying vec2 v;'+

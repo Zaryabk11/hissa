@@ -120,4 +120,10 @@ describe('landing site access', () => {
     expect(html).toContain("img.src='assets/karahi-1024.jpg'");
     expect(html).toContain('assets/thali-1024.jpg');
   });
+
+  it('draws a static wordmark and dish when WebGL is unavailable', () => {
+    expect(html).toMatch(/function GL\(cv,fs\)[\s\S]*?if\(!gl\)return null/);
+    expect(html).toMatch(/function art\(cv,host\)[\s\S]*?if\(!g\)[\s\S]*?HX\.img\('karahi'\)/);
+    expect(html).toMatch(/async function cubes\(cv\)[\s\S]*?if\(!gl\)[\s\S]*?LD\.mark\('wm'\)/);
+  });
 });
