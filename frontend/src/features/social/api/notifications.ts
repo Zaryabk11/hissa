@@ -1,7 +1,7 @@
 import { apiAuthed } from '../../../shared/api/client';
 import type { PersonCard } from './friends';
 
-export type NotificationKind = 'friend_request' | 'request_accepted' | 'nudge' | 'goal_reached' | 'cheer';
+export type NotificationKind = 'friend_request' | 'request_accepted' | 'nudge' | 'goal_reached' | 'cheer' | 'cheer_streak';
 export type NotificationItem = {
   id: string;
   kind: NotificationKind;

@@ -7,7 +7,8 @@ import { HissaScreen } from '../../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../../shared/ui/hissa/PrimaryButton';
 import { Card } from '../../feel/components/Card';
-import { nudgeFriend, removeFriend, respondRequest } from '../api/friends';
+import { ApiError } from '../../../shared/api/client';
+import { cheerStreak, nudgeFriend, removeFriend, respondRequest } from '../api/friends';
 import { cheer, createGoal, patchGoal } from '../api/goals';
 import { socialContent as c } from '../content';
 import { groupLine } from '../social-view';
@@ -29,15 +30,15 @@ export function SocialScreen() {
   const lock = useRef(false); // synchronous guard: state alone lets a fast double tap through
 
   // Runs one write, then reloads so the screen shows what the server now says.
-  const act = (run: () => Promise<unknown>) => async () => {
+  const act = (run: () => Promise<unknown>, onConflict?: string) => async () => {
     if (lock.current) return;
     lock.current = true;
     setBusy(true);
     try {
       await run();
       setNotice(null);
-    } catch {
-      setNotice(c.actionFailed);
+    } catch (e) {
+      setNotice(onConflict && e instanceof ApiError && e.status === 409 ? onConflict : c.actionFailed);
     }
     try {
       await d.refresh();
@@ -141,7 +142,7 @@ export function SocialScreen() {
           )}
           {overview.friends.map((row, i) => (
             <View key={row.userId} style={i > 0 ? { borderTopWidth: 1, borderTopColor: t.hair } : { marginTop: 4 }}>
-              <FriendRow row={row} goal={friendGoals.find((g) => g.userId === row.userId)} busy={busy} onNudge={act(() => nudgeFriend(row.userId))} onRemove={act(() => removeFriend(row.userId))} />
+              <FriendRow row={row} goal={friendGoals.find((g) => g.userId === row.userId)} busy={busy} onNudge={act(() => nudgeFriend(row.userId))} onCheerStreak={act(() => cheerStreak(row.userId), c.alreadyCheered)} onRemove={act(() => removeFriend(row.userId))} />
             </View>
           ))}
         </Card>

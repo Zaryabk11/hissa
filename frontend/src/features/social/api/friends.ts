@@ -23,4 +23,5 @@ export const sendRequest = (username: string) =>
 export const respondRequest = (userId: string, d: 'accept' | 'decline') =>
   send(`/api/friends/requests/${userId}/${d}`, 'POST');
 export const removeFriend = (userId: string) => send(`/api/friends/${userId}`, 'DELETE');
+export const cheerStreak = (userId: string) => send(`/api/friends/${userId}/cheer-streak`, 'POST');
 export const nudgeFriend = (userId: string) => send(`/api/friends/${userId}/nudge`, 'POST');
