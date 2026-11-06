@@ -113,11 +113,11 @@ The server refuses to start if a required variable is missing. `DEMO_USER_ID` is
 
 `GET /api/streaks` returns exactly `{ "streak": 0, "loggedToday": false }` for the caller. A day counts when a person saved a meal (the meal save marks it); the streak is the run of consecutive PKT days ending today, or yesterday while today is still in progress.
 
-`GET /api/friends/overview` returns `{ friends, loggedCount, incoming, outgoing }`. Each friend is exactly `userId`, `username`, `displayName`, `streak`, `loggedToday` and `nudgedToday`; nothing about calories, meal details or feelings, and no photo or snap fields (a snap photo is returned only by `POST /api/snaps/:id/open`). Requests, accepting a request that is not yours, adding yourself, a repeated request, nudging a friend who already logged (or nudging twice in a day) and exceeding the friend cap return 400 or 404 in the usual error shape.
+`GET /api/friends/overview` returns `{ friends, loggedCount, incoming, outgoing }`. Each friend is exactly `userId`, `username`, `displayName`, `streak`, `loggedToday` and `nudgedToday`; nothing about calories, meal details or feelings, and no photo or snap fields (a snap photo is returned only by `POST /api/snaps/:id/open`; phase 1, behind `SNAPS_ENABLED`, not built yet). Requests, accepting a request that is not yours, adding yourself, a repeated request, nudging a friend who already logged (or nudging twice in a day) and exceeding the friend cap return 400 or 404 in the usual error shape.
 
 One goal is active per user: `{ "type": "streak", "target": 7, "shared": true }` or `{ "type": "window", "windowDays": 14, "target": 10, "shared": false }`. A friend sees a goal only while its owner has shared it. A meal save checks the goal after the streak mark; a failed check never fails the save.
 
-Notifications are inbox-only (kinds `friend_request`, `request_accepted`, `nudge`, `goal_reached`, `cheer`); snaps are listed at `GET /api/snaps/inbox`; there is no push.
+Notifications are inbox-only (kinds `friend_request`, `request_accepted`, `nudge`, `goal_reached`, `cheer`); snaps are listed at `GET /api/snaps/inbox` (phase 1, behind `SNAPS_ENABLED`, not built yet); there is no push.
 
 ### Food and Feel
 
