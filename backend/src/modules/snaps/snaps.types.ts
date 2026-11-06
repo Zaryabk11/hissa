@@ -10,8 +10,13 @@ export interface SnapStorage {
   // false when the source object is gone
   copyToReports(path: string, dest: string): Promise<boolean>;
   removeReports(paths: string[]): Promise<void>;
+  // object names created before cutoff, in the snaps and snap-reports buckets
   listOlderThan(cutoff: Date): Promise<string[]>;
+  listReportsOlderThan(cutoff: Date): Promise<string[]>;
 }
+
+// A live snap the sweeper should remove now.
+export type DueSnap = { id: string; object_path: string; expires_at: string };
 
 // A row of public.snaps as the repository reads it.
 export type SnapRow = {

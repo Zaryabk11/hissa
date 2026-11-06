@@ -1,8 +1,17 @@
 import type { Db } from '../../shared/db';
-import type { InboxRow, NewReport, NewSnap, OpenedRow, OpenRow, SnapRow } from './snaps.types';
+import type {
+  DueSnap,
+  InboxRow,
+  NewReport,
+  NewSnap,
+  OpenedRow,
+  OpenRow,
+  SnapRow,
+} from './snaps.types';
 
 const SNAP_COLUMNS = 'id, sender_id, meal_id, object_path, created_at, expires_at, deleted_at';
 const INBOX_LIMIT = 50;
+const SWEEP_LIMIT = 1000;
 
 // Data access for snaps and their recipients. The service role bypasses RLS, so every query
 // that starts from a caller is scoped to that caller.
@@ -180,6 +189,82 @@ export function createSnapsRepository(db: Db) {
       const { error } = await db.from('snap_recipients').delete().eq('snap_id', snapId);
       if (error) throw error;
     },
+
+    // Sweeper queries below are system-wide (no caller), never reached from a request.
+
+    // Live snaps that are expired, or whose recipients all opened at or before graceIso. Oldest
+    // first, so expired snaps always fit the page; the rest wait for a later sweep.
+    // ponytail: scans all live snaps (about a day's worth) in JS; use an anti-join or RPC if that
+    // passes SWEEP_LIMIT.
+    async dueForRemoval(nowIso: string, graceIso: string): Promise<DueSnap[]> {
+      const { data, error } = await db
+        .from('snaps')
+        .select('id, object_path, expires_at, snap_recipients(opened_at)')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true })
+        .limit(SWEEP_LIMIT);
+      if (error) throw error;
+      const now = Date.parse(nowIso);
+      const grace = Date.parse(graceIso);
+      return (data as unknown as RawDue[])
+        .filter(
+          (s) =>
+            Date.parse(s.expires_at) <= now ||
+            (s.snap_recipients.length > 0 &&
+              s.snap_recipients.every((r) => r.opened_at && Date.parse(r.opened_at) <= grace)),
+        )
+        .map((s) => ({ id: s.id, object_path: s.object_path, expires_at: s.expires_at }));
+    },
+
+    // The ids among `ids` that still have a snap row not marked deleted.
+    async liveSnapIds(ids: string[]): Promise<string[]> {
+      if (!ids.length) return [];
+      const { data, error } = await db
+        .from('snaps')
+        .select('id')
+        .in('id', ids)
+        .is('deleted_at', null);
+      if (error) throw error;
+      return data.map((r) => r.id as string);
+    },
+
+    // Hard-deletes deleted snaps that expired before iso (recipients cascade).
+    async purgeBefore(iso: string): Promise<void> {
+      const { error } = await db
+        .from('snaps')
+        .delete()
+        .not('deleted_at', 'is', null)
+        .lt('expires_at', iso);
+      if (error) throw error;
+    },
+
+    async evidenceDue(nowIso: string): Promise<{ id: string; evidence_path: string }[]> {
+      const { data, error } = await db
+        .from('reports')
+        .select('id, evidence_path')
+        .not('evidence_path', 'is', null)
+        .lte('evidence_expires_at', nowIso)
+        .order('evidence_expires_at', { ascending: true })
+        .limit(SWEEP_LIMIT);
+      if (error) throw error;
+      return data as { id: string; evidence_path: string }[];
+    },
+
+    async clearEvidence(reportId: string): Promise<void> {
+      const { error } = await db.from('reports').update({ evidence_path: null }).eq('id', reportId);
+      if (error) throw error;
+    },
+
+    // The paths among `paths` that some report still points at.
+    async referencedEvidence(paths: string[]): Promise<string[]> {
+      if (!paths.length) return [];
+      const { data, error } = await db
+        .from('reports')
+        .select('evidence_path')
+        .in('evidence_path', paths);
+      if (error) throw error;
+      return data.map((r) => r.evidence_path as string);
+    },
   };
 }
 export type SnapsRepository = ReturnType<typeof createSnapsRepository>;
@@ -194,4 +279,11 @@ type RawInbox = {
   snap_id: string;
   expires_at: string;
   snaps: { sender_id: string; created_at: string };
+};
+
+type RawDue = {
+  id: string;
+  object_path: string;
+  expires_at: string;
+  snap_recipients: { opened_at: string | null }[];
 };

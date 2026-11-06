@@ -48,15 +48,25 @@ export function createSnapStorageClient(db: Db): SnapStorage {
       if (error) throw error;
     },
 
-    // Objects live flat at the bucket root as `<snapId>.jpg`; page through them all.
-    async listOlderThan(cutoff) {
-      const old: string[] = [];
-      for (let offset = 0; ; offset += PAGE) {
-        const { data, error } = await snaps().list('', { limit: PAGE, offset });
-        if (error) throw error;
-        for (const f of data) if (f.created_at && new Date(f.created_at) < cutoff) old.push(f.name);
-        if (data.length < PAGE) return old;
-      }
-    },
+    listOlderThan: (cutoff) => listOlderThan(snaps(), cutoff),
+    listReportsOlderThan: (cutoff) => listOlderThan(reports(), cutoff),
   };
+}
+
+type Bucket = ReturnType<Db['storage']['from']>;
+
+// Objects live flat at the bucket root as `<id>.jpg`. Pages in a stable name order so offset
+// paging cannot skip entries.
+async function listOlderThan(bucket: Bucket, cutoff: Date): Promise<string[]> {
+  const old: string[] = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await bucket.list('', {
+      limit: PAGE,
+      offset,
+      sortBy: { column: 'name', order: 'asc' },
+    });
+    if (error) throw error;
+    for (const f of data) if (f.created_at && new Date(f.created_at) < cutoff) old.push(f.name);
+    if (data.length < PAGE) return old;
+  }
 }

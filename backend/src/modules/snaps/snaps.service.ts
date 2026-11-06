@@ -26,6 +26,22 @@ const FRESH_MEAL_MS = 30 * 60_000;
 const DAILY_CAP = 12;
 const TTL_MS = 24 * 3_600_000;
 const EVIDENCE_MS = 30 * 24 * 3_600_000;
+const GRACE_MS = 10 * 60_000; // the report window after the last open
+const ORPHAN_MS = 25 * 3_600_000;
+const ORPHAN_EVIDENCE_MS = 31 * 24 * 3_600_000;
+const PURGE_MS = 7 * 24 * 3_600_000;
+const CHUNK = 100; // ids per `in (...)` query
+const UUID_JPG = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jpg$/;
+
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+// The subset of `items` that `pick` returns, asked in chunks so the query string stays short.
+async function inChunks(items: string[], pick: (chunk: string[]) => Promise<string[]>) {
+  const out = new Set<string>();
+  for (let i = 0; i < items.length; i += CHUNK)
+    for (const x of await pick(items.slice(i, i + CHUNK))) out.add(x);
+  return out;
+}
 
 // Business rules for snaps. Photo bytes are never logged and never returned by the inbox.
 export function createSnapsService({ repository, storage, friends, meals, profiles }: SnapsDeps) {
@@ -138,7 +154,11 @@ export function createSnapsService({ repository, storage, friends, meals, profil
           evidence_expires_at: kept ? new Date(now.getTime() + EVIDENCE_MS).toISOString() : null,
         });
       } finally {
-        if (kept && !inserted) await storage.removeReports([dest]).catch(() => {});
+        if (kept && !inserted)
+          await storage.removeReports([dest]).catch((e: unknown) => {
+            // the sweeper removes unreferenced copies after 31 days
+            logger.warn('snap.delete_failed', { path: dest, message: message(e) });
+          });
       }
       if (inserted)
         logger.info('snap.reported', { snapId, reporterId: userId, evidenceKept: kept });
@@ -151,6 +171,81 @@ export function createSnapsService({ repository, storage, friends, meals, profil
       await storage.remove([snap.object_path]);
       await repository.markDeleted(snap.id, now.toISOString());
       await repository.deleteRecipients(userId, snap.id);
+    },
+
+    // Deletes by state, not schedule, so a restart catches up. Every removal deletes the object
+    // first and records it second: a failure leaves the row as it was and the next sweep retries.
+    // Each stage runs even if an earlier one failed. Logs ids only, never who opened a snap.
+    async sweep(now = new Date()): Promise<{ deleted: number; failed: number }> {
+      let deleted = 0;
+      let failed = 0;
+      const nowIso = now.toISOString();
+      const ago = (ms: number) => new Date(now.getTime() - ms);
+      const attempt = async (meta: Record<string, string>, work: () => Promise<void>) => {
+        try {
+          await work();
+          deleted++;
+          logger.info('snap.object_deleted', meta);
+        } catch (e) {
+          failed++;
+          logger.warn('snap.delete_failed', { ...meta, message: message(e) });
+        }
+      };
+      const stage = async (name: string, work: () => Promise<void>) => {
+        try {
+          await work();
+        } catch (e) {
+          failed++;
+          logger.warn('snap.delete_failed', { stage: name, message: message(e) });
+        }
+      };
+
+      await stage('due', async () => {
+        for (const s of await repository.dueForRemoval(nowIso, ago(GRACE_MS).toISOString())) {
+          const reason = Date.parse(s.expires_at) <= now.getTime() ? 'expired' : 'opened';
+          await attempt({ snapId: s.id, reason }, async () => {
+            await storage.remove([s.object_path]);
+            await repository.markDeleted(s.id, nowIso);
+          });
+        }
+      });
+
+      // Objects no live row accounts for (a crash mid-send, a lost markDeleted).
+      await stage('orphans', async () => {
+        const names = await storage.listOlderThan(ago(ORPHAN_MS));
+        const idOf = (n: string) => UUID_JPG.exec(n)?.[1];
+        const ids = names.flatMap((n) => idOf(n) ?? []);
+        const live = await inChunks(ids, repository.liveSnapIds);
+        for (const name of names) {
+          const id = idOf(name);
+          if (id && live.has(id)) continue;
+          await attempt({ path: name, reason: 'orphan' }, () => storage.remove([name]));
+        }
+      });
+
+      await stage('evidence', async () => {
+        for (const r of await repository.evidenceDue(nowIso))
+          await attempt({ reportId: r.id, reason: 'evidence_expired' }, async () => {
+            await storage.removeReports([r.evidence_path]);
+            await repository.clearEvidence(r.id);
+          });
+      });
+
+      // Report copies no row points at (a crash between copy and insert, a failed cleanup).
+      await stage('evidence_orphans', async () => {
+        const names = await storage.listReportsOlderThan(ago(ORPHAN_EVIDENCE_MS));
+        const kept = await inChunks(names, repository.referencedEvidence);
+        for (const name of names)
+          if (!kept.has(name))
+            await attempt({ path: name, reason: 'evidence_orphan' }, () =>
+              storage.removeReports([name]),
+            );
+      });
+
+      await stage('purge', () => repository.purgeBefore(ago(PURGE_MS).toISOString()));
+
+      logger.info('snap.sweep', { deleted, failed });
+      return { deleted, failed };
     },
   };
 }

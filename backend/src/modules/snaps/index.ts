@@ -10,12 +10,14 @@ import { createSnapsController } from './snaps.controller';
 import { createSnapsRepository } from './snaps.repository';
 import { createSnapsRouter } from './snaps.routes';
 import { createSnapsService, type SnapsService } from './snaps.service';
+import { createSnapsJob } from './snaps.sweeper';
 
 export type { SnapsService };
 
-// The only file other modules may import. `jobs` is empty until the sweeper lands.
+// The only file other modules may import. The sweep job runs only when snaps are enabled.
 export function createSnapsModule({
   db,
+  config,
   friends,
   meals,
   profiles,
@@ -38,5 +40,5 @@ export function createSnapsModule({
     profiles,
   });
   const router = createSnapsRouter(createSnapsController(service));
-  return { router, service, jobs: [] };
+  return { router, service, jobs: config.SNAPS_ENABLED ? [createSnapsJob(service)] : [] };
 }

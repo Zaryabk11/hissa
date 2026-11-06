@@ -1,5 +1,6 @@
 import sharp from 'sharp';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { startJobs } from '../../../shared/jobs';
 import {
   ConflictError,
   NotFoundError,
@@ -7,6 +8,8 @@ import {
   ValidationError,
 } from '../../../shared/errors';
 import { logger } from '../../../shared/logger';
+import { createSnapsModule } from '..';
+import { createSnapsJob } from '../snaps.sweeper';
 import { bob, cat, dan, HOUR, me, NOW, photo, setup } from './snaps.fake';
 
 describe('snaps service: send', () => {
@@ -351,5 +354,231 @@ describe('snaps service: report', () => {
     await expect(service.report(bob, id, 'spam', NOW)).rejects.toThrow('db down');
     expect(reports).toHaveLength(0);
     expect(reportObjects.size).toBe(0);
+  });
+});
+
+describe('snaps service: report cleanup', () => {
+  it('logs snap.delete_failed when removing its own copy fails', async () => {
+    const warn = vi.spyOn(logger, 'warn');
+    const s = setup();
+    const { id } = await s.service.send(me, { mealId: 'm1', image: await photo() }, NOW);
+    await s.service.open(bob, id as string, NOW);
+    s.repository.insertReport.mockRejectedValueOnce(new Error('db down'));
+    vi.mocked(s.storage.removeReports).mockRejectedValueOnce(new Error('storage down'));
+    await expect(s.service.report(bob, id as string, 'spam', NOW)).rejects.toThrow('db down');
+    expect(warn).toHaveBeenCalledWith(
+      'snap.delete_failed',
+      expect.objectContaining({ message: 'storage down' }),
+    );
+    warn.mockRestore();
+  });
+});
+
+describe('snaps service: sweep', () => {
+  const MIN = 60_000;
+  const DAY = 24 * HOUR;
+  const at = (ms: number) => new Date(NOW.getTime() + ms);
+  afterEach(() => vi.restoreAllMocks());
+
+  // me sends to bob and cat at NOW
+  async function sent() {
+    const s = setup();
+    const { id } = await s.service.send(me, { mealId: 'm1', image: await photo() }, NOW);
+    return { ...s, id: id as string };
+  }
+
+  it('removes an unopened snap at 24 h and marks it deleted, not a moment before', async () => {
+    const info = vi.spyOn(logger, 'info');
+    const { service, id, snaps, objects } = await sent();
+    expect(await service.sweep(at(24 * HOUR - 1))).toEqual({ deleted: 0, failed: 0 });
+    expect(objects.size).toBe(1);
+    expect(await service.sweep(at(24 * HOUR))).toEqual({ deleted: 1, failed: 0 });
+    expect(objects.size).toBe(0);
+    expect(snaps[0]?.deleted_at).toBe(at(24 * HOUR).toISOString());
+    expect(info).toHaveBeenCalledWith('snap.object_deleted', { snapId: id, reason: 'expired' });
+    expect(info).toHaveBeenCalledWith('snap.sweep', { deleted: 1, failed: 0 });
+  });
+
+  it('removes the object 10 minutes after the last recipient opened it', async () => {
+    const info = vi.spyOn(logger, 'info');
+    const { service, id, objects, snaps } = await sent();
+    await service.open(bob, id, at(HOUR));
+    await service.open(cat, id, at(2 * HOUR));
+    expect(await service.sweep(at(2 * HOUR + 9 * MIN))).toEqual({ deleted: 0, failed: 0 });
+    expect(objects.size).toBe(1);
+    expect(await service.sweep(at(2 * HOUR + 11 * MIN))).toEqual({ deleted: 1, failed: 0 });
+    expect(objects.size).toBe(0);
+    expect(snaps[0]?.deleted_at).not.toBeNull();
+    expect(info).toHaveBeenCalledWith('snap.object_deleted', { snapId: id, reason: 'opened' });
+  });
+
+  it('keeps a snap while one recipient has not opened it and it has not expired', async () => {
+    const { service, id, objects, snaps } = await sent();
+    await service.open(bob, id, NOW);
+    expect(await service.sweep(at(23 * HOUR))).toEqual({ deleted: 0, failed: 0 });
+    expect(objects.size).toBe(1);
+    expect(snaps[0]?.deleted_at).toBeNull();
+  });
+
+  it('a failed remove counts as failed, leaves deleted_at null, and the next sweep deletes', async () => {
+    const warn = vi.spyOn(logger, 'warn');
+    const { service, storage, id, snaps, objects } = await sent();
+    vi.mocked(storage.remove).mockRejectedValueOnce(new Error('storage down'));
+    expect(await service.sweep(at(DAY))).toEqual({ deleted: 0, failed: 1 });
+    expect(snaps[0]?.deleted_at).toBeNull();
+    expect(objects.size).toBe(1);
+    expect(warn).toHaveBeenCalledWith(
+      'snap.delete_failed',
+      expect.objectContaining({ snapId: id, message: 'storage down' }),
+    );
+    expect(await service.sweep(at(DAY + 5 * MIN))).toEqual({ deleted: 1, failed: 0 });
+    expect(objects.size).toBe(0);
+    expect(snaps[0]?.deleted_at).not.toBeNull();
+  });
+
+  it('a failed markDeleted after the remove is retried next sweep', async () => {
+    const { service, repository, snaps } = await sent();
+    repository.markDeleted.mockRejectedValueOnce(new Error('db down'));
+    expect(await service.sweep(at(DAY))).toEqual({ deleted: 0, failed: 1 });
+    expect(snaps[0]?.deleted_at).toBeNull();
+    expect(await service.sweep(at(DAY + 5 * MIN))).toEqual({ deleted: 1, failed: 0 });
+    expect(snaps[0]?.deleted_at).not.toBeNull();
+  });
+
+  it('open 404s after expiry even if the sweep never ran', async () => {
+    const { service, id, objects } = await sent();
+    await expect(service.open(bob, id, at(DAY))).rejects.toThrow(NotFoundError);
+    expect(objects.size).toBe(1);
+  });
+
+  it('removes bucket objects older than 25 h with no live row, keeps younger ones and live rows', async () => {
+    const { service, id, objects, objectAt } = await sent();
+    const orphan = '33333333-3333-4333-8333-333333333333';
+    const young = '44444444-4444-4444-8444-444444444444';
+    const sweepAt = at(HOUR);
+    objects.set(`${orphan}.jpg`, Buffer.from('x'));
+    objectAt.set(`${orphan}.jpg`, new Date(sweepAt.getTime() - 26 * HOUR).toISOString());
+    objects.set(`${young}.jpg`, Buffer.from('y'));
+    objectAt.set(`${young}.jpg`, new Date(sweepAt.getTime() - 20 * HOUR).toISOString());
+    objects.set('junk.txt', Buffer.from('z'));
+    objectAt.set('junk.txt', new Date(sweepAt.getTime() - 30 * HOUR).toISOString());
+    // a live row protects its object even if the listing says it is old
+    objectAt.set(`${id}.jpg`, new Date(sweepAt.getTime() - 26 * HOUR).toISOString());
+    expect(await service.sweep(sweepAt)).toEqual({ deleted: 2, failed: 0 });
+    expect([...objects.keys()].sort()).toEqual([`${id}.jpg`, `${young}.jpg`].sort());
+  });
+
+  it('removes evidence past 30 days and clears evidence_path', async () => {
+    const { service, id, reports, reportObjects } = await sent();
+    await service.open(bob, id, NOW);
+    await service.report(bob, id, 'spam', NOW);
+    await service.sweep(at(29 * DAY));
+    expect(reportObjects.size).toBe(1);
+    expect(reports[0]?.evidence_path).not.toBeNull();
+    const out = await service.sweep(at(30 * DAY));
+    expect(out).toEqual({ deleted: 1, failed: 0 });
+    expect(reportObjects.size).toBe(0);
+    expect(reports[0]?.evidence_path).toBeNull();
+  });
+
+  it('removes snap-reports objects older than 31 days that no report references', async () => {
+    const { service, reports, reportObjects, reportAt } = await sent();
+    const sweepAt = at(HOUR);
+    const put = (name: string, ageDays: number) => {
+      reportObjects.set(name, Buffer.from(name));
+      reportAt.set(name, new Date(sweepAt.getTime() - ageDays * DAY).toISOString());
+    };
+    put('orphan.jpg', 32);
+    put('young.jpg', 30);
+    put('kept.jpg', 32);
+    reports.push({
+      id: 'r1',
+      reporter_id: bob,
+      target_id: me,
+      snap_id: 's1',
+      reason: 'spam',
+      created_at: NOW.toISOString(),
+      evidence_path: 'kept.jpg',
+      evidence_expires_at: at(DAY).toISOString(),
+    });
+    expect(await service.sweep(sweepAt)).toEqual({ deleted: 1, failed: 0 });
+    expect([...reportObjects.keys()].sort()).toEqual(['kept.jpg', 'young.jpg']);
+  });
+
+  it('hard-deletes snap rows 7 days after expiry', async () => {
+    const { service, snaps, recipients } = await sent();
+    await service.sweep(at(DAY));
+    await service.sweep(at(DAY + 6 * DAY));
+    expect(snaps).toHaveLength(1);
+    await service.sweep(at(DAY + 8 * DAY));
+    expect(snaps).toHaveLength(0);
+    expect(recipients).toHaveLength(0);
+  });
+
+  it('sweeping twice is a no-op', async () => {
+    const { service, storage } = await sent();
+    expect(await service.sweep(at(DAY))).toEqual({ deleted: 1, failed: 0 });
+    vi.mocked(storage.remove).mockClear();
+    expect(await service.sweep(at(DAY))).toEqual({ deleted: 0, failed: 0 });
+    expect(storage.remove).not.toHaveBeenCalled();
+  });
+
+  it('a failing stage does not stop the others', async () => {
+    const { service, storage, objects } = await sent();
+    vi.mocked(storage.listOlderThan).mockRejectedValueOnce(new Error('list down'));
+    expect(await service.sweep(at(DAY))).toEqual({ deleted: 1, failed: 1 });
+    expect(objects.size).toBe(0);
+  });
+
+  it('never logs bytes or who opened the snap', async () => {
+    const spies = (['info', 'warn', 'error'] as const).map((l) => vi.spyOn(logger, l));
+    const { service, id, objects } = await sent();
+    const b64 = ([...objects.values()][0] as Buffer).toString('base64');
+    await service.open(bob, id, NOW);
+    await service.open(cat, id, NOW);
+    spies.forEach((sp) => sp.mockClear());
+    await service.sweep(at(11 * MIN));
+    const logged = JSON.stringify(spies.flatMap((sp) => sp.mock.calls));
+    expect(logged).toContain('snap.object_deleted');
+    expect(logged).not.toContain(b64.slice(0, 40));
+    expect(logged).not.toContain(bob);
+    expect(logged).not.toContain(cat);
+  });
+});
+
+describe('snaps sweep job', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('runs sweep every 5 minutes and survives a throwing sweep', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(logger, 'error').mockImplementation(() => {});
+    const sweep = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValue({ deleted: 0, failed: 0 });
+    const job = createSnapsJob({ sweep });
+    expect(job).toMatchObject({ name: 'snaps.sweep', everyMs: 300_000 });
+    const stop = startJobs([job]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sweep).toHaveBeenCalledWith(expect.any(Date));
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect(sweep).toHaveBeenCalledTimes(2);
+    stop();
+  });
+
+  it('createSnapsModule returns the job only when SNAPS_ENABLED', () => {
+    const make = (on: boolean) =>
+      createSnapsModule({
+        db: {} as never,
+        config: { SNAPS_ENABLED: on } as never,
+        friends: {} as never,
+        meals: {} as never,
+        profiles: {} as never,
+      }).jobs.map((j) => j.name);
+    expect(make(true)).toEqual(['snaps.sweep']);
+    expect(make(false)).toEqual([]);
   });
 });

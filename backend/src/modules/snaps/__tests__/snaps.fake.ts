@@ -60,6 +60,11 @@ export function setup({
   const objects = new Map<string, Buffer>();
   const reportObjects = new Map<string, Buffer>();
   const reports: ReportRow[] = [];
+  // Object creation times for the bucket listings. Tests send at NOW; set others directly.
+  const objectAt = new Map<string, string>();
+  const reportAt = new Map<string, string>();
+  const older = (m: Map<string, Buffer>, at: Map<string, string>, cutoff: Date) =>
+    [...m.keys()].filter((k) => new Date(at.get(k) ?? NOW.toISOString()) < cutoff);
   const storage: SnapStorage = {
     put: vi.fn(async (path: string, bytes: Buffer) => void objects.set(path, bytes)),
     get: vi.fn(async (path: string) => {
@@ -73,7 +78,8 @@ export function setup({
       return !!b;
     }),
     removeReports: vi.fn(async (paths: string[]) => paths.forEach((p) => reportObjects.delete(p))),
-    listOlderThan: vi.fn(async () => []),
+    listOlderThan: vi.fn(async (cutoff: Date) => older(objects, objectAt, cutoff)),
+    listReportsOlderThan: vi.fn(async (cutoff: Date) => older(reportObjects, reportAt, cutoff)),
   };
   const repository = {
     insertSnap: vi.fn(
@@ -189,6 +195,44 @@ export function setup({
       reports.push(row);
       return true;
     }),
+    // Mirrors the real query: live snaps that are expired, or whose recipients all opened at or
+    // before the grace cutoff.
+    dueForRemoval: vi.fn(async (nowIso: string, graceIso: string) =>
+      snaps
+        .filter((s) => {
+          if (s.deleted_at) return false;
+          if (s.expires_at <= nowIso) return true;
+          const rs = recipients.filter((r) => r.snap_id === s.id);
+          return rs.length > 0 && rs.every((r) => r.opened_at && r.opened_at <= graceIso);
+        })
+        .map((s) => ({ id: s.id, object_path: s.object_path, expires_at: s.expires_at })),
+    ),
+    liveSnapIds: vi.fn(async (ids: string[]) =>
+      snaps.filter((s) => ids.includes(s.id) && !s.deleted_at).map((s) => s.id),
+    ),
+    purgeBefore: vi.fn(async (iso: string) => {
+      for (let i = snaps.length - 1; i >= 0; i--) {
+        const s = snaps[i] as SnapRow;
+        if (!s.deleted_at || s.expires_at >= iso) continue;
+        snaps.splice(i, 1);
+        for (let j = recipients.length - 1; j >= 0; j--)
+          if (recipients[j]?.snap_id === s.id) recipients.splice(j, 1);
+      }
+    }),
+    evidenceDue: vi.fn(async (nowIso: string) =>
+      reports
+        .filter((r) => r.evidence_path && r.evidence_expires_at && r.evidence_expires_at <= nowIso)
+        .map((r) => ({ id: r.id, evidence_path: r.evidence_path as string })),
+    ),
+    clearEvidence: vi.fn(async (reportId: string) => {
+      const r = reports.find((x) => x.id === reportId);
+      if (r) r.evidence_path = null;
+    }),
+    referencedEvidence: vi.fn(async (paths: string[]) =>
+      reports.flatMap((r) =>
+        r.evidence_path && paths.includes(r.evidence_path) ? [r.evidence_path] : [],
+      ),
+    ),
   };
   // The fake friend list is the same for every sender; areFriends reads it live.
   const friendList = [...friends];
@@ -221,6 +265,8 @@ export function setup({
     objects,
     reports,
     reportObjects,
+    objectAt,
+    reportAt,
     friendList,
   };
 }
