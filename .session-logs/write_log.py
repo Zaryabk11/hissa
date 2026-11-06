@@ -221,11 +221,44 @@ def _git_value(cwd: Path, key: str) -> str:
     return result.stdout.strip() if result.returncode == 0 and result.stdout.strip() else "unknown"
 
 
+def _github_user(cwd: Path) -> str:
+    if os.environ.get("GITHUB_USER"):
+        return os.environ["GITHUB_USER"]
+    try:
+        result = subprocess.run(
+            ["gh", "api", "user", "--jq", ".login"],
+            cwd=str(cwd), capture_output=True, text=True, timeout=5, check=False,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return "unknown"
+    return result.stdout.strip() if result.returncode == 0 and result.stdout.strip() else "unknown"
+
+
 def _yaml_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=True)
 
 
+def _paste_flags(content: str) -> Dict[str, bool]:
+    flags = {
+        "has_code_block": "```" in content,
+        "has_file_paths": bool(re.search(r"[\w\-/]+\.(ts|js|py|tsx|jsx|json|md|txt|yml|yaml):\d+", content))
+        or bool(re.search(r"(?:^|[\s\(])/[\w\-/]+\.[\w]+", content, re.MULTILINE)),
+        "has_urls": bool(re.search(r"https?://", content)),
+    }
+    is_long = len(content) > 500
+    flags["likely_pasted"] = sum(flags.values()) >= 2 or is_long
+    return flags
+
+
+def _time_str(timestamp: str) -> str:
+    try:
+        return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return ""
+
+
 def _render(state: Dict[str, Any]) -> str:
+    # Format follows the 8x agent-session-logs guide (extract-log.py) exactly.
     entries: List[Entry] = [
         (entry["timestamp"], entry["role"], entry["content"])
         for entry in state["entries"]
@@ -238,45 +271,48 @@ def _render(state: Dict[str, Any]) -> str:
     day = state["created_at"][:10]
     lines = [
         "---",
-        f"session_id: {_yaml_string(session_id)}",
-        f"agent: {_yaml_string(state['agent'])}",
-        f"date: {_yaml_string(day)}",
-        f"author: {_yaml_string(state['author'])}",
-        f"github_user: {_yaml_string(os.environ.get('GITHUB_USER', 'unknown'))}",
-        f"git_email: {_yaml_string(state['git_email'])}",
-        f"project: {_yaml_string(state['project'])}",
+        f"session_id: {session_id}",
+        f"date: {day}",
+        f"author: {state['author']}",
+        f"github_user: {state['github_user']}",
+        f"git_email: {state['git_email']}",
+        f"project: {state['project']}",
         f"session_status: {status}",
         f"last_entry_type: {last_role}",
         f"total_exchanges: {len(prompts)}",
-        f"total_prompt_words: {sum(len(entry[2].split()) for entry in prompts)}",
-        f"total_response_chars: {sum(len(entry[2]) for entry in responses)}",
-        f"generated_at: {_yaml_string(datetime.now().astimezone().isoformat())}",
-        "---",
-        "",
-        f"# Agent Session Log - {day}",
-        "",
-        f"Session: `{session_id}` | Agent: `{state['agent']}` | Project: `{state['project']}` | Author: `{state['author']}`",
-        "",
-        "---",
-        "",
+        f"generated_at: {datetime.now().astimezone().isoformat()}",
+    ]
+    if prompts:
+        lines.append(f"first_prompt_time: {prompts[0][0]}")
+        lines.append(f"last_prompt_time: {prompts[-1][0]}")
+        lines.append(f"total_prompt_chars: {sum(len(p[2]) for p in prompts)}")
+        lines.append(f"total_prompt_words: {sum(len(p[2].split()) for p in prompts)}")
+    if responses:
+        lines.append(f"total_response_chars: {sum(len(r[2]) for r in responses)}")
+    lines += [
+        "---\n",
+        f"# Claude Session Log - {day}\n",
+        f"Session: `{session_id}` | Project: `{state['project']}` | Author: `{state['author']}` | GitHub: `{state['github_user']}`\n",
+        "---\n",
     ]
     exchange = 0
     for timestamp, role, content in entries:
         if role == "user":
             exchange += 1
-            entry_type = "PROMPT"
+            flags = _paste_flags(content)
+            lines.append(f"\n[CLAUDE_LOG_ENTRY type=PROMPT num={exchange} session={session_id}]")
+            lines.append(f"timestamp: {timestamp}")
+            lines.append(f"time: {_time_str(timestamp)}")
+            lines.append(f"chars: {len(content)}")
+            lines.append(f"words: {len(content.split())}")
+            for key in ("has_code_block", "has_file_paths", "has_urls", "likely_pasted"):
+                lines.append(f"{key}: {flags[key]}")
         else:
-            entry_type = "RESPONSE"
-        lines.extend(
-            [
-                f"[CLAUDE_LOG_ENTRY type={entry_type} num={exchange} session={session_id}]",
-                f"timestamp: {timestamp}",
-                f"chars: {len(content)}",
-                "",
-                content,
-                "",
-            ]
-        )
+            lines.append(f"\n[CLAUDE_LOG_ENTRY type=RESPONSE num={exchange} session={session_id}]")
+            lines.append(f"timestamp: {timestamp}")
+            lines.append(f"time: {_time_str(timestamp)}")
+            lines.append(f"chars: {len(content)}")
+        lines.append(f"\n{content}\n")
     return "\n".join(lines)
 
 
@@ -317,7 +353,6 @@ def process_event(event: Dict[str, Any], platform: str) -> Optional[Path]:
     safe_session_id = _safe_id(session_id)
     state_path = state_dir / f"{platform}_{safe_session_id}.json"
     if action == "session_end":
-        state_path.unlink(missing_ok=True)
         return None
     state_dir.mkdir(parents=True, exist_ok=True)
 
@@ -332,8 +367,12 @@ def process_event(event: Dict[str, Any], platform: str) -> Optional[Path]:
             "project": cwd.name,
             "author": _git_value(cwd, "user.name"),
             "git_email": _git_value(cwd, "user.email"),
+            "github_user": _github_user(cwd),
             "entries": [],
         }
+
+    if state.get("github_user", "unknown") == "unknown":
+        state["github_user"] = _github_user(cwd)
 
     timestamp = _event_time(event.get("timestamp"))
     if action == "prompt":
@@ -380,8 +419,8 @@ def process_event(event: Dict[str, Any], platform: str) -> Optional[Path]:
                 )
 
     stamp = datetime.fromisoformat(state["created_at"].replace("Z", "+00:00"))
-    filename = f"{stamp.strftime('%Y-%m-%d_%H-%M-%S')}_{platform}_{safe_session_id}.md"
-    log_path = output_dir / filename
+    existing = sorted(output_dir.glob(f"*_{safe_session_id}.md"))
+    log_path = existing[0] if existing else output_dir / f"{stamp.strftime('%Y-%m-%d_%H-%M-%S')}_{safe_session_id}.md"
     _atomic_write(state_path, json.dumps(state, ensure_ascii=False, indent=2) + "\n")
     _atomic_write(log_path, _render(state))
     return log_path

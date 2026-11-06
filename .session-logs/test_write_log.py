@@ -236,5 +236,37 @@ class HookEventTests(unittest.TestCase):
         self.assertIn("session_status: complete", output)
 
 
+class SpecFormatTests(unittest.TestCase):
+    def _event(self, name, cwd, prompt=None, ts="2026-11-06T10:00:00Z"):
+        event = {"hook_event_name": name, "session_id": "abc-123", "cwd": str(cwd), "timestamp": ts}
+        if prompt:
+            event["prompt"] = prompt
+        return event
+
+    def test_filename_has_no_agent_and_session_resumes_same_file(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            cwd = Path(temporary)
+            first = write_log.process_event(self._event("UserPromptSubmit", cwd, "hi"), "claude")
+            write_log.process_event(self._event("SessionEnd", cwd), "claude")
+            second = write_log.process_event(
+                self._event("UserPromptSubmit", cwd, "again", "2026-11-06T11:00:00Z"), "claude"
+            )
+            files = sorted(p.name for p in (cwd / ".claude-logs").glob("*.md"))
+        self.assertEqual(first, second)
+        self.assertEqual(1, len(files))
+        self.assertRegex(files[0], r"^\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d_abc-123\.md$")
+
+    def test_frontmatter_is_unquoted_and_has_prompt_flags(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            cwd = Path(temporary)
+            path = write_log.process_event(self._event("UserPromptSubmit", cwd, "see https://x.io"), "claude")
+            text = path.read_text(encoding="utf-8")
+        self.assertIn("\nsession_id: abc-123\n", text)
+        self.assertNotIn("agent:", text)
+        self.assertIn("# Claude Session Log - ", text)
+        self.assertIn("has_urls: True", text)
+        self.assertIn("time: ", text)
+
+
 if __name__ == "__main__":
     unittest.main()
