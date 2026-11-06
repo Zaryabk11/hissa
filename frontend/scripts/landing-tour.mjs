@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { createServer } from 'node:http';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
