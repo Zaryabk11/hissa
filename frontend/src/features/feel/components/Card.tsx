@@ -1,22 +1,7 @@
 import type { ReactNode } from 'react';
-import { View } from 'react-native';
-import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
+import { Card as Sticker } from '../../../shared/ui/hissa/Card';
 
-/** Hissa card: radius 18, 1px hairline, surface fill. */
+/** Sticker card with a column gap; the look lives in the shared Card. */
 export function Card({ children, gap = 12 }: { children: ReactNode; gap?: number }) {
-  const t = useHissaTheme();
-  return (
-    <View
-      style={{
-        gap,
-        padding: 16,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: t.hair,
-        backgroundColor: t.surf,
-      }}
-    >
-      {children}
-    </View>
-  );
+  return <Sticker style={{ gap }}>{children}</Sticker>;
 }

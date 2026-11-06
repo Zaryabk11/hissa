@@ -5,6 +5,7 @@ import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
 import { Chip } from '../../../shared/ui/hissa/Choice';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../../shared/ui/hissa/PrimaryButton';
+import { SecondaryButton } from '../../../shared/ui/hissa/SecondaryButton';
 import { getDueCheckin, getQuestion, submitCheckin, type DueCheckin } from '../api/feel';
 import { feelContent as c } from '../content';
 import {
@@ -252,8 +253,7 @@ export function CheckinPanel() {
             onPress={() => energy && stomach && void save(energy, stomach)}
           />
         ) : null}
-        <PrimaryButton
-          outline
+        <SecondaryButton
           label={c.skip}
           onPress={() => {
             setMessage(null);

@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useReducer, useRef, useState } from 'react';
 import { Image, View } from 'react-native';
+import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
 import { ApiError } from '../../../shared/api/client';
 import { HissaScreen } from '../../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
@@ -18,6 +19,7 @@ const REASONS: ReportReason[] = ['spam', 'inappropriate_photo', 'harassment', 'o
 
 export function SnapViewerScreen() {
   const router = useRouter();
+  const t = useHissaTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [view, dispatch] = useReducer(snapViewReducer, { phase: 'warn' });
   const [snap, setSnap] = useState<OpenedSnap | null>(null); // the photo lives in memory only, as a data URI
@@ -83,7 +85,7 @@ export function SnapViewerScreen() {
               source={{ uri: snapDataUri(snap.image, snap.mimeType) }}
               accessibilityLabel={c.photoLabel}
               resizeMode="contain"
-              style={{ width: '100%', aspectRatio: 3 / 4, borderRadius: 14 }}
+              style={{ width: '100%', aspectRatio: 3 / 4, borderRadius: 26, borderWidth: 2, borderColor: t.line }}
             />
             {report === 'sent' && <HissaText accessibilityRole="alert">{c.reported}</HissaText>}
             {report === 'failed' && <HissaText accessibilityRole="alert">{c.reportFailed}</HissaText>}

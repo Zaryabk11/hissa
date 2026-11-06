@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useHissaTheme } from '../../../shared/theme/HissaThemeProvider';
+import { Card as StickerCard } from '../../../shared/ui/hissa/Card';
 import { HissaScreen } from '../../../shared/ui/hissa/HissaScreen';
 import { HissaText } from '../../../shared/ui/hissa/HissaText';
 import { PrimaryButton } from '../../../shared/ui/hissa/PrimaryButton';
@@ -14,6 +15,7 @@ import { socialContent as c } from '../content';
 import { groupLine } from '../social-view';
 import { useSocialData } from '../useSocialData';
 import { AddFriend } from './AddFriend';
+import { BuddyCard } from './BuddyCard';
 import { CelebrationCard } from './CelebrationCard';
 import { FriendRow } from './FriendRow';
 import { GoalCard } from './GoalCard';
@@ -57,7 +59,7 @@ export function SocialScreen() {
         accessibilityRole="button"
         accessibilityLabel={c.inbox.open}
         onPress={() => router.push('/inbox')}
-        style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: t.hair, backgroundColor: t.surf }}
+        style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, borderRadius: 22, borderWidth: 2, borderColor: t.line, backgroundColor: t.surf2 }}
       >
         <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={t.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0" />
@@ -107,13 +109,12 @@ export function SocialScreen() {
     >
       {header}
       <View style={{ gap: 12 }}>
+        <BuddyCard username={d.username} friend={overview.friends[0]} />
         {(notice || d.error) && <HissaText accessibilityRole="alert">{notice ?? c.loadFailed}</HissaText>}
         {line && (
-          <View style={{ paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, backgroundColor: t.tint }}>
-            <HissaText variant="label" style={{ color: t.tintInk }}>
-              {line}
-            </HissaText>
-          </View>
+          <StickerCard tone="turt">
+            <HissaText variant="label">{line}</HissaText>
+          </StickerCard>
         )}
         {celebrations.map((item) => (
           <CelebrationCard key={`${item.goalId}`} item={item} busy={busy} onCheer={act(() => cheer(item.goalId))} />
