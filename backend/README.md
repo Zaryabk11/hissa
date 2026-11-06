@@ -35,7 +35,7 @@ Regenerate the catalog seed with `node database/scripts/build-seed.mjs`.
 | `GEMINI_MODEL`              | `gemini-flash-lite-latest` | Empty value uses default                          |
 | `GEMINI_TIMEOUT_MS`         | `10000`                    | Gemini timeout per attempt (ms), up to 3 attempts |
 | `SCAN_DAILY_CAP`            | `10`                       | Scans per user per PKT day                        |
-| `SNAPS_ENABLED`             | `false`                    | `true` mounts `/api/snaps` and starts the sweeper |
+| `SNAPS_ENABLED`             | `false`                    | `true` mounts `/api/snaps`; sweeper always runs   |
 | `DEMO_USER_ID`              | empty                      | Optional demo-only user id (see Demo history)     |
 
 The server refuses to start if a required variable is missing. `DEMO_USER_ID` is optional: only that user's weekly card may have `isSample: true`; leave it empty in production.
@@ -128,7 +128,7 @@ Notifications are inbox-only (kinds `friend_request`, `request_accepted`, `nudge
 
 ### Snaps
 
-Off unless `SNAPS_ENABLED=true`: the `/api/snaps` routes then do not exist (404) and the sweeper does not run. The app has its own switch, `EXPO_PUBLIC_SNAPS_ENABLED` (`frontend/.env.example`); set both. Design and lifecycle: `docs/architecture.md`, "Snaps".
+Off unless `SNAPS_ENABLED=true`: the `/api/snaps` routes then do not exist (404), but the sweeper keeps running so already-stored photos and reported copies are still deleted on schedule. The app has its own switch, `EXPO_PUBLIC_SNAPS_ENABLED` (`frontend/.env.example`); set both. Design and lifecycle: `docs/architecture.md`, "Snaps".
 
 - `POST /api/snaps` `{ mealId, image, mimeType }` (same photo rules as scan) returns 201 `{ id, expiresAt, recipients: { friends } }`. The meal must be the caller's and at most 30 minutes old: otherwise 400; a second snap for a meal is 409; the 13th snap of a PKT day is 429; unknown or other people's meals are 404. With no friends nothing is stored and `id` and `expiresAt` are `null`.
 - `GET /api/snaps/inbox` returns `{ items: [{ id, sender, sentAt, expiresAt }] }` for snaps the caller has not opened. No photo.

@@ -17,7 +17,7 @@ import { createSnapsModule } from './snaps';
 import { createStreaksModule } from './streaks';
 
 // Registry: every module is built once (later tasks inject one module's service into another)
-// and mounted at /api/<name>. `jobs` are background tasks the server starts (none when snaps are off).
+// and mounted at /api/<name>. `jobs` are background tasks the server starts .
 export function createModuleRouters(deps: { db: Db; config: Config }): {
   routers: Record<string, Router>;
   jobs: Job[];
@@ -86,6 +86,7 @@ export function createModuleRouters(deps: { db: Db; config: Config }): {
     feel: feel.router,
     recipes: recipes.router,
   };
-  if (!deps.config.SNAPS_ENABLED) return { routers, jobs: [] };
+  // The sweeper always runs so photos stored before the flag was turned off are still deleted.
+  if (!deps.config.SNAPS_ENABLED) return { routers, jobs: snaps.jobs };
   return { routers: { ...routers, snaps: snaps.router }, jobs: snaps.jobs };
 }

@@ -1,5 +1,4 @@
 import type { Router } from 'express';
-import type { Config } from '../../shared/config';
 import type { Db } from '../../shared/db';
 import type { Job } from '../../shared/jobs';
 import type { FriendsService } from '../friends';
@@ -14,16 +13,15 @@ import { createSnapsJob } from './snaps.sweeper';
 
 export type { SnapsService };
 
-// The only file other modules may import. The sweep job runs only when snaps are enabled.
+// The only file other modules may import. The sweep job is always returned; the registry gates
+// only the router on SNAPS_ENABLED.
 export function createSnapsModule({
   db,
-  config,
   friends,
   meals,
   profiles,
 }: {
   db: Db;
-  config: Config;
   friends: FriendsService;
   meals: MealsService;
   profiles: ProfilesService;
@@ -40,5 +38,5 @@ export function createSnapsModule({
     profiles,
   });
   const router = createSnapsRouter(createSnapsController(service));
-  return { router, service, jobs: config.SNAPS_ENABLED ? [createSnapsJob(service)] : [] };
+  return { router, service, jobs: [createSnapsJob(service)] };
 }

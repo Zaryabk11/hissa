@@ -584,6 +584,16 @@ describe('snaps service: sweep', () => {
     expect(objects.size).toBe(0);
   });
 
+  it('fails soft when the buckets are missing: resolves with failed > 0', async () => {
+    vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    const { service, storage } = await sent();
+    for (const f of Object.values(storage))
+      vi.mocked(f).mockRejectedValue(new Error('bucket not found'));
+    const result = await service.sweep(at(DAY));
+    expect(result.failed).toBeGreaterThan(0);
+    vi.restoreAllMocks();
+  });
+
   it('never logs bytes or who opened the snap', async () => {
     const spies = (['info', 'warn', 'error'] as const).map((l) => vi.spyOn(logger, l));
     const { service, id, objects } = await sent();
@@ -623,16 +633,13 @@ describe('snaps sweep job', () => {
     stop();
   });
 
-  it('createSnapsModule returns the job only when SNAPS_ENABLED', () => {
-    const make = (on: boolean) =>
-      createSnapsModule({
-        db: {} as never,
-        config: { SNAPS_ENABLED: on } as never,
-        friends: {} as never,
-        meals: {} as never,
-        profiles: {} as never,
-      }).jobs.map((j) => j.name);
-    expect(make(true)).toEqual(['snaps.sweep']);
-    expect(make(false)).toEqual([]);
+  it('createSnapsModule always returns the sweep job; the registry gates only the router', () => {
+    const jobs = createSnapsModule({
+      db: {} as never,
+      friends: {} as never,
+      meals: {} as never,
+      profiles: {} as never,
+    }).jobs.map((j) => j.name);
+    expect(jobs).toEqual(['snaps.sweep']);
   });
 });

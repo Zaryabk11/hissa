@@ -53,7 +53,7 @@ scan/gemini.client.ts      Gemini REST client (structured output, injected into 
 shared/image/              sharp: JPEG, longest side 1024 px, EXIF rotation applied (`resizePhoto`), plus the shared base64 `imageBodySchema` (scan and snaps)
 shared/jobs/               `startJobs`: in-process timers for background jobs (the snap sweeper)
 snaps/snap-storage.client.ts   Supabase Storage client for the `snaps` and `snap-reports` buckets (injected into the service)
-snaps/snaps.sweeper.ts     the `snaps.sweep` job (every 5 minutes), added only when `SNAPS_ENABLED`
+snaps/snaps.sweeper.ts     the `snaps.sweep` job (every 5 minutes), always started, whatever `SNAPS_ENABLED` says
 profiles/budget.ts         Mifflin-St Jeor daily calorie budget
 feel/gemini-question.client.ts  Gemini REST client that only words one check-in question (injected into the service)
 feel/question-bank.ts      the fixed question text and options, plus the wording guard
@@ -118,14 +118,14 @@ See [decisions/](decisions/).
 ## Friends, goals and notifications
 
 - Migration `20261104000000_friends_goals_notifications.sql` adds `profiles.username`, `friendships` (one row per pair, `user_low < user_high`, status pending/active/declined/removed), `goals` (one active goal per user, `streak` or `window`, optional `shared`) and `notifications`; it migrates active buddies into friendships and drops the old pair, nudge and RPC objects. All are backend (service role) only. Applied to the hosted project (verified 2026-11-04).
-- Registry order: `auth, profiles, nutrition, scan, streaks, notifications, friends, goals, meals, plan, feel, recipes`, then `snaps` (built after `recipes`, mounted only when `SNAPS_ENABLED=true`).
+- Registry order: `auth, profiles, nutrition, scan, streaks, notifications, friends, goals, meals, plan, feel, recipes`, then `snaps` (built after `recipes`; its router is mounted only when `SNAPS_ENABLED=true`, its sweep job always runs).
 - `meals` calls `streaks.markMealSaved`, then `goals.onMealSaved(userId)` in its own try/catch: a failed goal check is logged (`Goal check failed`) and never fails the save. `goals` reads logged days itself, so it must run after the `streak_days` row is written.
 - `GET /api/streaks` returns exactly `streak` and `loggedToday` for the caller (a day counts when a meal is saved). A friend's row from `GET /api/friends/overview` carries only `userId`, `username`, `displayName`, `streak`, `loggedToday` and `nudgedToday`; a friend sees a goal only when its owner marked it shared.
 - `POST /api/friends/:userId/nudge` sends one in-app nudge per sender per PKT day, only while the friend has not logged. Notifications are inbox-only (`GET /api/notifications`, `POST /api/notifications/read`): there is no push.
 
 ## Snaps
 
-A snap is the photo of a meal, sent to the sender's active friends right after the meal is saved. Behind `SNAPS_ENABLED` (backend) and `EXPO_PUBLIC_SNAPS_ENABLED` (app); both default to off. When the backend flag is off the `snaps` router is not mounted (404) and the sweeper does not start. `POST /api/friends/:userId/cheer-streak` is not flag-gated.
+A snap is the photo of a meal, sent to the sender's active friends right after the meal is saved. Behind `SNAPS_ENABLED` (backend) and `EXPO_PUBLIC_SNAPS_ENABLED` (app); both default to off. When the backend flag is off the `snaps` router is not mounted (404) but the sweeper keeps running, so photos already stored and reported copies are still deleted on schedule. `POST /api/friends/:userId/cheer-streak` is not flag-gated.
 
 - **Send** (`POST /api/snaps`, `{ mealId, image, mimeType }`): the meal must be the caller's and at most 30 minutes old, one snap per meal (409), at most 12 snaps per PKT day (429). The photo is resized with `resizePhoto` (JPEG, 1024 px, EXIF applied) and stored as `<uuid>.jpg` in the private `snaps` bucket; one `snap_recipients` row per active friend freezes the audience at send time. With no friends nothing is stored and the response is `{ id: null, expiresAt: null, recipients: { friends: 0 } }`. A failed insert removes the object and the snap row again, so the app can retry the same meal.
 - **Inbox** (`GET /api/snaps/inbox`): unopened, unexpired snaps from current senders, as sender card, `sentAt` and `expiresAt`. It never carries the photo, and listing it does not consume a snap.
