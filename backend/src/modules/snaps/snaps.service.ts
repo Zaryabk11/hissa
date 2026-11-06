@@ -12,7 +12,7 @@ import type { FriendsService } from '../friends';
 import type { MealsService } from '../meals';
 import type { ProfilesService } from '../profiles';
 import type { SnapsRepository } from './snaps.repository';
-import type { InboxItem, OpenResult, SendResult, SnapStorage } from './snaps.types';
+import type { InboxItem, OpenResult, ReportReason, SendResult, SnapStorage } from './snaps.types';
 
 interface SnapsDeps {
   repository: SnapsRepository;
@@ -25,6 +25,7 @@ interface SnapsDeps {
 const FRESH_MEAL_MS = 30 * 60_000;
 const DAILY_CAP = 12;
 const TTL_MS = 24 * 3_600_000;
+const EVIDENCE_MS = 30 * 24 * 3_600_000;
 
 // Business rules for snaps. Photo bytes are never logged and never returned by the inbox.
 export function createSnapsService({ repository, storage, friends, meals, profiles }: SnapsDeps) {
@@ -108,6 +109,39 @@ export function createSnapsService({ repository, storage, friends, meals, profil
         sentAt: row.created_at,
         expiresAt: row.expires_at,
       };
+    },
+
+    // Only a recipient who opened the snap can report it; every other case is the same 404. The
+    // photo is copied first so a failed copy leaves no row; a repeat report (or a failed insert)
+    // removes its own copy again. The original object is never touched.
+    async report(
+      userId: string,
+      snapId: string,
+      reason: ReportReason,
+      now = new Date(),
+    ): Promise<void> {
+      const row = await repository.recipientOpened(userId, snapId);
+      if (!row) throw new NotFoundError('Snap not found');
+      const id = randomUUID();
+      const dest = `${id}.jpg`;
+      const kept = await storage.copyToReports(row.object_path, dest);
+      let inserted = false;
+      try {
+        inserted = await repository.insertReport({
+          id,
+          reporter_id: userId,
+          target_id: row.sender_id,
+          snap_id: snapId,
+          reason,
+          created_at: now.toISOString(),
+          evidence_path: kept ? dest : null,
+          evidence_expires_at: kept ? new Date(now.getTime() + EVIDENCE_MS).toISOString() : null,
+        });
+      } finally {
+        if (kept && !inserted) await storage.removeReports([dest]).catch(() => {});
+      }
+      if (inserted)
+        logger.info('snap.reported', { snapId, reporterId: userId, evidenceKept: kept });
     },
 
     // Remove the object first: if that fails the rows stay and the sender can retry.

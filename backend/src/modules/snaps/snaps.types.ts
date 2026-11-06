@@ -64,3 +64,19 @@ export type SendResult = {
 };
 
 export type InboxItem = { id: string; sender: PersonCard; sentAt: string; expiresAt: string };
+
+export type ReportReason = 'spam' | 'inappropriate_photo' | 'harassment' | 'other';
+
+// The caller's opened recipient row, with what a report needs from the snap.
+export type OpenedRow = { sender_id: string; object_path: string };
+
+export type NewReport = {
+  id: string;
+  reporter_id: string;
+  target_id: string;
+  snap_id: string;
+  reason: ReportReason;
+  created_at: string;
+  evidence_path: string | null;
+  evidence_expires_at: string | null;
+};

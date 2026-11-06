@@ -31,6 +31,17 @@ type RecipientRow = {
   opened_at: string | null;
 };
 
+export type ReportRow = {
+  id: string;
+  reporter_id: string;
+  target_id: string;
+  snap_id: string;
+  reason: string;
+  created_at: string;
+  evidence_path: string | null;
+  evidence_expires_at: string | null;
+};
+
 // Yields to the event loop so parallel callers interleave between awaits.
 const tick = () => new Promise<void>((r) => setImmediate(r));
 
@@ -47,6 +58,8 @@ export function setup({
   const snaps: SnapRow[] = [];
   const recipients: RecipientRow[] = [];
   const objects = new Map<string, Buffer>();
+  const reportObjects = new Map<string, Buffer>();
+  const reports: ReportRow[] = [];
   const storage: SnapStorage = {
     put: vi.fn(async (path: string, bytes: Buffer) => void objects.set(path, bytes)),
     get: vi.fn(async (path: string) => {
@@ -54,8 +67,12 @@ export function setup({
       return objects.get(path) ?? null;
     }),
     remove: vi.fn(async (paths: string[]) => paths.forEach((p) => objects.delete(p))),
-    copyToReports: vi.fn(async () => true),
-    removeReports: vi.fn(async () => {}),
+    copyToReports: vi.fn(async (path: string, dest: string) => {
+      const b = objects.get(path);
+      if (b) reportObjects.set(dest, b);
+      return !!b;
+    }),
+    removeReports: vi.fn(async (paths: string[]) => paths.forEach((p) => reportObjects.delete(p))),
     listOlderThan: vi.fn(async () => []),
   };
   const repository = {
@@ -157,6 +174,21 @@ export function setup({
       for (let i = recipients.length - 1; i >= 0; i--)
         if (recipients[i]?.snap_id === snapId) recipients.splice(i, 1);
     }),
+    // Mirrors the real query: my opened row of any snap (deleted or not).
+    recipientOpened: vi.fn(async (recipientId: string, snapId: string) => {
+      const r = recipients.find(
+        (x) => x.snap_id === snapId && x.recipient_id === recipientId && x.opened_at,
+      );
+      const s = r && snaps.find((x) => x.id === snapId);
+      return s ? { sender_id: s.sender_id, object_path: s.object_path } : null;
+    }),
+    // Mirrors insert ... on conflict (reporter_id, snap_id) do nothing: false on a repeat.
+    insertReport: vi.fn(async (row: ReportRow) => {
+      if (reports.some((x) => x.reporter_id === row.reporter_id && x.snap_id === row.snap_id))
+        return false;
+      reports.push(row);
+      return true;
+    }),
   };
   // The fake friend list is the same for every sender; areFriends reads it live.
   const friendList = [...friends];
@@ -180,5 +212,15 @@ export function setup({
       getCards: vi.fn(async (ids: string[]) => people.filter((p) => ids.includes(p.userId))),
     } as never,
   });
-  return { service, repository, storage, snaps, recipients, objects, friendList };
+  return {
+    service,
+    repository,
+    storage,
+    snaps,
+    recipients,
+    objects,
+    reports,
+    reportObjects,
+    friendList,
+  };
 }

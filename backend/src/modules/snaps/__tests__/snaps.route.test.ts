@@ -23,6 +23,7 @@ function app(userId?: string) {
     })),
     inbox: vi.fn(async () => ({ items: [] })),
     unsend: vi.fn(async () => {}),
+    report: vi.fn(async () => {}),
     open: vi.fn(async () => ({
       image: 'aGVsbG8=',
       mimeType: 'image/jpeg',
@@ -102,5 +103,15 @@ describe('snaps routes', () => {
     expect(res.body.image).toBe('aGVsbG8=');
     expect(service.open).toHaveBeenCalledWith('me', snap);
     await request(a).post('/api/snaps/nope/open').expect(400);
+  });
+
+  it('POST /:id/report answers 204 for the caller; a bad reason or uuid is 400', async () => {
+    const { a, service } = app('me');
+    await request(a).post(`/api/snaps/${snap}/report`).send({ reason: 'spam' }).expect(204);
+    expect(service.report).toHaveBeenCalledWith('me', snap, 'spam');
+    await request(a).post(`/api/snaps/${snap}/report`).send({ reason: 'rude' }).expect(400);
+    await request(a).post(`/api/snaps/${snap}/report`).send({}).expect(400);
+    await request(a).post('/api/snaps/nope/report').send({ reason: 'spam' }).expect(400);
+    expect(service.report).toHaveBeenCalledTimes(1);
   });
 });

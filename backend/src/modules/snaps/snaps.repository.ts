@@ -1,5 +1,5 @@
 import type { Db } from '../../shared/db';
-import type { InboxRow, NewSnap, OpenRow, SnapRow } from './snaps.types';
+import type { InboxRow, NewReport, NewSnap, OpenedRow, OpenRow, SnapRow } from './snaps.types';
 
 const SNAP_COLUMNS = 'id, sender_id, meal_id, object_path, created_at, expires_at, deleted_at';
 const INBOX_LIMIT = 50;
@@ -117,6 +117,30 @@ export function createSnapsRepository(db: Db) {
         .is('opened_at', null)
         .gt('expires_at', nowIso)
         .select('snap_id');
+      if (error) throw error;
+      return data.length > 0;
+    },
+
+    // The caller's row of a snap they have opened, even if the snap was deleted since.
+    async recipientOpened(recipientId: string, snapId: string): Promise<OpenedRow | null> {
+      const { data, error } = await db
+        .from('snap_recipients')
+        .select('snaps!inner(sender_id, object_path)')
+        .eq('recipient_id', recipientId)
+        .eq('snap_id', snapId)
+        .not('opened_at', 'is', null)
+        .maybeSingle();
+      if (error) throw error;
+      const r = data as unknown as { snaps: OpenedRow } | null;
+      return r ? { sender_id: r.snaps.sender_id, object_path: r.snaps.object_path } : null;
+    },
+
+    // False when the caller already reported this snap (the conflict is ignored).
+    async insertReport(row: NewReport): Promise<boolean> {
+      const { data, error } = await db
+        .from('reports')
+        .upsert(row, { onConflict: 'reporter_id,snap_id', ignoreDuplicates: true })
+        .select('id');
       if (error) throw error;
       return data.length > 0;
     },

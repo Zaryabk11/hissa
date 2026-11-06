@@ -274,3 +274,82 @@ describe('snaps service: open', () => {
     await expect(service.open(bob, id, NOW)).resolves.toMatchObject({ mimeType: 'image/jpeg' });
   });
 });
+
+describe('snaps service: report', () => {
+  const DAY = 24 * HOUR;
+  // me sends to bob and cat; bob opens it
+  async function opened() {
+    const s = setup();
+    const { id } = await s.service.send(me, { mealId: 'm1', image: await photo() }, NOW);
+    await s.service.open(bob, id as string, NOW);
+    return { ...s, id: id as string };
+  }
+
+  it('copies the photo, keeps it 30 days, logs ids only and leaves the original', async () => {
+    const spies = (['info', 'warn', 'error'] as const).map((l) => vi.spyOn(logger, l));
+    const { service, id, reports, reportObjects, objects, storage } = await opened();
+    await service.report(bob, id, 'harassment', NOW);
+    expect(reports).toHaveLength(1);
+    const r = reports[0];
+    expect(r).toMatchObject({
+      reporter_id: bob,
+      target_id: me,
+      snap_id: id,
+      reason: 'harassment',
+      evidence_path: `${r?.id}.jpg`,
+      evidence_expires_at: new Date(NOW.getTime() + 30 * DAY).toISOString(),
+    });
+    expect(storage.copyToReports).toHaveBeenCalledWith(`${id}.jpg`, `${r?.id}.jpg`);
+    expect([...reportObjects.keys()]).toEqual([`${r?.id}.jpg`]);
+    expect([...objects.keys()]).toEqual([`${id}.jpg`]);
+    expect(storage.remove).not.toHaveBeenCalled();
+    const calls = spies.flatMap((s) => s.mock.calls);
+    expect(calls).toContainEqual([
+      'snap.reported',
+      { snapId: id, reporterId: bob, evidenceKept: true },
+    ]);
+    spies.forEach((s) => s.mockRestore());
+  });
+
+  it('records metadata only when the object is already gone', async () => {
+    const spies = (['info', 'warn', 'error'] as const).map((l) => vi.spyOn(logger, l));
+    const { service, id, reports, objects, reportObjects } = await opened();
+    objects.clear();
+    await service.report(bob, id, 'spam', NOW);
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({ evidence_path: null, evidence_expires_at: null });
+    expect(reportObjects.size).toBe(0);
+    expect(spies.flatMap((s) => s.mock.calls)).toContainEqual([
+      'snap.reported',
+      { snapId: id, reporterId: bob, evidenceKept: false },
+    ]);
+    spies.forEach((s) => s.mockRestore());
+  });
+
+  it('404s for a recipient who never opened it, a stranger, the sender and an unknown id', async () => {
+    const { service, id, reports } = await opened();
+    for (const who of [cat, dan, me])
+      await expect(service.report(who, id, 'spam', NOW)).rejects.toThrow(NotFoundError);
+    await expect(
+      service.report(bob, '00000000-0000-0000-0000-000000000000', 'spam', NOW),
+    ).rejects.toThrow(NotFoundError);
+    expect(reports).toHaveLength(0);
+  });
+
+  it('a repeat report is a no-op: one row, one stored copy', async () => {
+    const { service, id, reports, reportObjects } = await opened();
+    await service.report(bob, id, 'spam', NOW);
+    await expect(service.report(bob, id, 'other', NOW)).resolves.toBeUndefined();
+    expect(reports).toHaveLength(1);
+    expect(reports[0]?.reason).toBe('spam');
+    expect(reportObjects.size).toBe(1);
+  });
+
+  it('removes the copy and leaves no row when the insert fails', async () => {
+    const { service, id, repository, reports, reportObjects } = await opened();
+    repository.insertReport.mockRejectedValueOnce(new Error('db down'));
+    await expect(service.report(bob, id, 'spam', NOW)).rejects.toThrow('db down');
+    expect(reports).toHaveLength(0);
+    expect(reportObjects.size).toBe(0);
+  });
+});
