@@ -12,7 +12,7 @@ import { dishById, CATALOG } from '../nutrition/catalog';
 import { kcalForItems, portionText } from '../nutrition/engine';
 import { getPlan, saveMeal } from '../core/api';
 import { snapsEnabled } from '../../shared/flags';
-import { sendSnap } from './sendSnap';
+import { afterSave } from './sendSnap';
 import { CloseButton } from './CloseButton';
 import { scanContent as c } from './content';
 import { mealPayload, stepQty } from './scanPayload';
@@ -189,7 +189,7 @@ export function ReviewScreen() {
     setError(null);
     try {
       const meal = await saveMeal(mealPayload(items).items);
-      void sendSnap(meal.id);
+      afterSave(meal.id);
       router.navigate('/(tabs)/today');
     } catch {
       setError('Could not confirm the save. Check Today before trying again.');

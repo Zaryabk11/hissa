@@ -11,7 +11,7 @@ import { portionText } from '../nutrition/engine';
 import { saveMeal } from '../core/api';
 import { snapsEnabled } from '../../shared/flags';
 import { scanContent } from '../scan/content';
-import { sendSnap } from '../scan/sendSnap';
+import { afterSave } from '../scan/sendSnap';
 import { mealPayload } from '../scan/scanPayload';
 import { fmt } from '../today/format';
 import { planContent as c } from './content';
@@ -37,7 +37,7 @@ export function PlanScreen() {
     setError(null);
     try {
       const meal = await saveMeal(mealPayload(reviewed, plan.items).items);
-      void sendSnap(meal.id);
+      afterSave(meal.id);
       router.navigate('/(tabs)/today');
     } catch {
       setError('Could not confirm the save. Check Today before trying again.');
