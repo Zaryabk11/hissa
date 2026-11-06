@@ -33,7 +33,15 @@ const PURGE_MS = 7 * 24 * 3_600_000;
 const CHUNK = 100; // ids per `in (...)` query
 const UUID_JPG = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jpg$/;
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+// PostgREST and Storage reject with plain objects ({ message, code }), not Error instances.
+function message(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e !== null && 'message' in e && typeof e.message === 'string') {
+    const code = 'code' in e && typeof e.code === 'string' && e.code ? ` (${e.code})` : '';
+    return `${e.message}${code}`;
+  }
+  return String(e);
+}
 
 // The subset of `items` that `pick` returns, asked in chunks so the query string stays short.
 async function inChunks(items: string[], pick: (chunk: string[]) => Promise<string[]>) {

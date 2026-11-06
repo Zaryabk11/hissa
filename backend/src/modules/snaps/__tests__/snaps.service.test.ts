@@ -640,6 +640,25 @@ describe('snaps service: sweep', () => {
     vi.restoreAllMocks();
   });
 
+  it('logs the message and code of a Supabase error object, never "[object Object]"', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    const { service, storage } = await sent();
+    // PostgREST and Storage errors are plain objects, not Error instances.
+    vi.mocked(storage.listOlderThan).mockRejectedValue({
+      message: 'relation "public.snaps" does not exist',
+      code: '42P01',
+    });
+    expect((await service.sweep(at(5 * MIN))).failed).toBe(1);
+    expect(warn).toHaveBeenCalledWith(
+      'snap.delete_failed',
+      expect.objectContaining({
+        stage: 'orphans',
+        message: 'relation "public.snaps" does not exist (42P01)',
+      }),
+    );
+    vi.restoreAllMocks();
+  });
+
   it('never logs bytes or who opened the snap', async () => {
     const spies = (['info', 'warn', 'error'] as const).map((l) => vi.spyOn(logger, l));
     const { service, id, objects } = await sent();
