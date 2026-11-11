@@ -42,6 +42,12 @@
           "photosPermission": "Hissa reads the photo you pick so it can look at your plate."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "790edd6d-4dce-46b4-a828-67211ce8d5a3"
+      }
+    },
+    "owner": "zaryab_t"
   }
 }
