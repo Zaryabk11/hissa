@@ -15,7 +15,8 @@
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
-    "test:data": "node --test database/scripts/*.test.mjs"
+    "test:data": "node --test database/scripts/*.test.mjs",
+    "start": "npm start -w backend"
   },
   "devDependencies": {
     "prettier": "^3.9.10"
